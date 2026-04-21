@@ -119,6 +119,15 @@ else()
     endif()
 endif()
 
+set(SDL_STATIC ON CACHE BOOL "Build SDL as a static library" FORCE)
+set(SDL_SHARED OFF CACHE BOOL "Build SDL as a static library" FORCE)
+set(SDL_TEST_LIBRARY OFF CACHE BOOL "Build the SDL3_test library" FORCE)
+set(SDL_INSTALL OFF CACHE BOOL "Enable installation of SDL3" FORCE)
+add_subdirectory(dependencies/SDL "${CMAKE_BINARY_DIR}/dependencies/SDL" EXCLUDE_FROM_ALL)
+
+set(BUILD_SHARED_LIBS OFF)
+add_subdirectory(dependencies/SDL_image "${CMAKE_BINARY_DIR}/dependencies/SDL_image" EXCLUDE_FROM_ALL)
+
 add_subdirectory(configured)
 add_subdirectory(src)
 add_subdirectory(app)
