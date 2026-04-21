@@ -58,10 +58,14 @@ html/
 ################################
 ########### VS CODE ############
 ################################
-.vscode/settings.json
-.vscode/c_cpp_properties.json
+.vscode/*
+.vscode-test/
+.idea/
+.vs/
 *.code-workspace
 .history
+*.swp
+*.swo
 
 ################################
 ###########   VS    ############
