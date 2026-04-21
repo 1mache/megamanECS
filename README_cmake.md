@@ -63,6 +63,16 @@ cd build
 cmake -DMY_OPTION=[ON|OFF] ..
 ```
 
+For sanitizers in this template:
+
+```bash
+cmake -DENABLE_SANITIZE_ADDR=ON ..
+cmake -DENABLE_SANITIZE_UNDEF=ON ..
+cmake -DENABLE_SANITIZE_ADDR=ON -DENABLE_SANITIZE_UNDEF=ON ..
+```
+
+These options also exist in presets like `x64-asan-debug`, `x64-ubsan-debug`, and `x64-sanitize-debug`.
+
 ## Specify the Build Target (Option 1)
 
 The standard build command would build all created targets within the CMakeLists.

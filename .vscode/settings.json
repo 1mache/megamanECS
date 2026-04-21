@@ -9,6 +9,9 @@
         ],
         "externalConsole": true
     },
+
+    "cmake.useCMakePresets": "always",
+
     // "cmake.buildDirectory": "${workspaceFolder}/build-${buildKit}",
     "files.associations": {
         "*.pyx": "cython",

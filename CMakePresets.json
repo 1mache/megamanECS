@@ -36,6 +36,34 @@
             }
         },
         {
+            "name": "x64-asan-debug",
+            "displayName": "x64 Debug ASan",
+            "description": "Debug build with AddressSanitizer enabled",
+            "inherits": "x64-debug",
+            "cacheVariables": {
+                "ENABLE_SANITIZE_ADDR": "ON"
+            }
+        },
+        {
+            "name": "x64-ubsan-debug",
+            "displayName": "x64 Debug UBSan",
+            "description": "Debug build with UndefinedSanitizer enabled",
+            "inherits": "x64-debug",
+            "cacheVariables": {
+                "ENABLE_SANITIZE_UNDEF": "ON"
+            }
+        },
+        {
+            "name": "x64-sanitize-debug",
+            "displayName": "x64 Debug ASan+UBSan",
+            "description": "Debug build with AddressSanitizer and UndefinedSanitizer enabled",
+            "inherits": "x64-debug",
+            "cacheVariables": {
+                "ENABLE_SANITIZE_ADDR": "ON",
+                "ENABLE_SANITIZE_UNDEF": "ON"
+            }
+        },
+        {
             "name": "x86-debug",
             "displayName": "x86 Debug ",
             "description": "Sets debug build type and x86 arch",
