@@ -5,8 +5,7 @@ add_executable(${EXECUTABLE_NAME} ${APP_SOURCES})
 
 target_link_libraries(
     ${EXECUTABLE_NAME}
-    PRIVATE "LibFoo"
-            "LibBar"
+    PRIVATE
             SDL3-static
             SDL3_image-static
             nlohmann_json::nlohmann_json

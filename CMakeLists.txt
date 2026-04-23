@@ -145,7 +145,7 @@ install(
     LIBRARY DESTINATION lib
     RUNTIME DESTINATION bin)
 
-install(
-    TARGETS "LibFoo" "LibBar"
-    ARCHIVE DESTINATION lib
-    LIBRARY DESTINATION lib)
+# install(
+#     TARGETS "LibFoo" "LibBar"
+#     ARCHIVE DESTINATION lib
+#     LIBRARY DESTINATION lib)
