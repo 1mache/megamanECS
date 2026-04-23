@@ -3,6 +3,12 @@ set(APP_SOURCES "${CMAKE_CURRENT_SOURCE_DIR}/sdl_main.cpp")
 
 add_executable(${EXECUTABLE_NAME} ${APP_SOURCES})
 
+target_include_directories(
+    ${EXECUTABLE_NAME}
+    PUBLIC
+    "${CMAKE_SOURCE_DIR}/dependencies/bagel"
+)
+
 target_link_libraries(
     ${EXECUTABLE_NAME}
     PRIVATE
