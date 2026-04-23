@@ -43,3 +43,12 @@ endif()
 if(CMAKE_CXX_COMPILER_ID MATCHES "Clang|GNU")
     target_compile_options(${EXECUTABLE_NAME} PRIVATE -Wno-old-style-cast)
 endif()
+
+# Copy resources next to executable so runtime paths like res/... work.
+add_custom_command(
+    TARGET ${EXECUTABLE_NAME}
+    POST_BUILD
+    COMMAND ${CMAKE_COMMAND} -E copy_directory
+            "${CMAKE_SOURCE_DIR}/res"
+            "$<TARGET_FILE_DIR:${EXECUTABLE_NAME}>/res"
+    COMMENT "Copying res directory to output folder")
