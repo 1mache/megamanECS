@@ -43,7 +43,8 @@ public:
         if (_size == _capacity)
         {
             _capacity *= 2;
-            _arr = static_cast<T *>(realloc(_arr, sizeof(T) * _capacity));
+            _arr = static_cast<T *>(
+                realloc(_arr, sizeof(T) * static_cast<size_t>(_capacity)));
         }
         _arr[_size] = val;
         ++_size;
