@@ -6,12 +6,95 @@
 #include <string>
 
 namespace megaman
+{ // forward declarations
+struct Transform;
+struct Movement;
+struct Collision;
+struct Drawable;
+struct Health;
+struct Input;
+struct Enemy;
+struct AI;
+struct Weapon;
+struct Scene;
+struct Sound;
+} // namespace megaman
+
+template <>
+struct bagel::Storage<megaman::Transform> final : bagel::NoInstance
 {
+    using type = bagel::SparseStorage<megaman::Transform>;
+};
+
+template <>
+struct bagel::Storage<megaman::Movement> final : bagel::NoInstance
+{
+    using type = bagel::PackedStorage<megaman::Movement>;
+};
+
+template <>
+struct bagel::Storage<megaman::Collision> final : bagel::NoInstance
+{
+    using type = bagel::PackedStorage<megaman::Collision>;
+};
+
+template <>
+struct bagel::Storage<megaman::Drawable> final : bagel::NoInstance
+{
+    using type = bagel::SparseStorage<megaman::Drawable>;
+};
+
+template <>
+struct bagel::Storage<megaman::Health> final : bagel::NoInstance
+{
+    using type = bagel::StackStorage<megaman::Health>;
+};
+
+template <>
+struct bagel::Storage<megaman::Input> final : bagel::NoInstance
+{
+    using type = bagel::TaggedStorage<megaman::Input>;
+};
+
+template <>
+struct bagel::Storage<megaman::Enemy> final : bagel::NoInstance
+{
+    using type = bagel::TaggedStorage<megaman::Enemy>;
+};
+
+template <>
+struct bagel::Storage<megaman::AI> final : bagel::NoInstance
+{
+    using type = bagel::StackStorage<megaman::AI>;
+};
+
+template <>
+struct bagel::Storage<megaman::Weapon> final : bagel::NoInstance
+{
+    using type = bagel::StackStorage<megaman::Weapon>;
+};
+
+template <>
+struct bagel::Storage<megaman::Scene> final : bagel::NoInstance
+{
+    using type = bagel::SparseStorage<megaman::Scene>;
+};
+
+template <>
+struct bagel::Storage<megaman::Sound> final : bagel::NoInstance
+{
+    using type = bagel::StackStorage<megaman::Sound>;
+};
+
+namespace megaman
+{
+using ent_type = bagel::ent_type;
+
 // ============= COMPONENTS =============
 struct Transform
 {
-    // Preferred storage: Packed, almost every entity will have a transform,
-    // and its used by many systems every frame.
+    // Preferred storage: Sparse, almost every entity will have a transform,
+    // so almost no holes and array will be well utilized.
 
     // pos and scale can also be a Vector2 or equivalent if exists in SDL. or stay like this.
     float posX{};
@@ -30,7 +113,7 @@ struct Movement
     float mass{};
     float velX{};
     float velY{};
-    float accX{};
+    float accX{}; //acceleration
     float accY{};
 };
 
@@ -78,7 +161,7 @@ struct AI
     // Preferred storage: Stack, relatively few entities will have AI
     // and they are likely to be created and destroyed frequently.
 
-    int state{}; // or some custom type later
+    int state{-1}; // or some custom type later
 };
 
 struct Weapon
@@ -86,7 +169,7 @@ struct Weapon
     // Preferred storage: Stack, few entities will be able to shoot
     // and be in the scene at the same time, we dont want to waste large array for their possibly large ids.
 
-    int projectileType{}; // or some custom type later
+    int projectileType{-1}; // or some custom type later
 };
 
 struct Scene
@@ -102,14 +185,176 @@ struct Sound
     // Preferred storage: Stack, a lot of entities can have sound effects tied to them
     // and a lot of them die and get created frequently.
 
-    int  sound{}; // or some way to hold sound data
-    bool isPlaying{};
+    int  sound{-1}; // or some way to hold sound data
+    bool isPlaying{false};
 };
 
 // ============= SYSTEMS    =============
 
+class MovementSystem final : bagel::NoInstance
+{
+};
+// maybe unite these 2 into one PhysicsSystem later
+class CollisionSystem final : bagel::NoInstance
+{
+};
+
+class DrawingSystem final : bagel::NoInstance
+{
+};
+
+class HealthSystem final : bagel::NoInstance
+{
+};
+
+class AISystem final : bagel::NoInstance
+{
+};
+
+class InputSystem final : bagel::NoInstance
+{
+};
+
+class SoundSystem final : bagel::NoInstance
+{
+};
+
+class SceneSystem final : bagel::NoInstance
+{
+};
 // ============= ENTITIES   =============
 
+ent_type createPlayer(float x, float y /*or vector2 like type*/, int hp)
+{
+    ent_type ent = bagel::World::createEntity();
+
+    bagel::Storage<Drawable>::type::add(ent, {.texture = nullptr});
+    bagel::Storage<Transform>::type::add(ent, {.posX = x, .posY = y});
+    bagel::Storage<Movement>::type::add(ent, {.mass = 1});
+    bagel::Storage<Collision>::type::add(ent, {});
+    bagel::Storage<Health>::type::add(ent, {.points = hp});
+    bagel::Storage<Input>::type::add(ent, {});
+    bagel::Storage<Weapon>::type::add(ent, {});
+    bagel::Storage<Sound>::type::add(ent, {});
+
+    return ent;
+}
+
+ent_type createEnemy(float x, float y, int hp)
+{
+    ent_type ent = bagel::World::createEntity();
+
+    bagel::Storage<Drawable>::type::add(ent, {.texture = nullptr});
+    bagel::Storage<Transform>::type::add(ent, {.posX = x, .posY = y});
+    bagel::Storage<Movement>::type::add(ent, {.mass = 1});
+    bagel::Storage<Collision>::type::add(ent, {});
+    bagel::Storage<Health>::type::add(ent, {.points = hp});
+    bagel::Storage<Enemy>::type::add(ent, {});
+    bagel::Storage<AI>::type::add(ent, {.state = -1});
+    bagel::Storage<Sound>::type::add(ent, {});
+
+    return ent;
+}
+
+ent_type createBoss(float x, float y, int hp)
+{
+    ent_type ent = bagel::World::createEntity();
+
+    bagel::Storage<Drawable>::type::add(ent, {.texture = nullptr});
+    bagel::Storage<Transform>::type::add(ent, {.posX = x, .posY = y});
+    bagel::Storage<Movement>::type::add(ent, {.mass = 1});
+    bagel::Storage<Collision>::type::add(ent, {});
+    bagel::Storage<Health>::type::add(ent, {.points = hp});
+    bagel::Storage<Enemy>::type::add(ent, {});
+    bagel::Storage<AI>::type::add(ent, {.state = -1});
+    // based on boss type
+    bagel::Storage<Weapon>::type::add(ent, {.projectileType = -1});
+    bagel::Storage<Sound>::type::add(ent, {});
+
+    return ent;
+}
+
+ent_type createPlatform(float x, float y, bool isMoving)
+{
+    ent_type ent = bagel::World::createEntity();
+
+    bagel::Storage<Transform>::type::add(ent, {.posX = x, .posY = y});
+    bagel::Storage<Collision>::type::add(ent, {});
+    if (isMoving)
+        bagel::Storage<Movement>::type::add(ent, {.mass = 0});
+
+    return ent;
+}
+
+ent_type createProjectile(float x, float y, float velX, float velY)
+{
+    ent_type ent = bagel::World::createEntity();
+
+    bagel::Storage<Drawable>::type::add(ent, {.texture = nullptr});
+    bagel::Storage<Transform>::type::add(ent, {.posX = x, .posY = y});
+    bagel::Storage<Movement>::type::add(
+        ent,
+        {.mass = 1, .velX = velX, .velY = velY});
+    bagel::Storage<Collision>::type::add(ent, {});
+
+    return ent;
+}
+
+ent_type createTrigger(float x, float y, float width, float height)
+{
+    ent_type ent = bagel::World::createEntity();
+
+    bagel::Storage<Transform>::type::add(ent, {.posX = x, .posY = y});
+    bagel::Storage<Collision>::type::add(ent,
+                                         {.width = width, .height = height});
+
+    return ent;
+}
+
+ent_type createItem(float x, float y)
+{
+    ent_type ent = bagel::World::createEntity();
+
+    bagel::Storage<Drawable>::type::add(ent, {.texture = nullptr});
+    bagel::Storage<Transform>::type::add(ent, {.posX = x, .posY = y});
+    bagel::Storage<Collision>::type::add(ent, {});
+
+    return ent;
+}
+
+ent_type createText(float x, float y, const std::string& text)
+{
+    ent_type ent = bagel::World::createEntity();
+
+    bagel::Storage<Drawable>::type::add(
+        ent,
+        {.texture = nullptr}); // tie it to the text later somehow
+    bagel::Storage<Transform>::type::add(ent, {.posX = x, .posY = y});
+
+    return ent;
+}
+
+ent_type createSoundSource(float x, float y, int sound)
+{
+    ent_type ent = bagel::World::createEntity();
+
+    bagel::Storage<Transform>::type::add(ent, {.posX = x, .posY = y});
+    bagel::Storage<Sound>::type::add(ent, {.sound = sound});
+
+    return ent;
+}
+
+ent_type createScene(const std::string& mapFilePath)
+{
+    ent_type ent = bagel::World::createEntity();
+
+    bagel::Storage<Scene>::type::add(ent, {.mapFilePath = mapFilePath});
+
+    return ent;
+}
 } // namespace megaman
+
+// ============= STORAGE SPECIALIZATIONS =============
+
 
 #endif // MEGAMAN_H
