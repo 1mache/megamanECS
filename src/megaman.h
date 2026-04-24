@@ -46,9 +46,8 @@ struct Collision
 
 struct Drawable
 {
-    // Preferred storage: Packed, almost every entity can be drawn to the screen.
-    // There wont be many deletions relative to the number of entities
-    // and we want quick iteration for rendering
+    // Preferred storage: Sparse, almost every entity can be drawn to the screen.
+    // Holes will be filled quickly with new objects so we can get away with one array.
 
     SDL_Texture *texture{nullptr};
 };
@@ -103,7 +102,8 @@ struct Sound
     // Preferred storage: Stack, a lot of entities can have sound effects tied to them
     // and a lot of them die and get created frequently.
 
-    int sound{}; // or some way to hold sound data
+    int  sound{}; // or some way to hold sound data
+    bool isPlaying{};
 };
 
 // ============= SYSTEMS    =============
