@@ -4,7 +4,7 @@
 #include <iostream>
 
 constexpr int             WIN_WIDTH = 720;
-constexpr int             WIN_HEIGHT = 405;
+constexpr int             WIN_HEIGHT = 540;
 constexpr SDL_WindowFlags WIN_FLAGS = 0;
 
 bool createWindowAndRenderer(const char*    title,
@@ -68,6 +68,8 @@ int main()
         destroyResourcesAndQuit(window, renderer);
         return EXIT_FAILURE;
     }
+    std::cout << "Bg dimensions : " << surface->w << "x" << surface->h
+              << std::endl;
 
     // 1.load scene picture
     // 2.init player
@@ -76,7 +78,7 @@ int main()
     // 5.init ground collider
 
 
-    SDL_Event* event{};
+    SDL_Event event{};
 
     while (isRunning)
     {
@@ -92,9 +94,28 @@ int main()
         // 9.  enemy dies
         // 10. spawn + animate explosion
 
-        if (SDL_PollEvent(event))
+        SDL_Rect dstRect{};
+        dstRect.x = 0;
+        dstRect.y = 0;
+        dstRect.w = WIN_WIDTH;  // scale to window width
+        dstRect.h = WIN_HEIGHT; // scale to window height
+
+        if (!SDL_BlitSurfaceScaled(surface,
+                                   nullptr,
+                                   SDL_GetWindowSurface(window),
+                                   nullptr,
+                                   SDL_SCALEMODE_PIXELART))
         {
-            if (event->type == SDL_EVENT_QUIT)
+            std::cerr << "Blit error : " << SDL_GetError() << std::endl;
+            destroyResourcesAndQuit(window, renderer);
+            return EXIT_FAILURE;
+        }
+
+        SDL_UpdateWindowSurface(window);
+
+        if (SDL_PollEvent(&event))
+        {
+            if (event.type == SDL_EVENT_QUIT)
                 isRunning = false;
         }
     }
