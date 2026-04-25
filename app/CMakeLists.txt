@@ -1,5 +1,4 @@
-# set(APP_SOURCES "${CMAKE_CURRENT_SOURCE_DIR}/main.cc")
-set(APP_SOURCES "${CMAKE_CURRENT_SOURCE_DIR}/sdl_main.cpp")
+set(APP_SOURCES "${CMAKE_CURRENT_SOURCE_DIR}/mockup.cpp")
 
 add_executable(${EXECUTABLE_NAME} ${APP_SOURCES})
 
