@@ -7,8 +7,11 @@ constexpr int             WIN_WIDTH = 720;
 constexpr int             WIN_HEIGHT = 540;
 constexpr SDL_WindowFlags WIN_FLAGS = 0;
 
+[[maybe_unused]]
 constexpr int MEGAMAN_SPRITE_DIM[] = {28, 28};
+[[maybe_unused]]
 constexpr int ENEMY_SPRITE_DIM[] = {22, 24};
+[[maybe_unused]]
 constexpr int EXPLOSION_SPRITE_DIM[] = {22, 24};
 
 struct SpriteSheet
@@ -28,8 +31,19 @@ bool createWindowAndRenderer(const char*    title,
         return false;
     }
 
-    window = SDL_CreateWindow(title, WIN_WIDTH, WIN_HEIGHT, WIN_FLAGS);
-
+    auto success = SDL_CreateWindowAndRenderer(title,
+                                               WIN_WIDTH,
+                                               WIN_HEIGHT,
+                                               WIN_FLAGS,
+                                               &window,
+                                               &renderer);
+    if (!success)
+    {
+        std::cerr << "Window and renderer creation error : " << SDL_GetError()
+                  << '\n';
+        SDL_Quit();
+        return false;
+    }
     if (!window)
     {
         std::cerr << "Window creation error : " << SDL_GetError() << std::endl;
@@ -40,16 +54,6 @@ bool createWindowAndRenderer(const char*    title,
     SDL_SetWindowPosition(window,
                           SDL_WINDOWPOS_CENTERED,
                           SDL_WINDOWPOS_CENTERED);
-
-    renderer = SDL_CreateRenderer(window, nullptr);
-    if (!renderer)
-    {
-        std::cerr << "Renderer creation error : " << SDL_GetError()
-                  << std::endl;
-        SDL_DestroyWindow(window);
-        SDL_Quit();
-        return false;
-    }
 
     return true;
 }
