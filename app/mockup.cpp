@@ -17,19 +17,19 @@ constexpr int EXPLOSION_SPRITE_DIM[] = {22, 24};
 
 struct SpriteSheet
 {
-    SDL_Texture* texture;
-    float        w;  // texture width
-    float        h;  // texture height
-    float        sw; // sprite width
-    float        sh; // sprite height
+    SDL_Texture* texture{};
+    float        w{};  // texture width
+    float        h{};  // texture height
+    float        sw{}; // sprite width
+    float        sh{}; // sprite height
 };
 
 struct Animation
 {
-    SpriteSheet* spriteSheet;
-    int          startCol;
-    int          startRow;
-    int          frameCount;
+    SpriteSheet* spriteSheet{};
+    int          startCol{};
+    int          startRow{};
+    int          frameCount{};
 };
 
 bool createWindowAndRenderer(const char*    title,
