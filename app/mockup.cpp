@@ -17,8 +17,10 @@ constexpr int EXPLOSION_SPRITE_DIM[] = {22, 24};
 struct SpriteSheet
 {
     SDL_Texture* texture;
-    int          spriteWidth;
-    int          spriteHeight;
+    float        w;  // texture width
+    float        h;  // texture height
+    float        sw; // sprite width
+    float        sh; // sprite height
 };
 
 bool createWindowAndRenderer(const char*    title,
@@ -58,21 +60,9 @@ bool createWindowAndRenderer(const char*    title,
     return true;
 }
 
-SDL_Surface* createSurfaceFromImage(const char* path)
+SDL_Texture* createTexture(const char* path, SDL_Renderer* renderer)
 {
-    SDL_Surface* surface = IMG_Load(path);
-    if (!surface)
-    {
-        std::cerr << "Image loading error : " << SDL_GetError() << std::endl;
-        return nullptr;
-    }
-    return surface;
-}
-
-SDL_Texture* createTextureFromSurface(SDL_Renderer* renderer,
-                                      SDL_Surface*  surface)
-{
-    SDL_Texture* texture = SDL_CreateTextureFromSurface(renderer, surface);
+    SDL_Texture* texture = IMG_LoadTexture(renderer, path);
     if (!texture)
     {
         std::cerr << "Texture creation error : " << SDL_GetError() << std::endl;
@@ -98,20 +88,19 @@ int main()
 
     bool isRunning = true;
 
-    SDL_Surface* bgSurface = createSurfaceFromImage("res/area.png");
-    if (!bgSurface)
+    SpriteSheet bg{};
+    bg.texture = createTexture("res/area.png", renderer);
+    if (!bg.texture)
     {
         destroyResourcesAndQuit(window, renderer);
         return EXIT_FAILURE;
     }
 
-    SDL_Texture* bgTexture = createTextureFromSurface(renderer, bgSurface);
-    if (!bgTexture)
-    {
-        destroyResourcesAndQuit(window, renderer);
-        return EXIT_FAILURE;
-    }
+    SDL_GetTextureSize(bg.texture, &bg.w, &bg.h);
 
+    const float scaleFactor = WIN_WIDTH / bg.w;
+    // scale everything by the same factor to preserve sprite aspect ratio
+    SDL_SetRenderScale(renderer, scaleFactor, scaleFactor);
 
     // 1.load scene picture
     // 2.init player
@@ -134,15 +123,10 @@ int main()
         // 9.  enemy dies
         // 10. spawn + animate explosion
 
-        constexpr SDL_FRect dstRect{
-            .x = 0,
-            .y = 0,
-            .w = WIN_WIDTH,  // scale to window width
-            .h = WIN_HEIGHT, // scale to window height
-        };
 
+        SDL_FRect dstRect{0, 0, bg.w, bg.h};
         SDL_RenderClear(renderer);
-        SDL_RenderTexture(renderer, bgTexture, nullptr, &dstRect);
+        SDL_RenderTexture(renderer, bg.texture, nullptr, &dstRect);
         SDL_RenderPresent(renderer);
 
         SDL_Event event{};
