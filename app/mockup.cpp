@@ -7,6 +7,17 @@ constexpr int             WIN_WIDTH = 720;
 constexpr int             WIN_HEIGHT = 540;
 constexpr SDL_WindowFlags WIN_FLAGS = 0;
 
+constexpr int MEGAMAN_SPRITE_DIM[] = {28, 28};
+constexpr int ENEMY_SPRITE_DIM[] = {22, 24};
+constexpr int EXPLOSION_SPRITE_DIM[] = {22, 24};
+
+struct SpriteSheet
+{
+    SDL_Texture* texture;
+    int          spriteWidth;
+    int          spriteHeight;
+};
+
 bool createWindowAndRenderer(const char*    title,
                              SDL_Window*&   window,
                              SDL_Renderer*& renderer)
@@ -43,6 +54,29 @@ bool createWindowAndRenderer(const char*    title,
     return true;
 }
 
+SDL_Surface* createSurfaceFromImage(const char* path)
+{
+    SDL_Surface* surface = IMG_Load(path);
+    if (!surface)
+    {
+        std::cerr << "Image loading error : " << SDL_GetError() << std::endl;
+        return nullptr;
+    }
+    return surface;
+}
+
+SDL_Texture* createTextureFromSurface(SDL_Renderer* renderer,
+                                      SDL_Surface*  surface)
+{
+    SDL_Texture* texture = SDL_CreateTextureFromSurface(renderer, surface);
+    if (!texture)
+    {
+        std::cerr << "Texture creation error : " << SDL_GetError() << std::endl;
+        return nullptr;
+    }
+    return texture;
+}
+
 void destroyResourcesAndQuit(SDL_Window* window, SDL_Renderer* renderer)
 {
     SDL_DestroyRenderer(renderer);
@@ -60,16 +94,20 @@ int main()
 
     bool isRunning = true;
 
-
-    SDL_Surface* surface = IMG_Load("res/area.png");
-    if (!surface)
+    SDL_Surface* bgSurface = createSurfaceFromImage("res/area.png");
+    if (!bgSurface)
     {
-        std::cerr << "Image loading error : " << SDL_GetError() << std::endl;
         destroyResourcesAndQuit(window, renderer);
         return EXIT_FAILURE;
     }
-    std::cout << "Bg dimensions : " << surface->w << "x" << surface->h
-              << std::endl;
+
+    SDL_Texture* bgTexture = createTextureFromSurface(renderer, bgSurface);
+    if (!bgTexture)
+    {
+        destroyResourcesAndQuit(window, renderer);
+        return EXIT_FAILURE;
+    }
+
 
     // 1.load scene picture
     // 2.init player
@@ -77,8 +115,6 @@ int main()
     // 4.init health indication
     // 5.init ground collider
 
-
-    SDL_Event event{};
 
     while (isRunning)
     {
@@ -94,25 +130,18 @@ int main()
         // 9.  enemy dies
         // 10. spawn + animate explosion
 
-        SDL_Rect dstRect{};
-        dstRect.x = 0;
-        dstRect.y = 0;
-        dstRect.w = WIN_WIDTH;  // scale to window width
-        dstRect.h = WIN_HEIGHT; // scale to window height
+        constexpr SDL_FRect dstRect{
+            .x = 0,
+            .y = 0,
+            .w = WIN_WIDTH,  // scale to window width
+            .h = WIN_HEIGHT, // scale to window height
+        };
 
-        if (!SDL_BlitSurfaceScaled(surface,
-                                   nullptr,
-                                   SDL_GetWindowSurface(window),
-                                   nullptr,
-                                   SDL_SCALEMODE_PIXELART))
-        {
-            std::cerr << "Blit error : " << SDL_GetError() << std::endl;
-            destroyResourcesAndQuit(window, renderer);
-            return EXIT_FAILURE;
-        }
+        SDL_RenderClear(renderer);
+        SDL_RenderTexture(renderer, bgTexture, nullptr, &dstRect);
+        SDL_RenderPresent(renderer);
 
-        SDL_UpdateWindowSurface(window);
-
+        SDL_Event event{};
         if (SDL_PollEvent(&event))
         {
             if (event.type == SDL_EVENT_QUIT)
