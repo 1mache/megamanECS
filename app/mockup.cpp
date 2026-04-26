@@ -2,6 +2,7 @@
 #include <SDL3_image/SDL_image.h>
 
 #include <iostream>
+#include <vector>
 
 constexpr int             WIN_WIDTH = 720;
 constexpr int             WIN_HEIGHT = 540;
@@ -21,6 +22,14 @@ struct SpriteSheet
     float        h;  // texture height
     float        sw; // sprite width
     float        sh; // sprite height
+};
+
+struct Animation
+{
+    SpriteSheet* spriteSheet;
+    int          startCol;
+    int          startRow;
+    int          frameCount;
 };
 
 bool createWindowAndRenderer(const char*    title,
