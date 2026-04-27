@@ -53,6 +53,16 @@ enum class Explosion
 [[maybe_unused]]
 constexpr int EXPLOSION_FRAME_COUNT = 3;
 
+[[maybe_unused]]
+constexpr int SHOT_FRAME_COUNT = 1;
+
+enum class Shot
+{
+    FLY = 0
+};
+
+constexpr int SHOT_SPRITE_DIM[] = {8, 6};
+
 struct SpriteSheet
 {
     SDL_Texture* texture{};
@@ -196,8 +206,8 @@ SpriteSheet createShotSpriteSheet(SDL_Window* window, SDL_Renderer* renderer)
         std::exit(EXIT_FAILURE);
     }
     SDL_GetTextureSize(shot.texture, &shot.w, &shot.h);
-    shot.sw = shot.w; //single frame
-    shot.sh = shot.h;
+    shot.sw = SHOT_SPRITE_DIM[0];
+    shot.sh = SHOT_SPRITE_DIM[1];
     return shot;
 }
 
@@ -240,6 +250,26 @@ void renderEnemy(const Animation& anim,
     SDL_RenderTexture(renderer, anim.spriteSheet->texture, &srcRect, &dstRect);
 }
 
+void renderShot(const Animation& anim,
+                int&             frameIndex,
+                const SDL_FRect& dstRect,
+                SDL_Renderer*    renderer)
+{
+    SDL_FRect srcRect = getNextAnimationFrame(anim, frameIndex);
+    frameIndex = (frameIndex + 1) % anim.frameCount;
+    SDL_RenderTexture(renderer, anim.spriteSheet->texture, &srcRect, &dstRect);
+}
+
+void renderExplosion(const Animation& anim,
+                     int&             frameIndex,
+                     const SDL_FRect& dstRect,
+                     SDL_Renderer*    renderer)
+{
+    SDL_FRect srcRect = getNextAnimationFrame(anim, frameIndex);
+    // NOTE: caller controls frameIndex (no wrap) so explosion plays once
+    SDL_RenderTexture(renderer, anim.spriteSheet->texture, &srcRect, &dstRect);
+}
+
 int main()
 {
     SDL_Window*   window{};
@@ -274,8 +304,15 @@ int main()
                              enemy.sw,
                              enemy.sh};
 
-    //SpriteSheet explosion = createExplosionSpriteSheet(window, renderer);
-    //SpriteSheet shot = createShotSpriteSheet(window, renderer);
+    SpriteSheet shot = createShotSpriteSheet(window, renderer);
+    Animation   shotFlyAnim{&shot,
+                            static_cast<int>(Shot::FLY),
+                            SHOT_FRAME_COUNT};
+
+    SpriteSheet explosion = createExplosionSpriteSheet(window, renderer);
+    Animation   explosionAnim{&explosion,
+                              static_cast<int>(Explosion::EXPLODE),
+                              EXPLOSION_FRAME_COUNT};
 
 
     // 4.init ground collider
@@ -302,6 +339,7 @@ int main()
                       megamanAnimFrame,
                       megamanDstRect,
                       renderer);
+        megamanDstRect.x += 2.f; // move right
         renderEnemy(enemyHoverAnim, enemyAnimFrame, enemyDstRect, renderer);
         SDL_RenderPresent(renderer);
 
@@ -312,13 +350,13 @@ int main()
         {
             if (event.type == SDL_EVENT_QUIT)
                 isRunning = false;
-            else if (event.type == SDL_EVENT_MOUSE_MOTION)
-            {
-                megamanDstRect.x = event.motion.x / scaleFactor;
-                megamanDstRect.y = event.motion.y / scaleFactor;
-                std::cout << "Mouse at (" << megamanDstRect.x << ", "
-                          << megamanDstRect.y << ")\n";
-            }
+            // else if (event.type == SDL_EVENT_MOUSE_MOTION)
+            // {
+            //     megamanDstRect.x = event.motion.x / scaleFactor;
+            //     megamanDstRect.y = event.motion.y / scaleFactor;
+            //     std::cout << "Mouse at (" << megamanDstRect.x << ", "
+            //               << megamanDstRect.y << ")\n";
+            // }
         }
     }
 
