@@ -43,8 +43,11 @@ enum class Enemy
     HOVER = 0
 };
 [[maybe_unused]]
-constexpr int ENEMY_HOVER_FRAME_COUNT = 2;
-constexpr int ENEMY_START_POS[] = {250, 65};
+constexpr int   ENEMY_HOVER_FRAME_COUNT = 2;
+constexpr int   ENEMY_START_POS[] = {250, 65};
+constexpr float ENEMY_PATROL_LEFT_X = 150.f;
+constexpr float ENEMY_PATROL_RIGHT_X = 250.f;
+constexpr float ENEMY_SPEED = 1.0f;
 
 enum class Explosion
 { // in order
@@ -304,20 +307,25 @@ int main()
                              enemy.sw,
                              enemy.sh};
 
-    SpriteSheet shot = createShotSpriteSheet(window, renderer);
-    Animation   shotFlyAnim{&shot,
-                            static_cast<int>(Shot::FLY),
-                            SHOT_FRAME_COUNT};
+    SpriteSheet                shot = createShotSpriteSheet(window, renderer);
+    [[maybe_unused]] Animation shotFlyAnim{&shot,
+                                           static_cast<int>(Shot::FLY),
+                                           SHOT_FRAME_COUNT};
 
     SpriteSheet explosion = createExplosionSpriteSheet(window, renderer);
-    Animation   explosionAnim{&explosion,
-                              static_cast<int>(Explosion::EXPLODE),
-                              EXPLOSION_FRAME_COUNT};
+    [[maybe_unused]] Animation explosionAnim{
+        &explosion,
+        static_cast<int>(Explosion::EXPLODE),
+        EXPLOSION_FRAME_COUNT};
 
 
     // 4.init ground collider
     int megamanAnimFrame = 0;
     int enemyAnimFrame = 0;
+
+    float enemyDir = 1.f; // +1 right, -1 left
+    bool  enemyAlive = true;
+    int   enemyHp = 2;
 
     while (isRunning)
     {
@@ -340,7 +348,17 @@ int main()
                       megamanDstRect,
                       renderer);
         megamanDstRect.x += 2.f; // move right
-        renderEnemy(enemyHoverAnim, enemyAnimFrame, enemyDstRect, renderer);
+        if (enemyAlive)
+        {
+            enemyDstRect.x += enemyDir * ENEMY_SPEED;
+            if (enemyDstRect.x >= ENEMY_PATROL_RIGHT_X)
+                enemyDir = -1.f;
+            if (enemyDstRect.x <= ENEMY_PATROL_LEFT_X)
+                enemyDir = 1.f;
+        }
+        (void)enemyHp;
+        if (enemyAlive)
+            renderEnemy(enemyHoverAnim, enemyAnimFrame, enemyDstRect, renderer);
         SDL_RenderPresent(renderer);
 
         SDL_Delay(FRAME_DELAY_MS);
