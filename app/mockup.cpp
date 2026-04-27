@@ -52,7 +52,10 @@ constexpr int   ENEMY_HOVER_FRAME_COUNT = 2;
 constexpr int   ENEMY_START_POS[] = {250, 65};
 constexpr float ENEMY_PATROL_LEFT_X = 150.f;
 constexpr float ENEMY_PATROL_RIGHT_X = 250.f;
-constexpr float ENEMY_SPEED = 1.0f;
+constexpr float ENEMY_SPEED          = 1.0f;
+constexpr float SHOT_SPEED           = 4.f;
+constexpr int   ENEMY_BLINK_FRAMES   = 18;
+constexpr int   ENEMY_BLINK_PERIOD   = 3;
 
 enum class Explosion
 { // in order
@@ -334,9 +337,9 @@ int main()
                              enemy.sh};
 
     SpriteSheet                shot = createShotSpriteSheet(window, renderer);
-    [[maybe_unused]] Animation shotFlyAnim{&shot,
-                                           static_cast<int>(Shot::FLY),
-                                           SHOT_FRAME_COUNT};
+    Animation shotFlyAnim{&shot,
+                          static_cast<int>(Shot::FLY),
+                          SHOT_FRAME_COUNT};
 
     SpriteSheet explosion = createExplosionSpriteSheet(window, renderer);
     [[maybe_unused]] Animation explosionAnim{
@@ -357,6 +360,11 @@ int main()
     int          jumpFrame = 0;
     int          shootHold = 0;
     float        megamanBaseY = MEGAMAN_GROUND_Y;
+
+    bool      shotActive    = false;
+    SDL_FRect shotDstRect{0, 0, shot.sw, shot.sh};
+    int       shotAnimFrame = 0;
+    int       enemyBlinkTimer = 0;
 
     while (isRunning)
     {
@@ -425,6 +433,13 @@ int main()
         case MegamanState::JUMP_AND_SHOOT_1:
         case MegamanState::JUMP_AND_SHOOT_2:
         {
+            if (jumpFrame == JUMP_DURATION_FRAMES / 2)
+            {
+                shotActive       = true;
+                shotDstRect.x    = megamanDstRect.x + megaman.sw;
+                shotDstRect.y    = megamanDstRect.y + megaman.sh * 0.5f - shot.sh * 0.5f;
+                shotAnimFrame    = 0;
+            }
             float t = static_cast<float>(jumpFrame) / JUMP_DURATION_FRAMES;
             megamanDstRect.y =
                 megamanBaseY - JUMP_PEAK_OFFSET * SDL_sinf(SDL_PI_F * t);
@@ -479,9 +494,35 @@ int main()
             if (enemyDstRect.x <= ENEMY_PATROL_LEFT_X)
                 enemyDir = 1.f;
         }
-        (void)enemyHp;
-        if (enemyAlive)
+        auto rectsOverlap = [](const SDL_FRect& a, const SDL_FRect& b) {
+            return !(a.x + a.w <= b.x || b.x + b.w <= a.x ||
+                     a.y + a.h <= b.y || b.y + b.h <= a.y);
+        };
+
+        if (shotActive)
+        {
+            shotDstRect.x += SHOT_SPEED;
+            if (enemyAlive && rectsOverlap(shotDstRect, enemyDstRect))
+            {
+                shotActive = false;
+                --enemyHp;
+                if (enemyHp > 0)
+                    enemyBlinkTimer = ENEMY_BLINK_FRAMES;
+            }
+            else if (shotDstRect.x > static_cast<float>(WIN_WIDTH))
+            {
+                shotActive = false;
+            }
+        }
+        if (enemyBlinkTimer > 0) --enemyBlinkTimer;
+
+        const bool enemyVisible =
+            enemyAlive &&
+            (enemyBlinkTimer == 0 || (enemyBlinkTimer / ENEMY_BLINK_PERIOD) % 2 == 0);
+        if (enemyVisible)
             renderEnemy(enemyHoverAnim, enemyAnimFrame, enemyDstRect, renderer);
+        if (shotActive)
+            renderShot(shotFlyAnim, shotAnimFrame, shotDstRect, renderer);
         SDL_RenderPresent(renderer);
 
         SDL_Delay(FRAME_DELAY_MS);
