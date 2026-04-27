@@ -1,6 +1,7 @@
 #include <SDL3/SDL.h>
 #include <SDL3_image/SDL_image.h>
 
+#include <cassert>
 #include <iostream>
 #include <vector>
 
@@ -8,12 +9,49 @@ constexpr int             WIN_WIDTH = 720;
 constexpr int             WIN_HEIGHT = 540;
 constexpr SDL_WindowFlags WIN_FLAGS = 0;
 
+constexpr int FRAME_DELAY_MS = 100;
+
 [[maybe_unused]]
 constexpr int MEGAMAN_SPRITE_DIM[] = {28, 28};
 [[maybe_unused]]
 constexpr int ENEMY_SPRITE_DIM[] = {22, 24};
 [[maybe_unused]]
 constexpr int EXPLOSION_SPRITE_DIM[] = {22, 24};
+
+enum class Megaman
+{ // in order start frame of each anim
+    RUN = 0,
+    SHOOTRUN = 4,
+    IDLE = 8,
+    SHOOT = 9,
+    JUMP = 10
+};
+constexpr int MEGAMAN_RUN_FRAME_COUNT = 4;
+[[maybe_unused]]
+constexpr int MEGAMAN_SHOOTRUN_FRAME_COUNT = 4;
+[[maybe_unused]]
+constexpr int MEGAMAN_IDLE_FRAME_COUNT = 1;
+[[maybe_unused]]
+constexpr int MEGAMAN_SHOOT_FRAME_COUNT = 1;
+[[maybe_unused]]
+constexpr int MEGAMAN_JUMP_FRAME_COUNT = 1;
+
+[[maybe_unused]]
+constexpr float MEGAMAN_START_POS[] = {8, 162};
+
+enum class Enemy
+{ // in order
+    HOVER = 0
+};
+[[maybe_unused]]
+constexpr int ENEMY_HOVER_FRAME_COUNT = 2;
+
+enum class Explosion
+{ // in order
+    EXPLODE = 0
+};
+[[maybe_unused]]
+constexpr int EXPLOSION_FRAME_COUNT = 3;
 
 struct SpriteSheet
 {
@@ -27,8 +65,7 @@ struct SpriteSheet
 struct Animation
 {
     SpriteSheet* spriteSheet{};
-    int          startCol{};
-    int          startRow{};
+    int          startFrame{};
     int          frameCount{};
 };
 
@@ -53,13 +90,13 @@ bool createWindowAndRenderer(const char*    title,
         std::cerr << "Window and renderer creation error : " << SDL_GetError()
                   << '\n';
         SDL_Quit();
-        return false;
+        std::exit(EXIT_FAILURE);
     }
     if (!window)
     {
         std::cerr << "Window creation error : " << SDL_GetError() << std::endl;
         SDL_Quit();
-        return false;
+        std::exit(EXIT_FAILURE);
     }
 
     SDL_SetWindowPosition(window,
@@ -87,6 +124,112 @@ void destroyResourcesAndQuit(SDL_Window* window, SDL_Renderer* renderer)
     SDL_Quit();
 }
 
+SpriteSheet createBackgroundSpriteSheet(SDL_Window*   window,
+                                        SDL_Renderer* renderer)
+{
+    SpriteSheet bg{};
+    bg.texture = createTexture("res/area.png", renderer);
+    if (!bg.texture)
+    {
+        destroyResourcesAndQuit(window, renderer);
+        std::exit(EXIT_FAILURE);
+    }
+    SDL_GetTextureSize(bg.texture, &bg.w, &bg.h);
+    bg.sw = bg.w; //single image
+    bg.sh = bg.h;
+    return bg;
+}
+
+SpriteSheet createMegamanSpriteSheet(SDL_Window* window, SDL_Renderer* renderer)
+{
+    SpriteSheet megaman{};
+    megaman.texture = createTexture("res/player.png", renderer);
+    if (!megaman.texture)
+    {
+        destroyResourcesAndQuit(window, renderer);
+        std::exit(EXIT_FAILURE);
+    }
+    SDL_GetTextureSize(megaman.texture, &megaman.w, &megaman.h);
+    megaman.sw = MEGAMAN_SPRITE_DIM[0];
+    megaman.sh = MEGAMAN_SPRITE_DIM[1];
+    return megaman;
+}
+
+SpriteSheet createEnemySpriteSheet(SDL_Window* window, SDL_Renderer* renderer)
+{
+    SpriteSheet enemy{};
+    enemy.texture = createTexture("res/enemy.png", renderer);
+    if (!enemy.texture)
+    {
+        destroyResourcesAndQuit(window, renderer);
+        std::exit(EXIT_FAILURE);
+    }
+    SDL_GetTextureSize(enemy.texture, &enemy.w, &enemy.h);
+    enemy.sw = ENEMY_SPRITE_DIM[0];
+    enemy.sh = ENEMY_SPRITE_DIM[1];
+    return enemy;
+}
+
+SpriteSheet createExplosionSpriteSheet(SDL_Window*   window,
+                                       SDL_Renderer* renderer)
+{
+    SpriteSheet explosion{};
+    explosion.texture = createTexture("res/explosion.png", renderer);
+    if (!explosion.texture)
+    {
+        destroyResourcesAndQuit(window, renderer);
+        std::exit(EXIT_FAILURE);
+    }
+    SDL_GetTextureSize(explosion.texture, &explosion.w, &explosion.h);
+    explosion.sw = EXPLOSION_SPRITE_DIM[0];
+    explosion.sh = EXPLOSION_SPRITE_DIM[1];
+    return explosion;
+}
+
+SpriteSheet createShotSpriteSheet(SDL_Window* window, SDL_Renderer* renderer)
+{
+    SpriteSheet shot{};
+    shot.texture = createTexture("res/shot.png", renderer);
+    if (!shot.texture)
+    {
+        destroyResourcesAndQuit(window, renderer);
+        std::exit(EXIT_FAILURE);
+    }
+    SDL_GetTextureSize(shot.texture, &shot.w, &shot.h);
+    shot.sw = shot.w; //single frame
+    shot.sh = shot.h;
+    return shot;
+}
+
+// Rendering functions:
+
+void renderBackground(const SpriteSheet& bg, SDL_Renderer* renderer)
+{
+    SDL_FRect dstRect{0, 0, bg.w, bg.h};
+    SDL_RenderTexture(renderer, bg.texture, nullptr, &dstRect);
+}
+
+SDL_FRect getNextAnimationFrame(const Animation& anim, int frameIndex)
+{
+    // start of the animation on x axis
+    float x =
+        static_cast<float>(anim.startFrame + frameIndex) * anim.spriteSheet->sw;
+    assert(x + anim.spriteSheet->sw <= anim.spriteSheet->w);
+
+    SDL_FRect srcRect{x, 0, anim.spriteSheet->sw, anim.spriteSheet->sh};
+    return srcRect;
+}
+
+void renderMegaman(const Animation& anim,
+                   int&             frameIndex,
+                   const SDL_FRect& dstRect,
+                   SDL_Renderer*    renderer)
+{
+    SDL_FRect srcRect = getNextAnimationFrame(anim, frameIndex);
+    frameIndex = (frameIndex + 1) % anim.frameCount; // loop animation
+    SDL_RenderTexture(renderer, anim.spriteSheet->texture, &srcRect, &dstRect);
+}
+
 int main()
 {
     SDL_Window*   window{};
@@ -97,26 +240,28 @@ int main()
 
     bool isRunning = true;
 
-    SpriteSheet bg{};
-    bg.texture = createTexture("res/area.png", renderer);
-    if (!bg.texture)
-    {
-        destroyResourcesAndQuit(window, renderer);
-        return EXIT_FAILURE;
-    }
 
-    SDL_GetTextureSize(bg.texture, &bg.w, &bg.h);
-
+    SpriteSheet bg = createBackgroundSpriteSheet(window, renderer);
     const float scaleFactor = WIN_WIDTH / bg.w;
     // scale everything by the same factor to preserve sprite aspect ratio
     SDL_SetRenderScale(renderer, scaleFactor, scaleFactor);
 
-    // 1.load scene picture
-    // 2.init player
-    // 3.init enemy
-    // 4.init health indication
-    // 5.init ground collider
+    SpriteSheet megaman = createMegamanSpriteSheet(window, renderer);
+    Animation   megamanRunAnim{&megaman,
+                               static_cast<int>(Megaman::RUN),
+                               MEGAMAN_RUN_FRAME_COUNT};
+    SDL_FRect   megamanDstRect{MEGAMAN_START_POS[0],
+                               MEGAMAN_START_POS[1],
+                               megaman.sw,
+                               megaman.sh};
 
+    //SpriteSheet enemy = createEnemySpriteSheet(window, renderer);
+    //SpriteSheet explosion = createExplosionSpriteSheet(window, renderer);
+    //SpriteSheet shot = createShotSpriteSheet(window, renderer);
+
+
+    // 4.init ground collider
+    int megamanAnimFrame = 0;
 
     while (isRunning)
     {
@@ -132,17 +277,28 @@ int main()
         // 9.  enemy dies
         // 10. spawn + animate explosion
 
-
-        SDL_FRect dstRect{0, 0, bg.w, bg.h};
         SDL_RenderClear(renderer);
-        SDL_RenderTexture(renderer, bg.texture, nullptr, &dstRect);
+        renderBackground(bg, renderer);
+        renderMegaman(megamanRunAnim,
+                      megamanAnimFrame,
+                      megamanDstRect,
+                      renderer);
         SDL_RenderPresent(renderer);
+
+        SDL_Delay(FRAME_DELAY_MS);
 
         SDL_Event event{};
         if (SDL_PollEvent(&event))
         {
             if (event.type == SDL_EVENT_QUIT)
                 isRunning = false;
+            else if (event.type == SDL_EVENT_MOUSE_MOTION)
+            {
+                megamanDstRect.x = event.motion.x / scaleFactor;
+                megamanDstRect.y = event.motion.y / scaleFactor;
+                std::cout << "Mouse at (" << megamanDstRect.x << ", "
+                          << megamanDstRect.y << ")\n";
+            }
         }
     }
 
