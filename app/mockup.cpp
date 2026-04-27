@@ -36,7 +36,6 @@ constexpr int MEGAMAN_SHOOT_FRAME_COUNT = 1;
 [[maybe_unused]]
 constexpr int MEGAMAN_JUMP_FRAME_COUNT = 1;
 
-[[maybe_unused]]
 constexpr float MEGAMAN_START_POS[] = {8, 162};
 
 enum class Enemy
@@ -45,6 +44,7 @@ enum class Enemy
 };
 [[maybe_unused]]
 constexpr int ENEMY_HOVER_FRAME_COUNT = 2;
+constexpr int ENEMY_START_POS[] = {250, 65};
 
 enum class Explosion
 { // in order
@@ -230,6 +230,16 @@ void renderMegaman(const Animation& anim,
     SDL_RenderTexture(renderer, anim.spriteSheet->texture, &srcRect, &dstRect);
 }
 
+void renderEnemy(const Animation& anim,
+                 int&             frameIndex,
+                 const SDL_FRect& dstRect,
+                 SDL_Renderer*    renderer)
+{
+    SDL_FRect srcRect = getNextAnimationFrame(anim, frameIndex);
+    frameIndex = (frameIndex + 1) % anim.frameCount;
+    SDL_RenderTexture(renderer, anim.spriteSheet->texture, &srcRect, &dstRect);
+}
+
 int main()
 {
     SDL_Window*   window{};
@@ -255,13 +265,22 @@ int main()
                                megaman.sw,
                                megaman.sh};
 
-    //SpriteSheet enemy = createEnemySpriteSheet(window, renderer);
+    SpriteSheet enemy = createEnemySpriteSheet(window, renderer);
+    Animation   enemyHoverAnim{&enemy,
+                               static_cast<int>(Enemy::HOVER),
+                               ENEMY_HOVER_FRAME_COUNT};
+    SDL_FRect   enemyDstRect{ENEMY_START_POS[0],
+                             ENEMY_START_POS[1],
+                             enemy.sw,
+                             enemy.sh};
+
     //SpriteSheet explosion = createExplosionSpriteSheet(window, renderer);
     //SpriteSheet shot = createShotSpriteSheet(window, renderer);
 
 
     // 4.init ground collider
     int megamanAnimFrame = 0;
+    int enemyAnimFrame = 0;
 
     while (isRunning)
     {
@@ -283,6 +302,7 @@ int main()
                       megamanAnimFrame,
                       megamanDstRect,
                       renderer);
+        renderEnemy(enemyHoverAnim, enemyAnimFrame, enemyDstRect, renderer);
         SDL_RenderPresent(renderer);
 
         SDL_Delay(FRAME_DELAY_MS);
