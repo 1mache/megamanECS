@@ -342,10 +342,9 @@ int main()
                           SHOT_FRAME_COUNT};
 
     SpriteSheet explosion = createExplosionSpriteSheet(window, renderer);
-    [[maybe_unused]] Animation explosionAnim{
-        &explosion,
-        static_cast<int>(Explosion::EXPLODE),
-        EXPLOSION_FRAME_COUNT};
+    Animation explosionAnim{&explosion,
+                            static_cast<int>(Explosion::EXPLODE),
+                            EXPLOSION_FRAME_COUNT};
 
 
     // 4.init ground collider
@@ -365,6 +364,10 @@ int main()
     SDL_FRect shotDstRect{0, 0, shot.sw, shot.sh};
     int       shotAnimFrame = 0;
     int       enemyBlinkTimer = 0;
+
+    bool      explosionActive = false;
+    int       explosionFrame  = 0;
+    SDL_FRect explosionDstRect{0, 0, explosion.sw, explosion.sh};
 
     while (isRunning)
     {
@@ -507,7 +510,17 @@ int main()
                 shotActive = false;
                 --enemyHp;
                 if (enemyHp > 0)
+                {
                     enemyBlinkTimer = ENEMY_BLINK_FRAMES;
+                }
+                else
+                {
+                    enemyAlive          = false;
+                    explosionActive     = true;
+                    explosionFrame      = 0;
+                    explosionDstRect.x  = enemyDstRect.x + enemy.sw  * 0.5f - explosion.sw  * 0.5f;
+                    explosionDstRect.y  = enemyDstRect.y + enemy.sh  * 0.5f - explosion.sh  * 0.5f;
+                }
             }
             else if (shotDstRect.x > static_cast<float>(WIN_WIDTH))
             {
@@ -523,6 +536,18 @@ int main()
             renderEnemy(enemyHoverAnim, enemyAnimFrame, enemyDstRect, renderer);
         if (shotActive)
             renderShot(shotFlyAnim, shotAnimFrame, shotDstRect, renderer);
+        if (explosionActive)
+        {
+            if (explosionFrame >= EXPLOSION_FRAME_COUNT)
+            {
+                explosionActive = false;
+            }
+            else
+            {
+                renderExplosion(explosionAnim, explosionFrame, explosionDstRect, renderer);
+                ++explosionFrame;
+            }
+        }
         SDL_RenderPresent(renderer);
 
         SDL_Delay(FRAME_DELAY_MS);
