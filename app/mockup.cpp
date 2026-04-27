@@ -11,11 +11,8 @@ constexpr SDL_WindowFlags WIN_FLAGS = 0;
 
 constexpr int FRAME_DELAY_MS = 100;
 
-[[maybe_unused]]
 constexpr int MEGAMAN_SPRITE_DIM[] = {28, 28};
-[[maybe_unused]]
 constexpr int ENEMY_SPRITE_DIM[] = {22, 24};
-[[maybe_unused]]
 constexpr int EXPLOSION_SPRITE_DIM[] = {22, 24};
 
 enum class Megaman
@@ -30,41 +27,37 @@ constexpr int MEGAMAN_RUN_FRAME_COUNT = 4;
 [[maybe_unused]]
 constexpr int MEGAMAN_SHOOTRUN_FRAME_COUNT = 4;
 constexpr int MEGAMAN_IDLE_FRAME_COUNT = 1;
+[[maybe_unused]]
 constexpr int MEGAMAN_SHOOT_FRAME_COUNT = 1;
 constexpr int MEGAMAN_JUMP_FRAME_COUNT = 1;
 
 constexpr float MEGAMAN_START_POS[] = {8, 162};
 
-constexpr float                BLOCK_POS[] = {128.f, 160.f};
-constexpr float                MEGAMAN_RUN_SPEED = 2.f;
-constexpr float                MEGAMAN_GROUND_Y = MEGAMAN_START_POS[1];
-constexpr float                MEGAMAN_BLOCK_Y = BLOCK_POS[1] - 28.f;
-constexpr int                  JUMP_DURATION_FRAMES = 20;
-constexpr float                JUMP_PEAK_OFFSET = 80.f;
-[[maybe_unused]] constexpr int SHOOT_HOLD_FRAMES = 8;
+constexpr float BLOCK_POS[] = {128.f, 160.f};
+constexpr float MEGAMAN_RUN_SPEED = 2.f;
+constexpr float MEGAMAN_GROUND_Y = MEGAMAN_START_POS[1];
+constexpr float MEGAMAN_BLOCK_Y = BLOCK_POS[1] - 28.f;
+constexpr int   JUMP_DURATION_FRAMES = 20;
+constexpr float JUMP_PEAK_OFFSET = 80.f;
 
 enum class Enemy
 { // in order
     HOVER = 0
 };
-[[maybe_unused]]
 constexpr int   ENEMY_HOVER_FRAME_COUNT = 2;
-constexpr int   ENEMY_START_POS[] = {250, 65};
+constexpr int   ENEMY_START_POS[] = {250, 67};
 constexpr float ENEMY_PATROL_LEFT_X = 150.f;
 constexpr float ENEMY_PATROL_RIGHT_X = 250.f;
-constexpr float ENEMY_SPEED          = 1.0f;
-constexpr float SHOT_SPEED           = 4.f;
-constexpr int   ENEMY_BLINK_FRAMES   = 18;
-constexpr int   ENEMY_BLINK_PERIOD   = 3;
+constexpr float ENEMY_SPEED = 1.0f;
+constexpr float SHOT_SPEED = 4.f;
+constexpr int   ENEMY_BLINK_FRAMES = 18;
+constexpr int   ENEMY_BLINK_PERIOD = 3;
 
 enum class Explosion
 { // in order
     EXPLODE = 0
 };
-[[maybe_unused]]
 constexpr int EXPLOSION_FRAME_COUNT = 3;
-
-[[maybe_unused]]
 constexpr int SHOT_FRAME_COUNT = 1;
 
 enum class Shot
@@ -319,13 +312,11 @@ int main()
     Animation   megamanJumpAnim{&megaman,
                                 static_cast<int>(Megaman::JUMP),
                                 MEGAMAN_JUMP_FRAME_COUNT};
-    Animation   megamanShootAnim{&megaman,
-                                 static_cast<int>(Megaman::SHOOT),
-                                 MEGAMAN_SHOOT_FRAME_COUNT};
-    SDL_FRect   megamanDstRect{MEGAMAN_START_POS[0],
-                               MEGAMAN_START_POS[1],
-                               megaman.sw,
-                               megaman.sh};
+
+    SDL_FRect megamanDstRect{MEGAMAN_START_POS[0],
+                             MEGAMAN_START_POS[1],
+                             megaman.sw,
+                             megaman.sh};
 
     SpriteSheet enemy = createEnemySpriteSheet(window, renderer);
     Animation   enemyHoverAnim{&enemy,
@@ -336,18 +327,15 @@ int main()
                              enemy.sw,
                              enemy.sh};
 
-    SpriteSheet                shot = createShotSpriteSheet(window, renderer);
-    Animation shotFlyAnim{&shot,
-                          static_cast<int>(Shot::FLY),
-                          SHOT_FRAME_COUNT};
+    SpriteSheet shot = createShotSpriteSheet(window, renderer);
+    Animation shotFlyAnim{&shot, static_cast<int>(Shot::FLY), SHOT_FRAME_COUNT};
 
     SpriteSheet explosion = createExplosionSpriteSheet(window, renderer);
-    Animation explosionAnim{&explosion,
-                            static_cast<int>(Explosion::EXPLODE),
-                            EXPLOSION_FRAME_COUNT};
+    Animation   explosionAnim{&explosion,
+                              static_cast<int>(Explosion::EXPLODE),
+                              EXPLOSION_FRAME_COUNT};
 
 
-    // 4.init ground collider
     int megamanAnimFrame = 0;
     int enemyAnimFrame = 0;
 
@@ -360,13 +348,13 @@ int main()
     int          shootHold = 0;
     float        megamanBaseY = MEGAMAN_GROUND_Y;
 
-    bool      shotActive    = false;
+    bool      shotActive = false;
     SDL_FRect shotDstRect{0, 0, shot.sw, shot.sh};
     int       shotAnimFrame = 0;
     int       enemyBlinkTimer = 0;
 
     bool      explosionActive = false;
-    int       explosionFrame  = 0;
+    int       explosionFrame = 0;
     SDL_FRect explosionDstRect{0, 0, explosion.sw, explosion.sh};
 
     while (isRunning)
@@ -387,7 +375,6 @@ int main()
         renderBackground(bg, renderer);
 
         const Animation* megamanCurrentAnim = &megamanRunAnim;
-
         switch (megamanState)
         {
         case MegamanState::RUN_TO_BLOCK:
@@ -404,9 +391,12 @@ int main()
 
         case MegamanState::JUMP_ONTO_BLOCK:
         {
+            // t in [0,1] over the jump duration
             float t = static_cast<float>(jumpFrame) / JUMP_DURATION_FRAMES;
             float landingY = MEGAMAN_BLOCK_Y;
+            // lerp baseline from ground toward block top as Megaman travels forward
             float baseY = megamanBaseY + (landingY - megamanBaseY) * t;
+            // sin arc peaks at t=0.5 (pi/2), zero at t=0 and t=1 — gives parabola-like arc
             megamanDstRect.y =
                 baseY - JUMP_PEAK_OFFSET * SDL_sinf(SDL_PI_F * t);
             megamanDstRect.x += MEGAMAN_RUN_SPEED * 0.5f;
@@ -436,13 +426,16 @@ int main()
         case MegamanState::JUMP_AND_SHOOT_1:
         case MegamanState::JUMP_AND_SHOOT_2:
         {
+            // spawn shot at jump peak (t=0.5, sin=1 → maximum height)
             if (jumpFrame == JUMP_DURATION_FRAMES / 2)
             {
-                shotActive       = true;
-                shotDstRect.x    = megamanDstRect.x + megaman.sw;
-                shotDstRect.y    = megamanDstRect.y + megaman.sh * 0.5f - shot.sh * 0.5f;
-                shotAnimFrame    = 0;
+                shotActive = true;
+                shotDstRect.x = megamanDstRect.x + megaman.sw; // right edge
+                shotDstRect.y = megamanDstRect.y + megaman.sh * 0.5f -
+                                shot.sh * 0.5f; // vertically centered
+                shotAnimFrame = 0;
             }
+            // same sin arc as JUMP_ONTO_BLOCK but base stays fixed (in-place jump)
             float t = static_cast<float>(jumpFrame) / JUMP_DURATION_FRAMES;
             megamanDstRect.y =
                 megamanBaseY - JUMP_PEAK_OFFSET * SDL_sinf(SDL_PI_F * t);
@@ -498,8 +491,8 @@ int main()
                 enemyDir = 1.f;
         }
         auto rectsOverlap = [](const SDL_FRect& a, const SDL_FRect& b) {
-            return !(a.x + a.w <= b.x || b.x + b.w <= a.x ||
-                     a.y + a.h <= b.y || b.y + b.h <= a.y);
+            return !(a.x + a.w <= b.x || b.x + b.w <= a.x || a.y + a.h <= b.y ||
+                     b.y + b.h <= a.y);
         };
 
         if (shotActive)
@@ -515,11 +508,13 @@ int main()
                 }
                 else
                 {
-                    enemyAlive          = false;
-                    explosionActive     = true;
-                    explosionFrame      = 0;
-                    explosionDstRect.x  = enemyDstRect.x + enemy.sw  * 0.5f - explosion.sw  * 0.5f;
-                    explosionDstRect.y  = enemyDstRect.y + enemy.sh  * 0.5f - explosion.sh  * 0.5f;
+                    enemyAlive = false;
+                    explosionActive = true;
+                    explosionFrame = 0;
+                    explosionDstRect.x =
+                        enemyDstRect.x + enemy.sw * 0.5f - explosion.sw * 0.5f;
+                    explosionDstRect.y =
+                        enemyDstRect.y + enemy.sh * 0.5f - explosion.sh * 0.5f;
                 }
             }
             else if (shotDstRect.x > static_cast<float>(WIN_WIDTH))
@@ -527,11 +522,13 @@ int main()
                 shotActive = false;
             }
         }
-        if (enemyBlinkTimer > 0) --enemyBlinkTimer;
+        if (enemyBlinkTimer > 0)
+            --enemyBlinkTimer;
 
+        // divide timer into BLINK_PERIOD-sized buckets; even bucket = visible, odd = hidden
         const bool enemyVisible =
-            enemyAlive &&
-            (enemyBlinkTimer == 0 || (enemyBlinkTimer / ENEMY_BLINK_PERIOD) % 2 == 0);
+            enemyAlive && (enemyBlinkTimer == 0 ||
+                           (enemyBlinkTimer / ENEMY_BLINK_PERIOD) % 2 == 0);
         if (enemyVisible)
             renderEnemy(enemyHoverAnim, enemyAnimFrame, enemyDstRect, renderer);
         if (shotActive)
@@ -544,7 +541,10 @@ int main()
             }
             else
             {
-                renderExplosion(explosionAnim, explosionFrame, explosionDstRect, renderer);
+                renderExplosion(explosionAnim,
+                                explosionFrame,
+                                explosionDstRect,
+                                renderer);
                 ++explosionFrame;
             }
         }
