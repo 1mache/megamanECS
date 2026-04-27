@@ -29,14 +29,19 @@ enum class Megaman
 constexpr int MEGAMAN_RUN_FRAME_COUNT = 4;
 [[maybe_unused]]
 constexpr int MEGAMAN_SHOOTRUN_FRAME_COUNT = 4;
-[[maybe_unused]]
 constexpr int MEGAMAN_IDLE_FRAME_COUNT = 1;
-[[maybe_unused]]
 constexpr int MEGAMAN_SHOOT_FRAME_COUNT = 1;
-[[maybe_unused]]
 constexpr int MEGAMAN_JUMP_FRAME_COUNT = 1;
 
 constexpr float MEGAMAN_START_POS[] = {8, 162};
+
+constexpr float                BLOCK_POS[] = {128.f, 160.f};
+constexpr float                MEGAMAN_RUN_SPEED = 2.f;
+constexpr float                MEGAMAN_GROUND_Y = MEGAMAN_START_POS[1];
+constexpr float                MEGAMAN_BLOCK_Y = BLOCK_POS[1] - 28.f;
+constexpr int                  JUMP_DURATION_FRAMES = 20;
+constexpr float                JUMP_PEAK_OFFSET = 80.f;
+[[maybe_unused]] constexpr int SHOOT_HOLD_FRAMES = 8;
 
 enum class Enemy
 { // in order
@@ -62,6 +67,18 @@ constexpr int SHOT_FRAME_COUNT = 1;
 enum class Shot
 {
     FLY = 0
+};
+
+enum class MegamanState
+{
+    RUN_TO_BLOCK,
+    JUMP_ONTO_BLOCK,
+    IDLE_ON_BLOCK,
+    JUMP_AND_SHOOT_1,
+    IDLE_AFTER_SHOT_1,
+    JUMP_AND_SHOOT_2,
+    IDLE_AFTER_SHOT_2,
+    DONE
 };
 
 constexpr int SHOT_SPRITE_DIM[] = {8, 6};
@@ -293,6 +310,15 @@ int main()
     Animation   megamanRunAnim{&megaman,
                                static_cast<int>(Megaman::RUN),
                                MEGAMAN_RUN_FRAME_COUNT};
+    Animation   megamanIdleAnim{&megaman,
+                                static_cast<int>(Megaman::IDLE),
+                                MEGAMAN_IDLE_FRAME_COUNT};
+    Animation   megamanJumpAnim{&megaman,
+                                static_cast<int>(Megaman::JUMP),
+                                MEGAMAN_JUMP_FRAME_COUNT};
+    Animation   megamanShootAnim{&megaman,
+                                 static_cast<int>(Megaman::SHOOT),
+                                 MEGAMAN_SHOOT_FRAME_COUNT};
     SDL_FRect   megamanDstRect{MEGAMAN_START_POS[0],
                                MEGAMAN_START_POS[1],
                                megaman.sw,
@@ -327,6 +353,11 @@ int main()
     bool  enemyAlive = true;
     int   enemyHp = 2;
 
+    MegamanState megamanState = MegamanState::RUN_TO_BLOCK;
+    int          jumpFrame = 0;
+    int          shootHold = 0;
+    float        megamanBaseY = MEGAMAN_GROUND_Y;
+
     while (isRunning)
     {
         // 1.  move player (+ animate)
@@ -343,11 +374,103 @@ int main()
 
         SDL_RenderClear(renderer);
         renderBackground(bg, renderer);
-        renderMegaman(megamanRunAnim,
+
+        const Animation* megamanCurrentAnim = &megamanRunAnim;
+
+        switch (megamanState)
+        {
+        case MegamanState::RUN_TO_BLOCK:
+            megamanDstRect.x += MEGAMAN_RUN_SPEED;
+            megamanCurrentAnim = &megamanRunAnim;
+            if (megamanDstRect.x >= BLOCK_POS[0] - 25.f)
+            {
+                megamanState = MegamanState::JUMP_ONTO_BLOCK;
+                jumpFrame = 0;
+                megamanBaseY = MEGAMAN_GROUND_Y;
+                megamanAnimFrame = 0;
+            }
+            break;
+
+        case MegamanState::JUMP_ONTO_BLOCK:
+        {
+            float t = static_cast<float>(jumpFrame) / JUMP_DURATION_FRAMES;
+            float landingY = MEGAMAN_BLOCK_Y;
+            float baseY = megamanBaseY + (landingY - megamanBaseY) * t;
+            megamanDstRect.y =
+                baseY - JUMP_PEAK_OFFSET * SDL_sinf(SDL_PI_F * t);
+            megamanDstRect.x += MEGAMAN_RUN_SPEED * 0.5f;
+            megamanCurrentAnim = &megamanJumpAnim;
+            ++jumpFrame;
+            if (jumpFrame >= JUMP_DURATION_FRAMES)
+            {
+                megamanDstRect.y = MEGAMAN_BLOCK_Y;
+                megamanState = MegamanState::IDLE_ON_BLOCK;
+                megamanBaseY = MEGAMAN_BLOCK_Y;
+                shootHold = 6;
+                megamanAnimFrame = 0;
+            }
+            break;
+        }
+
+        case MegamanState::IDLE_ON_BLOCK:
+            megamanCurrentAnim = &megamanIdleAnim;
+            if (--shootHold <= 0)
+            {
+                megamanState = MegamanState::JUMP_AND_SHOOT_1;
+                jumpFrame = 0;
+                megamanAnimFrame = 0;
+            }
+            break;
+
+        case MegamanState::JUMP_AND_SHOOT_1:
+        case MegamanState::JUMP_AND_SHOOT_2:
+        {
+            float t = static_cast<float>(jumpFrame) / JUMP_DURATION_FRAMES;
+            megamanDstRect.y =
+                megamanBaseY - JUMP_PEAK_OFFSET * SDL_sinf(SDL_PI_F * t);
+            megamanCurrentAnim = &megamanJumpAnim;
+            ++jumpFrame;
+            if (jumpFrame >= JUMP_DURATION_FRAMES)
+            {
+                megamanDstRect.y = megamanBaseY;
+                megamanState = (megamanState == MegamanState::JUMP_AND_SHOOT_1)
+                                   ? MegamanState::IDLE_AFTER_SHOT_1
+                                   : MegamanState::IDLE_AFTER_SHOT_2;
+                shootHold = 30;
+                megamanAnimFrame = 0;
+            }
+            break;
+        }
+
+        case MegamanState::IDLE_AFTER_SHOT_1:
+            megamanCurrentAnim = &megamanIdleAnim;
+            if (--shootHold <= 0)
+            {
+                megamanState = MegamanState::JUMP_AND_SHOOT_2;
+                jumpFrame = 0;
+                megamanAnimFrame = 0;
+            }
+            break;
+
+        case MegamanState::IDLE_AFTER_SHOT_2:
+            megamanCurrentAnim = &megamanIdleAnim;
+            if (--shootHold <= 0)
+            {
+                megamanState = MegamanState::DONE;
+                megamanAnimFrame = 0;
+            }
+            break;
+
+        case MegamanState::DONE:
+            megamanCurrentAnim = &megamanIdleAnim;
+            break;
+        }
+
+        megamanAnimFrame %= megamanCurrentAnim->frameCount;
+        renderMegaman(*megamanCurrentAnim,
                       megamanAnimFrame,
                       megamanDstRect,
                       renderer);
-        megamanDstRect.x += 2.f; // move right
         if (enemyAlive)
         {
             enemyDstRect.x += enemyDir * ENEMY_SPEED;
