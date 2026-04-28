@@ -20,6 +20,8 @@ struct Scene;
 struct Sound;
 } // namespace megaman
 
+// ============= STORAGE SPECIALIZATIONS =============
+
 template <>
 struct bagel::Storage<megaman::Transform> final : bagel::NoInstance
 {
@@ -132,7 +134,7 @@ struct Drawable
     // Preferred storage: Sparse, almost every entity can be drawn to the screen.
     // Holes will be filled quickly with new objects so we can get away with one array.
 
-    SDL_Texture *texture{nullptr};
+    SDL_Texture* texture{nullptr};
 };
 
 struct Health
@@ -244,8 +246,5 @@ ent_type createSoundSource(float x, float y, int sound);
 
 ent_type createScene(const std::string& mapFilePath);
 } // namespace megaman
-
-// ============= STORAGE SPECIALIZATIONS =============
-
 
 #endif // MEGAMAN_H
