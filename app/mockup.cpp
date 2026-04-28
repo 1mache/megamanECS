@@ -247,10 +247,17 @@ SDL_FRect getNextAnimationFrame(const Animation& anim, int frameIndex)
 void renderAnimationFrame(const Animation& anim,
                           int              frameIndex,
                           const SDL_FRect& dstRect,
-                          SDL_Renderer*    renderer)
+                          SDL_Renderer*    renderer,
+                          SDL_FlipMode     flipMode = SDL_FLIP_NONE)
 {
     SDL_FRect srcRect = getNextAnimationFrame(anim, frameIndex);
-    SDL_RenderTexture(renderer, anim.spriteSheet->texture, &srcRect, &dstRect);
+    SDL_RenderTextureRotated(renderer,
+                             anim.spriteSheet->texture,
+                             &srcRect,
+                             &dstRect,
+                             0,
+                             nullptr,
+                             flipMode);
 }
 
 int main()
@@ -305,9 +312,10 @@ int main()
     int megamanAnimFrame = 0;
     int enemyAnimFrame = 0;
 
-    float enemyDir = 1.f; // +1 right, -1 left
-    bool  enemyAlive = true;
-    int   enemyHp = 2;
+    float        enemyDir = 1.f; // +1 right, -1 left
+    SDL_FlipMode enemyFlip = SDL_FLIP_NONE;
+    bool         enemyAlive = true;
+    int          enemyHp = 2;
 
     MegamanState megamanState = MegamanState::RUN_TO_BLOCK;
     int          jumpFrame = 0;
@@ -451,9 +459,15 @@ int main()
         {
             enemyDstRect.x += enemyDir * ENEMY_SPEED;
             if (enemyDstRect.x >= ENEMY_PATROL_RIGHT_X)
+            {
                 enemyDir = -1.f;
+                enemyFlip = SDL_FLIP_NONE;
+            }
             if (enemyDstRect.x <= ENEMY_PATROL_LEFT_X)
+            {
                 enemyDir = 1.f;
+                enemyFlip = SDL_FLIP_HORIZONTAL;
+            }
         }
         // simple collision detection lambda
         auto rectsOverlap = [](const SDL_FRect& a, const SDL_FRect& b) {
@@ -501,7 +515,8 @@ int main()
             renderAnimationFrame(enemyHoverAnim,
                                  enemyAnimFrame,
                                  enemyDstRect,
-                                 renderer);
+                                 renderer,
+                                 enemyFlip);
             enemyAnimFrame = (enemyAnimFrame + 1) % enemyHoverAnim.frameCount;
         }
         if (shotActive)
