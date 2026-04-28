@@ -11,10 +11,8 @@ constexpr SDL_WindowFlags WIN_FLAGS = 0;
 
 constexpr int FRAME_DELAY_MS = 100;
 
+// =============== MEGAMAN =================
 constexpr int MEGAMAN_SPRITE_DIM[] = {28, 28};
-constexpr int ENEMY_SPRITE_DIM[] = {22, 24};
-constexpr int EXPLOSION_SPRITE_DIM[] = {22, 24};
-
 enum class Megaman
 { // in order start frame of each anim
     RUN = 0,
@@ -23,6 +21,7 @@ enum class Megaman
     SHOOT = 9,
     JUMP = 10
 };
+// frame count of each animation
 constexpr int MEGAMAN_RUN_FRAME_COUNT = 4;
 [[maybe_unused]]
 constexpr int MEGAMAN_SHOOTRUN_FRAME_COUNT = 4;
@@ -31,40 +30,15 @@ constexpr int MEGAMAN_IDLE_FRAME_COUNT = 1;
 constexpr int MEGAMAN_SHOOT_FRAME_COUNT = 1;
 constexpr int MEGAMAN_JUMP_FRAME_COUNT = 1;
 
+// movement relevant constants
 constexpr float MEGAMAN_START_POS[] = {8, 162};
-
 constexpr float BLOCK_POS[] = {128.f, 160.f};
 constexpr float MEGAMAN_RUN_SPEED = 2.f;
 constexpr float MEGAMAN_GROUND_Y = MEGAMAN_START_POS[1];
 constexpr float MEGAMAN_BLOCK_Y = BLOCK_POS[1] - 28.f;
 constexpr int   JUMP_DURATION_FRAMES = 20;
 constexpr float JUMP_PEAK_OFFSET = 80.f;
-
-enum class Enemy
-{ // in order
-    HOVER = 0
-};
-constexpr int   ENEMY_HOVER_FRAME_COUNT = 2;
-constexpr int   ENEMY_START_POS[] = {250, 67};
-constexpr float ENEMY_PATROL_LEFT_X = 150.f;
-constexpr float ENEMY_PATROL_RIGHT_X = 250.f;
-constexpr float ENEMY_SPEED = 1.0f;
-constexpr float SHOT_SPEED = 4.f;
-constexpr int   ENEMY_BLINK_FRAMES = 18;
-constexpr int   ENEMY_BLINK_PERIOD = 3;
-
-enum class Explosion
-{ // in order
-    EXPLODE = 0
-};
-constexpr int EXPLOSION_FRAME_COUNT = 3;
-constexpr int SHOT_FRAME_COUNT = 1;
-
-enum class Shot
-{
-    FLY = 0
-};
-
+// states of megaman duing the demo:
 enum class MegamanState
 {
     RUN_TO_BLOCK,
@@ -76,22 +50,54 @@ enum class MegamanState
     IDLE_AFTER_SHOT_2,
     DONE
 };
+// =============== ENEMY =================
+constexpr int ENEMY_SPRITE_DIM[] = {22, 24};
 
+enum class Enemy
+{ // one animation, for consistency left the enum
+    HOVER = 0
+};
+constexpr int ENEMY_HOVER_FRAME_COUNT = 2;
+// movement:
+constexpr int   ENEMY_START_POS[] = {250, 67};
+constexpr float ENEMY_PATROL_RIGHT_X = ENEMY_START_POS[0];
+constexpr float ENEMY_PATROL_LEFT_X = ENEMY_PATROL_RIGHT_X - 100.f;
+constexpr float ENEMY_SPEED = 1.5f;
+constexpr int   ENEMY_BLINK_FRAMES = 10;
+constexpr int   ENEMY_BLINK_PERIOD = 3;
+
+// =============== EXPLOSION ==============-
+constexpr int EXPLOSION_SPRITE_DIM[] = {22, 24};
+enum class Explosion
+{ // in order
+    EXPLODE = 0
+};
+constexpr int EXPLOSION_FRAME_COUNT = 3;
+
+// ================ SHOT =================
 constexpr int SHOT_SPRITE_DIM[] = {8, 6};
+// single sprite, kept structure for consistency
+enum class Shot
+{
+    FLY = 0
+};
+constexpr int   SHOT_FRAME_COUNT = 1;
+constexpr float SHOT_SPEED = 5.f;
 
+// ============ UTILITY  ============
 struct SpriteSheet
 {
     SDL_Texture* texture{};
     float        w{};  // texture width
     float        h{};  // texture height
-    float        sw{}; // sprite width
-    float        sh{}; // sprite height
+    float        sw{}; // single sprite width
+    float        sh{}; // single sprite height
 };
 
 struct Animation
 {
     SpriteSheet* spriteSheet{};
-    int          startFrame{};
+    int          startFrameId{};
     int          frameCount{};
 };
 
@@ -150,6 +156,7 @@ void destroyResourcesAndQuit(SDL_Window* window, SDL_Renderer* renderer)
     SDL_Quit();
 }
 
+// ============== INIT FUNCTIONS ==================
 SpriteSheet createBackgroundSpriteSheet(SDL_Window*   window,
                                         SDL_Renderer* renderer)
 {
@@ -227,7 +234,7 @@ SpriteSheet createShotSpriteSheet(SDL_Window* window, SDL_Renderer* renderer)
     return shot;
 }
 
-// Rendering functions:
+// =================== RENDERING FUNCTIONS ======================
 
 void renderBackground(const SpriteSheet& bg, SDL_Renderer* renderer)
 {
@@ -238,8 +245,8 @@ void renderBackground(const SpriteSheet& bg, SDL_Renderer* renderer)
 SDL_FRect getNextAnimationFrame(const Animation& anim, int frameIndex)
 {
     // start of the animation on x axis
-    float x =
-        static_cast<float>(anim.startFrame + frameIndex) * anim.spriteSheet->sw;
+    float x = static_cast<float>(anim.startFrameId + frameIndex) *
+              anim.spriteSheet->sw;
     assert(x + anim.spriteSheet->sw <= anim.spriteSheet->w);
 
     SDL_FRect srcRect{x, 0, anim.spriteSheet->sw, anim.spriteSheet->sh};
@@ -298,6 +305,7 @@ int main()
 
 
     SpriteSheet bg = createBackgroundSpriteSheet(window, renderer);
+    // save scale factor used to scale bg image to window
     const float scaleFactor = WIN_WIDTH / bg.w;
     // scale everything by the same factor to preserve sprite aspect ratio
     SDL_SetRenderScale(renderer, scaleFactor, scaleFactor);
@@ -360,21 +368,19 @@ int main()
     while (isRunning)
     {
         // 1.  move player (+ animate)
-        // check player ground position
         // 2.  move enemy (hover)
-        // 3.  if player at (x1,y1) position => jumps + switch anim.
-        // 4.  if player at (x2,y2) position => shoots + switch anim.
+        // 3.  if player at certaint position => jumps + switch anim.
+        // 4.  if player landed at block => jumps + shoots + switch anim.
         // 5.  spawn projectile + move it
         // 6.  if projectile hit enemy enemy blinks and health -1
-        // 7.  player jumps and shoots again
-        // 8.  repeat 5-6
-        // 9.  enemy dies
-        // 10. spawn + animate explosion
+        // 7.  repeat 5-6
+        // 8.  enemy dies
+        // 9. spawn + animate explosion
 
         SDL_RenderClear(renderer);
         renderBackground(bg, renderer);
 
-        const Animation* megamanCurrentAnim = &megamanRunAnim;
+        Animation* megamanCurrentAnim = &megamanRunAnim;
         switch (megamanState)
         {
         case MegamanState::RUN_TO_BLOCK:
@@ -474,6 +480,8 @@ int main()
 
         case MegamanState::DONE:
             megamanCurrentAnim = &megamanIdleAnim;
+            SDL_Delay(2 * FRAME_DELAY_MS);
+            isRunning = false;
             break;
         }
 
@@ -557,17 +565,10 @@ int main()
         {
             if (event.type == SDL_EVENT_QUIT)
                 isRunning = false;
-            // else if (event.type == SDL_EVENT_MOUSE_MOTION)
-            // {
-            //     megamanDstRect.x = event.motion.x / scaleFactor;
-            //     megamanDstRect.y = event.motion.y / scaleFactor;
-            //     std::cout << "Mouse at (" << megamanDstRect.x << ", "
-            //               << megamanDstRect.y << ")\n";
-            // }
         }
     }
 
-    SDL_Quit();
+    destroyResourcesAndQuit(window, renderer);
 
     return EXIT_SUCCESS;
 }
