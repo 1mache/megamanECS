@@ -13,6 +13,7 @@ target_link_libraries(
     PRIVATE
             SDL3-static
             SDL3_image-static
+            box2d
             nlohmann_json::nlohmann_json
             spdlog::spdlog
             cxxopts::cxxopts)
