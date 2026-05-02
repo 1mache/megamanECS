@@ -112,13 +112,7 @@ bool createWindowAndRenderer(const char*    title,
         std::cerr << "Window and renderer creation error : " << SDL_GetError()
                   << '\n';
         SDL_Quit();
-        std::exit(EXIT_FAILURE);
-    }
-    if (!window)
-    {
-        std::cerr << "Window creation error : " << SDL_GetError() << std::endl;
-        SDL_Quit();
-        std::exit(EXIT_FAILURE);
+        return false;
     }
 
     SDL_SetWindowPosition(window,
