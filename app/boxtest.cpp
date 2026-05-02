@@ -1,3 +1,5 @@
+#include "GlobalData.h"
+#include "MTransform.h"
 #include <SDL3/SDL.h>
 #include <box2d/box2d.h>
 #include <iostream>
@@ -6,8 +8,6 @@ constexpr float GRAVITY_SCALE = 10.f;
 constexpr int   FPS = 60;
 constexpr float TIMESTEP = 1.f / FPS;
 constexpr int   SUBSTEPS = 4;
-
-// constexpr float PTM = 30.f;
 
 constexpr int             WIN_WIDTH = 720;
 constexpr int             WIN_HEIGHT = 540;
@@ -46,47 +46,48 @@ bool createWindowAndRenderer(const char*    title,
     return true;
 }
 
-constexpr float yflip(float boxY)
-{
-    return WIN_HEIGHTF - boxY;
-}
-
-
 int main()
 {
+    using namespace megaman;
+
     SDL_Window*   window{};
     SDL_Renderer* renderer{};
     if (!createWindowAndRenderer("Box2D Test", window, renderer))
         return EXIT_FAILURE;
 
-    const float gpos[2]{0.f, 350.f};
-    const float gscale[2]{WIN_WIDTH, 10.f};
-    [[maybe_unused]]
-    const float gcenter[2]{(gpos[0] + gscale[0] / 2),
-                           (gpos[1] + gscale[1] / 2)};
-    float       boxPos[2]{(WIN_WIDTHF / 2.f), (WIN_HEIGHTF / 2.f)};
-    const float boxScale[2]{10.f, 10.f};
-    float       boxCenter[2]{boxPos[0] + boxScale[0] / 2,
-                             boxPos[1] + boxScale[1] / 2};
+    GlobalData::setWindow(window);
+    GlobalData::setRenderer(renderer);
 
-    SDL_FRect groundRect{gpos[0], gpos[1], gscale[0], gscale[1]};
-    SDL_FRect bodyRect{boxPos[0], boxPos[1], boxScale[0], boxScale[1]};
+    auto ptm = GlobalData::PTM;
+
+    Transform gtransform = {.x = WIN_WIDTH / ptm / 2.f,
+                            .y = 2.f,
+                            .w = WIN_WIDTH / ptm,
+                            .h = 0.3f,
+                            .rot = 0.f};
+
+    Transform boxTransform = {.x = (WIN_WIDTHF / ptm / 2.f),
+                              .y = (WIN_HEIGHTF / ptm / 2.f),
+                              .w = 0.5f,
+                              .h = 0.5f,
+                              .rot = 0.f};
 
     b2WorldDef wd = b2DefaultWorldDef();
     wd.gravity = {0.f, -1.f * GRAVITY_SCALE};
     b2WorldId wId = b2CreateWorld(&wd);
 
     b2BodyDef groundDef = b2DefaultBodyDef();
-    groundDef.position = {gcenter[0], yflip(gcenter[1])};
+    groundDef.position = transformGetb2Pos(gtransform);
     b2BodyId groundId = b2CreateBody(wId, &groundDef);
 
-    b2Polygon  groundBox = b2MakeBox(gscale[0] / 2.f, gscale[1] / 2.f);
+    auto       gscaleb2 = transformGetb2Scale(gtransform);
+    b2Polygon  groundBox = b2MakeBox(gscaleb2.x, gscaleb2.y);
     b2ShapeDef groundShapeDef = b2DefaultShapeDef();
     b2CreatePolygonShape(groundId, &groundShapeDef, &groundBox);
 
     b2BodyDef boxDef = b2DefaultBodyDef();
     boxDef.type = b2_dynamicBody;
-    boxDef.position = {boxCenter[0], yflip(boxCenter[1])};
+    boxDef.position = transformGetb2Pos(boxTransform);
     b2BodyId boxId = b2CreateBody(wId, &boxDef);
 
     b2ShapeDef shapeDef = b2DefaultShapeDef();
@@ -94,14 +95,15 @@ int main()
     shapeDef.material.restitution = 0.5f;
     shapeDef.enableContactEvents = true;
 
-    b2Polygon box = b2MakeSquare(boxScale[0] / 2.f);
+    b2Polygon box = b2MakeSquare(transformGetb2Scale(boxTransform).x);
     b2CreatePolygonShape(boxId, &shapeDef, &box);
 
     auto boxPosVec = b2Body_GetPosition(boxId);
-    std::cout << "Box start pos: (" << boxPosVec.x << ',' << yflip(boxPosVec.y)
-              << ")\n";
-    std::cout << "Ground pos: (" << gpos[0] << ',' << gpos[1] << ")\n";
+    // std::cout << "Box start pos: (" << boxPosVec.x << ',' << yflip(boxPosVec.y)
+    //           << ")\n";
+    // std::cout << "Ground pos: (" << gpos[0] << ',' << gpos[1] << ")\n";
 
+    auto groundRect = transform2Frect(gtransform);
 
     bool isRunning = true;
     while (isRunning)
@@ -112,15 +114,15 @@ int main()
 
         b2World_Step(wId, TIMESTEP, SUBSTEPS);
         boxPosVec = b2Body_GetPosition(boxId);
+        transformInjectb2Pos(boxTransform, boxPosVec);
 
-        bodyRect.x = boxPosVec.x - boxScale[0] / 2.f;
-        bodyRect.y = yflip(boxPosVec.y) - boxScale[1] / 2.f;
+        auto boxRect = transform2Frect(boxTransform);
 
         SDL_SetRenderDrawColor(renderer, 0, 255, 120, SDL_ALPHA_OPAQUE);
         SDL_RenderFillRect(renderer, &groundRect);
 
         SDL_SetRenderDrawColor(renderer, 200, 150, 150, SDL_ALPHA_OPAQUE);
-        SDL_RenderFillRect(renderer, &bodyRect);
+        SDL_RenderFillRect(renderer, &boxRect);
 
         SDL_SetRenderDrawColor(renderer, 0, 0, 0, SDL_ALPHA_OPAQUE);
         SDL_RenderPresent(renderer);

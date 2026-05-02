@@ -1,5 +1,4 @@
-#ifndef MEGAMAN_H
-#define MEGAMAN_H
+#pragma once
 
 #include "SDL3/SDL.h"
 #include "bagel.h"
@@ -246,5 +245,3 @@ ent_type createSoundSource(float x, float y, int sound);
 
 ent_type createScene(const std::string& mapFilePath);
 } // namespace megaman
-
-#endif // MEGAMAN_H

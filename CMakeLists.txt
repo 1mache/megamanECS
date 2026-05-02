@@ -134,9 +134,11 @@ add_subdirectory(dependencies/box2d "${CMAKE_BINARY_DIR}/dependencies/box2d" EXC
 set(BUILD_SHARED_LIBS OFF)
 add_subdirectory(dependencies/SDL_image "${CMAKE_BINARY_DIR}/dependencies/SDL_image" EXCLUDE_FROM_ALL)
 
+# SUBDIRECTORIES
+
 add_subdirectory(configured)
-add_subdirectory(src)
 add_subdirectory(app)
+add_subdirectory(src)
 if(ENABLE_TESTING)
     include(CTest)
     enable_testing()

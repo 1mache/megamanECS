@@ -11,32 +11,27 @@ public:
 public:
     static void setWindow(SDL_Window* window)
     {
-        assert(window != nullptr &&
-               "GlobalData::setWindow : trying to pass nullptr");
-        assert(_window != nullptr &&
-               "GlobalData::setWindow : trying to overwrite _window");
+        assert(window != nullptr && "setWindow: trying to pass nullptr");
+        assert(_window == nullptr && "setWindow: trying to overwrite _window");
         _window = window;
     }
 
     static void setRenderer(SDL_Renderer* renderer)
     {
-        assert(renderer != nullptr &&
-               "GlobalData::setRenderer : trying to pass nullptr");
-        assert(_renderer != nullptr &&
-               "GlobalData::setRenderer : trying to overwrite _renderer");
+        assert(renderer != nullptr && "setRenderer: trying to pass nullptr");
+        assert(_renderer == nullptr &&
+               "setRenderer: trying to overwrite _renderer");
         _renderer = renderer;
     }
 
     static SDL_Window* getWindow()
     {
-        assert(_window != nullptr &&
-               "GlobalData::getWindow : window was not created");
+        assert(_window != nullptr && "getWindow: window was not created");
         return _window;
     }
     static SDL_Renderer* getRenderer()
     {
-        assert(_renderer != nullptr &&
-               "GlobalData::getWindow : renderer was not created");
+        assert(_renderer != nullptr && "getWindow: renderer was not created");
         return _renderer;
     }
 
@@ -54,17 +49,8 @@ private:
     GlobalData(const GlobalData&) = delete;
     void operator=(const GlobalData&) = delete;
 
-    void assertState()
-    {
-        assert(_window != nullptr &&
-               "GlobalData::getWindow : window was not created");
-        assert(_renderer != nullptr &&
-               "GlobalData::getWindow : renderer was not created");
-    }
-
-
     static inline SDL_Window*   _window{};
     static inline SDL_Renderer* _renderer{};
 
-    static inline float _winW{}, _winH{};
+    static inline float _winW{720}, _winH{540}; // hardcoded for now
 };
