@@ -6,6 +6,9 @@
 class GlobalData
 {
 public:
+    static constexpr float PTM = 30.f;
+
+public:
     static void setWindow(SDL_Window* window)
     {
         assert(window != nullptr &&
@@ -37,11 +40,31 @@ public:
         return _renderer;
     }
 
+    static float winW()
+    {
+        return _winW;
+    }
+    static float winH()
+    {
+        return _winH;
+    }
+
 private:
     GlobalData() = delete;
     GlobalData(const GlobalData&) = delete;
     void operator=(const GlobalData&) = delete;
 
+    void assertState()
+    {
+        assert(_window != nullptr &&
+               "GlobalData::getWindow : window was not created");
+        assert(_renderer != nullptr &&
+               "GlobalData::getWindow : renderer was not created");
+    }
+
+
     static inline SDL_Window*   _window{};
     static inline SDL_Renderer* _renderer{};
+
+    static inline float _winW{}, _winH{};
 };
