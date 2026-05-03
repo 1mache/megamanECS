@@ -10,9 +10,14 @@ build/
 build-*/
 html/
 docs/superpowers/
+tools/
 ################################
 ############ C/C++ #############
 ################################
+.clang-format
+.clang-tidy
+
+
 # Prerequisites
 *.d
 # Compiled Object files
