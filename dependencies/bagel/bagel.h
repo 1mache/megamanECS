@@ -1,6 +1,7 @@
 // Copyright (C) 2026 Moshe Sulamy
 
 #pragma once
+#include <cstdint>
 #include <cstdlib>
 
 namespace bagel
@@ -35,7 +36,7 @@ public:
         if (new_capacity > _capacity)
         {
             _capacity = std::max(_capacity * 2, new_capacity);
-            _arr = static_cast<T *>(realloc(_arr, sizeof(T) * _capacity));
+            _arr = static_cast<T*>(realloc(_arr, sizeof(T) * _capacity));
         }
     }
     void push(const T& val)
@@ -43,8 +44,7 @@ public:
         if (_size == _capacity)
         {
             _capacity *= 2;
-            _arr = static_cast<T *>(
-                realloc(_arr, sizeof(T) * static_cast<size_t>(_capacity)));
+            _arr = static_cast<T*>(realloc(_arr, sizeof(T) * _capacity));
         }
         _arr[_size] = val;
         ++_size;
@@ -68,7 +68,7 @@ public:
     }
 
 private:
-    T  *_arr = static_cast<T *>(malloc(sizeof(T) * N));
+    T*  _arr = static_cast<T*>(malloc(sizeof(T) * N));
     int _size = 0;
     int _capacity = N;
 };
@@ -82,6 +82,9 @@ public:
         _comps.ensure(ent.id + 1);
         _comps[ent.id] = val;
     }
+    static void del(ent_type)
+    {
+    }
     static T& get(ent_type ent)
     {
         return _comps[ent.id];
@@ -94,14 +97,14 @@ template <class T>
 class TaggedStorage final : NoInstance
 {
 public:
-    static void add(ent_type ent, const T& val)
+    static void add(ent_type, const T&)
     {
-        //TODO: tag entity
     }
-
-private:
+    static void del(ent_type)
+    {
+    }
+    static T& get(ent_type) = delete;
 };
-
 template <class T>
 class PackedStorage final : NoInstance
 {
@@ -174,6 +177,51 @@ struct Storage final : NoInstance
     using type = SparseStorage<T>;
 };
 
+class Mask final
+{
+public:
+    using bit_type = std::uint_fast64_t;
+    using mask_type = std::uint_fast64_t;
+    static constexpr bit_type bit(const int idx)
+    {
+        return 1 << idx;
+    }
+
+    void set(const bit_type b)
+    {
+        _mask |= b;
+    }
+
+    void clear(const bit_type b)
+    {
+        _mask &= ~b;
+    }
+    void clear()
+    {
+        _mask = 0;
+    }
+
+    bool test(const bit_type b) const
+    {
+        return _mask & b;
+    }
+    bool test(const Mask m) const
+    {
+        return (_mask & m._mask) == m._mask;
+    }
+
+private:
+    mask_type _mask{0};
+};
+
+static inline int compCounter = -1;
+template <class>
+struct Component final : NoInstance
+{
+    static inline const int            Index = ++compCounter;
+    static inline const Mask::bit_type Bit = Mask::bit(Index);
+};
+
 class World final : NoInstance
 {
 public:
@@ -181,16 +229,64 @@ public:
     {
         if (_ids.size() > 0)
             return {_ids.pop()};
+        _masks.push(Mask{});
         return {++_maxId};
     }
     static void deleteEntity(ent_type ent)
     {
+        _masks[ent.id].clear();
         _ids.push(ent.id);
         //TODO: delete components
     }
 
+    static const Mask& mask(ent_type e)
+    {
+        return _masks[e.id];
+    }
+    template <class T>
+    static T& getComponent(ent_type e)
+    {
+        return Storage<T>::type::get(e);
+    }
+    template <class T>
+    static void addComponent(ent_type ent, const T& comp)
+    {
+        _masks[ent.id].set(Component<T>::Bit);
+        Storage<T>::type::add(ent, comp);
+    }
+    template <class T>
+    static void delComponent(ent_type ent, const T& comp)
+    {
+        _masks[ent.id].clear(Component<T>::Bit);
+        Storage<T>::type::del(ent, comp);
+    }
+
+    static id_type maxId()
+    {
+        return _maxId;
+    }
+
 private:
+    static inline DynamicBag<Mask, 100>    _masks;
     static inline DynamicBag<id_type, 100> _ids;
     static inline id_type                  _maxId = -1;
+};
+
+class MaskBuilder
+{
+public:
+    template <class T>
+    MaskBuilder& set()
+    {
+        m.set(Component<T>::Bit);
+        return *this;
+    }
+    Mask build() const
+    {
+        return m;
+    }
+
+private:
+    Mask m;
 };
 } // namespace bagel
