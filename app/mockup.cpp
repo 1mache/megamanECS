@@ -38,17 +38,14 @@ constexpr float MEGAMAN_GROUND_Y = MEGAMAN_START_POS[1];
 constexpr float MEGAMAN_BLOCK_Y = BLOCK_POS[1] - 28.f;
 constexpr int   JUMP_DURATION_FRAMES = 20;
 constexpr float JUMP_PEAK_OFFSET = 80.f;
-// states of megaman duing the demo:
+
 enum class MegamanState
 {
-    RUN_TO_BLOCK,
-    JUMP_ONTO_BLOCK,
-    IDLE_ON_BLOCK,
-    JUMP_AND_SHOOT_1,
-    IDLE_AFTER_SHOT_1,
-    JUMP_AND_SHOOT_2,
-    IDLE_AFTER_SHOT_2,
-    DONE
+    IDLE,
+    RUN,
+    SHOOTRUN,
+    SHOOT,
+    JUMP
 };
 // =============== ENEMY =================
 constexpr int ENEMY_SPRITE_DIM[] = {22, 24};
@@ -89,6 +86,35 @@ struct Animation
     SpriteSheet* spriteSheet{};
     int          startFrameId{};
     int          frameCount{};
+};
+
+struct MegamanAnimations
+{
+    Animation* run{};
+    Animation* shootRun{};
+    Animation* idle{};
+    Animation* shoot{};
+    Animation* jump{};
+};
+
+struct MegamanInput
+{
+    bool moveLeft{};
+    bool moveRight{};
+    bool jumpPressed{};
+    bool shootPressed{};
+};
+
+struct MegamanRuntime
+{
+    SDL_FRect     dstRect{};
+    SDL_FlipMode  flip{SDL_FLIP_NONE};
+    MegamanState  state{MegamanState::IDLE};
+    int           animFrame{};
+    int           jumpFrame{};
+    int           shootAnimTimer{};
+    bool          isJumping{};
+    float         worldWidth{};
 };
 
 bool createWindowAndRenderer(const char*    title,
@@ -254,6 +280,166 @@ void renderAnimationFrame(const Animation& anim,
                              flipMode);
 }
 
+float clampMegamanX(float x, float width, float worldWidth)
+{
+    if (x < 0.f)
+        return 0.f;
+    if (x + width > worldWidth)
+        return worldWidth - width;
+    return x;
+}
+
+float getMegamanSupportY(const SDL_FRect& megamanDstRect)
+{
+    const float megamanCenterX = megamanDstRect.x + megamanDstRect.w * 0.5f;
+    return megamanCenterX >= BLOCK_POS[0] ? MEGAMAN_BLOCK_Y : MEGAMAN_GROUND_Y;
+}
+
+void setMegamanState(MegamanRuntime& megaman, MegamanState nextState)
+{
+    if (megaman.state == nextState)
+        return;
+
+    megaman.state = nextState;
+    megaman.animFrame = 0;
+}
+
+void advanceMegamanAnimation(MegamanRuntime& megaman, const Animation& currentAnim)
+{
+    megaman.animFrame = (megaman.animFrame + 1) % currentAnim.frameCount;
+}
+
+void handleMegamanIdle(MegamanRuntime&            megaman,
+                       const MegamanAnimations&   animations,
+                       const Animation*&          currentAnim)
+{
+    megaman.dstRect.y = getMegamanSupportY(megaman.dstRect);
+
+    if (megaman.shootAnimTimer > 0)
+    {
+        setMegamanState(megaman, MegamanState::SHOOT);
+        currentAnim = animations.shoot;
+        return;
+    }
+
+    setMegamanState(megaman, MegamanState::IDLE);
+    currentAnim = animations.idle;
+}
+
+void handleMegamanRunRight(MegamanRuntime&          megaman,
+                           const MegamanAnimations& animations,
+                           const Animation*&        currentAnim)
+{
+    megaman.flip = SDL_FLIP_NONE;
+    megaman.dstRect.x = clampMegamanX(megaman.dstRect.x + MEGAMAN_RUN_SPEED,
+                                      megaman.dstRect.w,
+                                      megaman.worldWidth);
+    megaman.dstRect.y = getMegamanSupportY(megaman.dstRect);
+
+    if (megaman.shootAnimTimer > 0)
+    {
+        setMegamanState(megaman, MegamanState::SHOOTRUN);
+        currentAnim = animations.shootRun;
+        return;
+    }
+
+    setMegamanState(megaman, MegamanState::RUN);
+    currentAnim = animations.run;
+}
+
+void handleMegamanRunLeft(MegamanRuntime&          megaman,
+                          const MegamanAnimations& animations,
+                          const Animation*&        currentAnim)
+{
+    megaman.flip = SDL_FLIP_HORIZONTAL;
+    megaman.dstRect.x = clampMegamanX(megaman.dstRect.x - MEGAMAN_RUN_SPEED,
+                                      megaman.dstRect.w,
+                                      megaman.worldWidth);
+    megaman.dstRect.y = getMegamanSupportY(megaman.dstRect);
+
+    if (megaman.shootAnimTimer > 0)
+    {
+        setMegamanState(megaman, MegamanState::SHOOTRUN);
+        currentAnim = animations.shootRun;
+        return;
+    }
+
+    setMegamanState(megaman, MegamanState::RUN);
+    currentAnim = animations.run;
+}
+
+void startMegamanJump(MegamanRuntime& megaman)
+{
+    if (megaman.isJumping)
+        return;
+
+    megaman.isJumping = true;
+    megaman.jumpFrame = 0;
+    setMegamanState(megaman, MegamanState::JUMP);
+}
+
+void handleMegamanJump(MegamanRuntime&          megaman,
+                       const MegamanInput&      input,
+                       const MegamanAnimations& animations,
+                       const Animation*&        currentAnim)
+{
+    if (input.moveLeft == input.moveRight)
+    {
+        // keep facing the current direction while doing a straight-up jump
+    }
+    else if (input.moveLeft)
+    {
+        megaman.flip = SDL_FLIP_HORIZONTAL;
+        megaman.dstRect.x = clampMegamanX(megaman.dstRect.x - MEGAMAN_RUN_SPEED,
+                                          megaman.dstRect.w,
+                                          megaman.worldWidth);
+    }
+    else
+    {
+        megaman.flip = SDL_FLIP_NONE;
+        megaman.dstRect.x = clampMegamanX(megaman.dstRect.x + MEGAMAN_RUN_SPEED,
+                                          megaman.dstRect.w,
+                                          megaman.worldWidth);
+    }
+
+    const float t = static_cast<float>(megaman.jumpFrame) / JUMP_DURATION_FRAMES;
+    const float supportY = getMegamanSupportY(megaman.dstRect);
+    megaman.dstRect.y = supportY - JUMP_PEAK_OFFSET * SDL_sinf(SDL_PI_F * t);
+    ++megaman.jumpFrame;
+
+    if (megaman.jumpFrame >= JUMP_DURATION_FRAMES)
+    {
+        megaman.isJumping = false;
+        megaman.jumpFrame = 0;
+        megaman.dstRect.y = getMegamanSupportY(megaman.dstRect);
+    }
+
+    setMegamanState(megaman, MegamanState::JUMP);
+    currentAnim = animations.jump;
+}
+
+void handleMegamanShoot(MegamanRuntime& megaman,
+                        bool&           shotActive,
+                        SDL_FRect&      shotDstRect,
+                        float&          shotVelocityX,
+                        const SpriteSheet& shot)
+{
+    if (shotActive)
+        return;
+
+    megaman.shootAnimTimer = 4;
+    shotActive = true;
+    shotVelocityX = megaman.flip == SDL_FLIP_HORIZONTAL ? -SHOT_SPEED : SHOT_SPEED;
+
+    if (shotVelocityX > 0.f)
+        shotDstRect.x = megaman.dstRect.x + megaman.dstRect.w;
+    else
+        shotDstRect.x = megaman.dstRect.x - shot.sw;
+
+    shotDstRect.y =
+        megaman.dstRect.y + megaman.dstRect.h * 0.5f - shot.sh * 0.5f;
+}
+
 int main()
 {
     SDL_Window*   window{};
@@ -275,17 +461,37 @@ int main()
     Animation   megamanRunAnim{&megaman,
                                static_cast<int>(Megaman::RUN),
                                MEGAMAN_RUN_FRAME_COUNT};
+    Animation   megamanShootRunAnim{&megaman,
+                                    static_cast<int>(Megaman::SHOOTRUN),
+                                    MEGAMAN_SHOOTRUN_FRAME_COUNT};
     Animation   megamanIdleAnim{&megaman,
                                 static_cast<int>(Megaman::IDLE),
                                 MEGAMAN_IDLE_FRAME_COUNT};
+    Animation   megamanShootAnim{&megaman,
+                                 static_cast<int>(Megaman::SHOOT),
+                                 MEGAMAN_SHOOT_FRAME_COUNT};
     Animation   megamanJumpAnim{&megaman,
                                 static_cast<int>(Megaman::JUMP),
                                 MEGAMAN_JUMP_FRAME_COUNT};
 
-    SDL_FRect megamanDstRect{MEGAMAN_START_POS[0],
-                             MEGAMAN_START_POS[1],
-                             megaman.sw,
-                             megaman.sh};
+    MegamanAnimations megamanAnimations{&megamanRunAnim,
+                                        &megamanShootRunAnim,
+                                        &megamanIdleAnim,
+                                        &megamanShootAnim,
+                                        &megamanJumpAnim};
+
+    MegamanRuntime megamanRuntime{{MEGAMAN_START_POS[0],
+                                   MEGAMAN_START_POS[1],
+                                   megaman.sw,
+                                   megaman.sh},
+                                  SDL_FLIP_NONE,
+                                  MegamanState::IDLE,
+                                  0,
+                                  0,
+                                  0,
+                                  false,
+                                  bg.w};
+    MegamanInput   megamanInput{};
 
     SpriteSheet enemy = createEnemySpriteSheet(window, renderer);
     Animation   enemyHoverAnim{&enemy,
@@ -303,7 +509,6 @@ int main()
     Animation   explosionAnim{&explosion, 0, EXPLOSION_FRAME_COUNT};
 
 
-    int megamanAnimFrame = 0;
     int enemyAnimFrame = 0;
 
     float        enemyDir = 1.f; // +1 right, -1 left
@@ -311,13 +516,9 @@ int main()
     bool         enemyAlive = true;
     int          enemyHp = 2;
 
-    MegamanState megamanState = MegamanState::RUN_TO_BLOCK;
-    int          jumpFrame = 0;
-    int          shootDelay = 0;
-    float        megamanBaseY = MEGAMAN_GROUND_Y;
-
     bool      shotActive = false;
     SDL_FRect shotDstRect{0, 0, shot.sw, shot.sh};
+    float     shotVelocityX = SHOT_SPEED;
     int       enemyBlinkTimer = 0;
 
     bool      explosionActive = false;
@@ -326,129 +527,88 @@ int main()
 
     while (isRunning)
     {
-        // 1.  move player (+ animate)
-        // 2.  move enemy (hover)
-        // 3.  if player at certaint position => jumps + switch anim.
-        // 4.  if player landed at block => jumps + shoots + switch anim.
-        // 5.  spawn projectile + move it
-        // 6.  if projectile hit enemy enemy blinks and health -1
-        // 7.  repeat 5-6
-        // 8.  enemy dies
-        // 9. spawn + animate explosion
+        SDL_Event event{};
+        while (SDL_PollEvent(&event))
+        {
+            if (event.type == SDL_EVENT_QUIT)
+            {
+                isRunning = false;
+                continue;
+            }
+
+            if (event.type == SDL_EVENT_KEY_DOWN)
+            {
+                if (event.key.key == SDLK_A || event.key.key == SDLK_LEFT)
+                    megamanInput.moveLeft = true;
+                if (event.key.key == SDLK_D || event.key.key == SDLK_RIGHT)
+                    megamanInput.moveRight = true;
+                if (!event.key.repeat &&
+                    (event.key.key == SDLK_SPACE || event.key.key == SDLK_W ||
+                     event.key.key == SDLK_UP))
+                    megamanInput.jumpPressed = true;
+                if (!event.key.repeat &&
+                    (event.key.key == SDLK_J || event.key.key == SDLK_X))
+                    megamanInput.shootPressed = true;
+            }
+
+            if (event.type == SDL_EVENT_KEY_UP)
+            {
+                if (event.key.key == SDLK_A || event.key.key == SDLK_LEFT)
+                    megamanInput.moveLeft = false;
+                if (event.key.key == SDLK_D || event.key.key == SDLK_RIGHT)
+                    megamanInput.moveRight = false;
+            }
+        }
+
+        if (megamanInput.jumpPressed)
+            startMegamanJump(megamanRuntime);
+
+        if (megamanInput.shootPressed)
+            handleMegamanShoot(megamanRuntime,
+                               shotActive,
+                               shotDstRect,
+                               shotVelocityX,
+                               shot);
+
+        const Animation* megamanCurrentAnim = megamanAnimations.idle;
+        if (megamanRuntime.isJumping)
+        {
+            handleMegamanJump(megamanRuntime,
+                              megamanInput,
+                              megamanAnimations,
+                              megamanCurrentAnim);
+        }
+        else if (megamanInput.moveLeft && !megamanInput.moveRight)
+        {
+            handleMegamanRunLeft(megamanRuntime,
+                                 megamanAnimations,
+                                 megamanCurrentAnim);
+        }
+        else if (megamanInput.moveRight && !megamanInput.moveLeft)
+        {
+            handleMegamanRunRight(megamanRuntime,
+                                  megamanAnimations,
+                                  megamanCurrentAnim);
+        }
+        else
+        {
+            handleMegamanIdle(megamanRuntime,
+                              megamanAnimations,
+                              megamanCurrentAnim);
+        }
+
+        megamanInput.jumpPressed = false;
+        megamanInput.shootPressed = false;
 
         SDL_RenderClear(renderer);
         renderBackground(bg, renderer);
-
-        Animation* megamanCurrentAnim = &megamanRunAnim;
-        switch (megamanState)
-        {
-        case MegamanState::RUN_TO_BLOCK:
-            megamanCurrentAnim = &megamanRunAnim;
-            megamanDstRect.x += MEGAMAN_RUN_SPEED;
-            // in jump distance from block
-            if (megamanDstRect.x >= BLOCK_POS[0] - 25.f)
-            {
-                megamanState = MegamanState::JUMP_ONTO_BLOCK;
-                jumpFrame = 0;
-                megamanBaseY = MEGAMAN_GROUND_Y;
-                megamanAnimFrame = 0;
-            }
-            break;
-
-        case MegamanState::JUMP_ONTO_BLOCK:
-        {
-            megamanCurrentAnim = &megamanJumpAnim;
-            // t in [0,1] over the jump duration
-            float t = static_cast<float>(jumpFrame) / JUMP_DURATION_FRAMES;
-            float landingY = MEGAMAN_BLOCK_Y;
-            // lerp baseline from ground toward block top as Megaman travels forward
-            float baseY = megamanBaseY + (landingY - megamanBaseY) * t;
-            // sin arc peaks at t=0.5 (pi/2), zero at t=0 and t=1. gives parabola-like arc
-            megamanDstRect.y =
-                baseY - JUMP_PEAK_OFFSET * SDL_sinf(SDL_PI_F * t);
-            megamanDstRect.x += MEGAMAN_RUN_SPEED * 0.5f;
-            ++jumpFrame;
-            if (jumpFrame >= JUMP_DURATION_FRAMES)
-            { // jump over
-                megamanDstRect.y = MEGAMAN_BLOCK_Y;
-                megamanState = MegamanState::IDLE_ON_BLOCK;
-                megamanBaseY = MEGAMAN_BLOCK_Y;
-                shootDelay = 6;
-                megamanAnimFrame = 0;
-            }
-            break;
-        }
-
-        case MegamanState::IDLE_ON_BLOCK:
-            megamanCurrentAnim = &megamanIdleAnim;
-            if (--shootDelay <= 0) // wait for shoot delay over
-            {
-                megamanState = MegamanState::JUMP_AND_SHOOT_1;
-                jumpFrame = 0;
-                megamanAnimFrame = 0;
-            }
-            break;
-
-        case MegamanState::JUMP_AND_SHOOT_1:
-        case MegamanState::JUMP_AND_SHOOT_2:
-        {
-            megamanCurrentAnim = &megamanJumpAnim;
-            // spawn shot at jump peak (t=0.5-> maximum height)
-            if (jumpFrame == JUMP_DURATION_FRAMES / 2)
-            {
-                shotActive = true;
-                shotDstRect.x = megamanDstRect.x + megaman.sw; // right edge
-                shotDstRect.y = megamanDstRect.y + megaman.sh * 0.5f -
-                                shot.sh * 0.5f; // vertically centered
-            }
-            // same sin arc as JUMP_ONTO_BLOCK but base stays fixed (in-place jump)
-            float t = static_cast<float>(jumpFrame) / JUMP_DURATION_FRAMES;
-            megamanDstRect.y =
-                megamanBaseY - JUMP_PEAK_OFFSET * SDL_sinf(SDL_PI_F * t);
-            ++jumpFrame;
-            if (jumpFrame >= JUMP_DURATION_FRAMES)
-            {
-                megamanDstRect.y = megamanBaseY;
-                megamanState = (megamanState == MegamanState::JUMP_AND_SHOOT_1)
-                                   ? MegamanState::IDLE_AFTER_SHOT_1
-                                   : MegamanState::IDLE_AFTER_SHOT_2;
-                shootDelay = 15;
-                megamanAnimFrame = 0;
-            }
-            break;
-        }
-
-        case MegamanState::IDLE_AFTER_SHOT_1:
-            megamanCurrentAnim = &megamanIdleAnim;
-            if (--shootDelay <= 0)
-            {
-                megamanState = MegamanState::JUMP_AND_SHOOT_2;
-                jumpFrame = 0;
-                megamanAnimFrame = 0;
-            }
-            break;
-
-        case MegamanState::IDLE_AFTER_SHOT_2:
-            megamanCurrentAnim = &megamanIdleAnim;
-            if (--shootDelay <= 0)
-            {
-                megamanState = MegamanState::DONE;
-                megamanAnimFrame = 0;
-            }
-            break;
-
-        case MegamanState::DONE:
-            megamanCurrentAnim = &megamanIdleAnim;
-            isRunning = false; // demo over
-            break;
-        }
-
-        megamanAnimFrame =
-            (megamanAnimFrame + 1) % megamanCurrentAnim->frameCount;
         renderAnimationFrame(*megamanCurrentAnim,
-                             megamanAnimFrame,
-                             megamanDstRect,
-                             renderer);
+                             megamanRuntime.animFrame,
+                             megamanRuntime.dstRect,
+                             renderer,
+                             megamanRuntime.flip);
+        advanceMegamanAnimation(megamanRuntime, *megamanCurrentAnim);
+
         if (enemyAlive)
         {
             enemyDstRect.x += enemyDir * ENEMY_SPEED;
@@ -471,7 +631,7 @@ int main()
 
         if (shotActive)
         {
-            shotDstRect.x += SHOT_SPEED;
+            shotDstRect.x += shotVelocityX;
             if (enemyAlive && rectsOverlap(shotDstRect, enemyDstRect))
             {
                 shotActive = false;
@@ -492,11 +652,15 @@ int main()
                         enemyDstRect.y + enemy.sh * 0.5f - explosion.sh * 0.5f;
                 }
             }
-            else if (shotDstRect.x > static_cast<float>(WIN_WIDTH))
-            { // shot out of window bounds
+            else if (shotDstRect.x > bg.w || shotDstRect.x + shotDstRect.w < 0.f)
+            {
                 shotActive = false;
             }
         }
+
+        if (megamanRuntime.shootAnimTimer > 0)
+            --megamanRuntime.shootAnimTimer;
+
         if (enemyBlinkTimer > 0)
             --enemyBlinkTimer;
 
@@ -533,13 +697,6 @@ int main()
         SDL_RenderPresent(renderer);
 
         SDL_Delay(FRAME_DELAY_MS);
-
-        SDL_Event event{};
-        if (SDL_PollEvent(&event))
-        {
-            if (event.type == SDL_EVENT_QUIT)
-                isRunning = false;
-        }
     }
 
     destroyResourcesAndQuit(window, renderer);
