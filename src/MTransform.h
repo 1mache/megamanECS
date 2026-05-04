@@ -17,28 +17,25 @@ struct Transform
     float rot{};
 };
 
-SDL_FRect transform2Frect(const Transform& t)
+SDL_FRect transformToFrect(const Transform& t)
 {
     auto ptm = GlobalData::PTM;
     auto winh = GlobalData::winH();
     // invert y and convert to pixels
-    return SDL_FRect{.x = (t.x - t.w) * ptm,
-                     .y = winh - ((t.y + t.h) * ptm),
-                     .w = t.w * 2 * ptm,
-                     .h = t.h * 2 * ptm};
+    return SDL_FRect{.x = (t.x - t.w) * ptm, .y = winh - ((t.y + t.h) * ptm), .w = t.w * 2 * ptm, .h = t.h * 2 * ptm};
 }
 
-constexpr b2Vec2 transformGetb2Pos(const Transform& t)
+constexpr b2Vec2 transformToB2Pos(const Transform& t)
 {
     return b2Vec2{t.x, t.y};
 }
 
-constexpr b2Vec2 transformGetb2Scale(const Transform& t)
+constexpr b2Vec2 transformToB2Scale(const Transform& t)
 {
     return b2Vec2{t.w, t.h};
 }
 
-constexpr void transformInjectb2Pos(Transform& t, b2Vec2 pos)
+constexpr void transformUpdateWithB2Pos(Transform& t, b2Vec2 pos)
 {
     t.x = pos.x;
     t.y = pos.y;
