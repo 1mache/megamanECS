@@ -13,7 +13,8 @@ target_link_libraries(
     PRIVATE
             SDL3-static
             SDL3_image-static
-            box2d)
+            box2d
+            tmxlite)
 
 if(${ENABLE_WARNINGS})
     target_set_warnings(

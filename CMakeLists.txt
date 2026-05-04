@@ -78,14 +78,21 @@ set(SDL_SHARED OFF CACHE BOOL "Build SDL as a static library" FORCE)
 set(SDL_TEST_LIBRARY OFF CACHE BOOL "Build the SDL3_test library" FORCE)
 set(SDL_INSTALL OFF CACHE BOOL "Enable installation of SDL3" FORCE)
 add_subdirectory(dependencies/SDL "${CMAKE_BINARY_DIR}/dependencies/SDL" EXCLUDE_FROM_ALL)
+
+set(BUILD_SHARED_LIBS OFF)
+add_subdirectory(dependencies/SDL_image "${CMAKE_BINARY_DIR}/dependencies/SDL_image" EXCLUDE_FROM_ALL)
+
 # Box2D
 set(BOX2D_SAMPLES OFF CACHE BOOL "Build Box2D samples" FORCE)
 set(BOX2D_UNIT_TESTS OFF CACHE BOOL "Build Box2D unit tests" FORCE)
 set(BOX2D_DOCS OFF CACHE BOOL "Build Box2D docs" FORCE)
 add_subdirectory(dependencies/box2d "${CMAKE_BINARY_DIR}/dependencies/box2d" EXCLUDE_FROM_ALL)
 
-set(BUILD_SHARED_LIBS OFF)
-add_subdirectory(dependencies/SDL_image "${CMAKE_BINARY_DIR}/dependencies/SDL_image" EXCLUDE_FROM_ALL)
+# tmxlite — TMX map parser
+set(TMXLITE_STATIC_LIB TRUE CACHE BOOL "" FORCE)
+add_subdirectory(dependencies/tmxlite/tmxlite
+"${CMAKE_BINARY_DIR}/dependencies/tmxlite" EXCLUDE_FROM_ALL)
+target_compile_definitions(tmxlite PRIVATE _CRT_SECURE_NO_WARNINGS)
 
 # SUBDIRECTORIES
 

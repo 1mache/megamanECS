@@ -7,3 +7,6 @@
 [submodule "dependencies/box2d"]
 	path = dependencies/box2d
 	url = https://github.com/erincatto/box2d.git
+[submodule "dependencies/tmxlite"]
+	path = dependencies/tmxlite
+	url = https://github.com/fallahn/tmxlite.git
