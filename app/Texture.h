@@ -15,10 +15,16 @@ public:
     Texture& operator=(const Texture&) = delete;
     Texture& operator=(Texture&&) = delete;
 
-    bool loadFromFile(const std::string& path, SDL_Renderer* renderer);
-    SDL_Point getSize() const { return _size; }
+    bool      loadFromFile(const std::string& path, SDL_Renderer* renderer);
+    SDL_Point getSize() const
+    {
+        return _size;
+    }
 
-    operator SDL_Texture*() { return _texture; }
+    operator SDL_Texture*()
+    {
+        return _texture;
+    }
 
 private:
     SDL_Texture* _texture;

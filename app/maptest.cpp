@@ -1,5 +1,5 @@
-#include "Texture.h"
 #include "MapLayer.h"
+#include "Texture.h"
 
 #include <SDL3/SDL.h>
 #include <SDL3/SDL_main.h>
@@ -8,6 +8,8 @@
 #include <iostream>
 #include <memory>
 #include <vector>
+
+constexpr float SCALE_FACTOR = 2;
 
 int main(int, char**)
 {
@@ -33,6 +35,7 @@ int main(int, char**)
         SDL_Quit();
         return 1;
     }
+    SDL_SetRenderScale(renderer, SCALE_FACTOR, SCALE_FACTOR);
     SDL_SetRenderVSync(renderer, 1);
 
     std::vector<std::unique_ptr<Texture>>  textures;
@@ -41,6 +44,7 @@ int main(int, char**)
     tmx::Map map;
     if (map.load("res/map/map.tmx"))
     {
+        // load all tileset textures
         for (const auto& ts : map.getTilesets())
         {
             textures.emplace_back(std::make_unique<Texture>());
@@ -48,6 +52,7 @@ int main(int, char**)
                 std::cerr << "Failed to load tileset: " << ts.getImagePath() << "\n";
         }
 
+        // create all map layers
         const auto& mapLayers = map.getLayers();
         for (auto i = 0u; i < mapLayers.size(); ++i)
         {
@@ -63,7 +68,7 @@ int main(int, char**)
         std::cerr << "Failed to load map\n";
     }
 
-    SDL_SetRenderDrawColor(renderer, 100, 149, 237, 255);
+    SDL_SetRenderDrawColor(renderer, 50, 50, 100, 255);
 
     bool running = true;
     while (running)

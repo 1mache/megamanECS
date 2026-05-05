@@ -13,12 +13,14 @@ class MapLayer final
 public:
     MapLayer() = default;
 
-    bool create(const tmx::Map& map, std::uint32_t layerIndex,
+    bool create(const tmx::Map&                              map,
+                std::uint32_t                                layerIndex,
                 const std::vector<std::unique_ptr<Texture>>& textures);
 
     void draw(SDL_Renderer* renderer) const;
 
 private:
+    // one subset per used tileset
     struct Subset final
     {
         std::vector<SDL_Vertex> vertexData;
