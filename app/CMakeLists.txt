@@ -1,4 +1,8 @@
-set(APP_SOURCES "${CMAKE_CURRENT_SOURCE_DIR}/boxtest.cpp")
+set(APP_SOURCES
+    "${CMAKE_CURRENT_SOURCE_DIR}/maptest.cpp"
+    "${CMAKE_CURRENT_SOURCE_DIR}/Texture.cpp"
+    "${CMAKE_CURRENT_SOURCE_DIR}/MapLayer.cpp"
+)
 
 add_executable(${EXECUTABLE_NAME} ${APP_SOURCES})
 

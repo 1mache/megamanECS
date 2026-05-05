@@ -93,6 +93,12 @@ set(TMXLITE_STATIC_LIB TRUE CACHE BOOL "" FORCE)
 add_subdirectory(dependencies/tmxlite/tmxlite
 "${CMAKE_BINARY_DIR}/dependencies/tmxlite" EXCLUDE_FROM_ALL)
 target_compile_definitions(tmxlite PRIVATE _CRT_SECURE_NO_WARNINGS)
+target_compile_options(tmxlite PRIVATE
+    $<$<CXX_COMPILER_ID:MSVC>:/W0>
+    $<$<NOT:$<CXX_COMPILER_ID:MSVC>>:-w>)
+set_target_properties(tmxlite PROPERTIES
+    INTERFACE_SYSTEM_INCLUDE_DIRECTORIES
+    "${CMAKE_CURRENT_SOURCE_DIR}/dependencies/tmxlite/tmxlite/include")
 
 # SUBDIRECTORIES
 
