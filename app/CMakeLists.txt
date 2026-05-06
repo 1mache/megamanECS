@@ -1,4 +1,6 @@
-set(APP_SOURCES "${CMAKE_CURRENT_SOURCE_DIR}/boxtest.cpp")
+set(APP_SOURCES
+    "${CMAKE_CURRENT_SOURCE_DIR}/main_pong.cpp"
+    "${CMAKE_CURRENT_SOURCE_DIR}/pong.cpp")
 
 add_executable(${EXECUTABLE_NAME} ${APP_SOURCES})
 
