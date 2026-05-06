@@ -8,6 +8,8 @@ CLAUDE.md
 ################################
 build/
 build-*/
+cmake-build-*/
+.cache/
 html/
 docs/superpowers/
 tools/

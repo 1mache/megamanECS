@@ -1,25 +1,33 @@
 #pragma once
 
 #include "SDL3/SDL.h"
+#include <box2d/box2d.h>
 #include "bagel.h"
 #include <string>
 
 namespace megaman
 { // forward declarations
-struct Transform;
-struct Movement;
-struct Collision;
-struct Drawable;
-struct Health;
-struct Input;
-struct Enemy;
-struct AI;
-struct Weapon;
-struct Scene;
-struct Sound;
+    struct Animation;
+    struct Transform;
+    struct Movement;
+    struct Collision;
+    struct Drawable;
+    struct Health;
+    struct Input;
+    struct Enemy;
+    struct AI;
+    struct Weapon;
+    struct Scene;
+    struct Sound;
 } // namespace megaman
 
 // ============= STORAGE SPECIALIZATIONS =============
+
+template <>
+struct bagel::Storage<megaman::Animation> final : bagel::NoInstance
+{
+    using type = bagel::PackedStorage<megaman::Animation>;
+};
 
 template <>
 struct bagel::Storage<megaman::Transform> final : bagel::NoInstance
@@ -89,159 +97,189 @@ struct bagel::Storage<megaman::Sound> final : bagel::NoInstance
 
 namespace megaman
 {
-using ent_type = bagel::ent_type;
+    using ent_type = bagel::ent_type;
 
-// ============= COMPONENTS =============
-struct Transform
-{
-    // Preferred storage: Sparse, almost every entity will have a transform,
-    // so almost no holes and array will be well utilized.
+    // ============= COMPONENTS =============
 
-    // pos and scale can also be a Vector2 or equivalent if exists in SDL. or stay like this.
-    float posX{};
-    float posY{};
-    float scaleX{};
-    float scaleY{};
-    // degrees or radians but can be converted into another type later
-    float rotation{};
-};
+    struct Animation
+    {
+        enum State
+        {
+            IDLE,
+            RUN,
+            JUMP
+        };
+        State state{IDLE};
+        int currentFrame{};
+        int frameTimer{};
+    };
 
-struct Movement
-{
-    // Preferred storage: Packed, per frame iteration even though entities
-    // with movement will be created and destroyed "frequently" so stack is an option too.
+    struct Transform
+    {
+        // Preferred storage: Sparse, almost every entity will have a transform,
+        // so almost no holes and array will be well utilized.
 
-    float mass{};
-    float velX{};
-    float velY{};
-    float accX{}; //acceleration
-    float accY{};
-};
+        // pos and scale can also be a Vector2 or equivalent if exists in SDL. or stay like this.
+        float posX{};
+        float posY{};
+        float scaleX{};
+        float scaleY{};
+        // degrees or radians but can be converted into another type later
+        float rotation{};
+    };
 
-struct Collision
-{
-    // Preferred storage: Packed, same reason as Movement since its also physics related.
+    struct Movement
+    {
+        // Preferred storage: Packed, per frame iteration even though entities
+        // with movement will be created and destroyed "frequently" so stack is an option too.
 
-    // for now: collider box centered on entity position, so only width and height matter.
-    // note: possible different shapes of colliders in the future so shape member can be added.
-    float width{};
-    float height{};
-};
+        float mass{};
+        float velX{};
+        float velY{};
+        float accX{}; // acceleration
+        float accY{};
+    };
 
-struct Drawable
-{
-    // Preferred storage: Sparse, almost every entity can be drawn to the screen.
-    // Holes will be filled quickly with new objects so we can get away with one array.
+    struct Collision
+    {
+        // Preferred storage: Packed, same reason as Movement since its also physics related.
 
-    SDL_Texture* texture{nullptr};
-};
+        // for now: collider box centered on entity position, so only width and height matter.
+        // note: possible different shapes of colliders in the future so shape member can be added.
+        float width{};
+        float height{};
+    };
 
-struct Health
-{
-    // Preferred storage: Stack, relatively few entities will have health and
-    // they are created and destroyed a lot.
+    struct Drawable
+    {
+        // Preferred storage: Sparse, almost every entity can be drawn to the screen.
+        // Holes will be filled quickly with new objects so we can get away with one array.
 
-    int  points{};
-    bool isInvulnerable{};
-    bool isDead{};
-};
+        SDL_Texture *texture{nullptr};
+    };
 
-struct Input
-{
-    // Preferred storage: Tagged, we only need to know if entity has it
-    // so it can react to input events.
-};
+    struct Health
+    {
+        // Preferred storage: Stack, relatively few entities will have health and
+        // they are created and destroyed a lot.
 
-struct Enemy
-{
-    // Preferred storage: Tagged, only need to know if entity has it.
-};
+        int points{};
+        bool isInvulnerable{};
+        bool isDead{};
+    };
 
-struct AI
-{
-    // Preferred storage: Stack, relatively few entities will have AI
-    // and they are likely to be created and destroyed frequently.
+    struct Input
+    {
+        // Preferred storage: Tagged, we only need to know if entity has it
+        // so it can react to input events.
+    };
 
-    int state{-1}; // or some custom type later
-};
+    struct Enemy
+    {
+        // Preferred storage: Tagged, only need to know if entity has it.
+    };
 
-struct Weapon
-{
-    // Preferred storage: Stack, few entities will be able to shoot
-    // and be in the scene at the same time, we dont want to waste large array for their possibly large ids.
+    struct AI
+    {
+        // Preferred storage: Stack, relatively few entities will have AI
+        // and they are likely to be created and destroyed frequently.
 
-    int projectileType{-1}; // or some custom type later
-};
+        int state{-1}; // or some custom type later
+    };
 
-struct Scene
-{
-    // Preferred storage: Sparse, probably only one entity of this type with
-    // small id value so one short array is good.
+    struct Weapon
+    {
+        // Preferred storage: Stack, few entities will be able to shoot
+        // and be in the scene at the same time, we dont want to waste large array for their possibly large ids.
 
-    std::string mapFilePath{"res/..."}; // or some way to hold layout data
-};
+        int projectileType{-1}; // or some custom type later
+    };
 
-struct Sound
-{
-    // Preferred storage: Stack, a lot of entities can have sound effects tied to them
-    // and a lot of them die and get created frequently.
+    struct Scene
+    {
+        // Preferred storage: Sparse, probably only one entity of this type with
+        // small id value so one short array is good.
 
-    int  sound{-1}; // or some way to hold sound data
-    bool isPlaying{false};
-};
+        std::string mapFilePath{"res/..."}; // or some way to hold layout data
+    };
 
-// ============= SYSTEMS    =============
+    struct Sound
+    {
+        // Preferred storage: Stack, a lot of entities can have sound effects tied to them
+        // and a lot of them die and get created frequently.
 
-class MovementSystem final : bagel::NoInstance
-{
-};
-// maybe unite these 2 into one PhysicsSystem later
-class CollisionSystem final : bagel::NoInstance
-{
-};
+        int sound{-1}; // or some way to hold sound data
+        bool isPlaying{false};
+    };
 
-class DrawingSystem final : bagel::NoInstance
-{
-};
+    // ============= SYSTEMS    =============
 
-class HealthSystem final : bagel::NoInstance
-{
-};
+    class InputSystem final : bagel::NoInstance
+    {
+    public:
+        static void run();
+    };
 
-class AISystem final : bagel::NoInstance
-{
-};
+    class MovementSystem final : bagel::NoInstance
+    {
+    public:
+        static void run();
+    };
 
-class InputSystem final : bagel::NoInstance
-{
-};
+    class AnimationSystem final : bagel::NoInstance
+    {
+    public:
+        static void run();
+    };
 
-class SoundSystem final : bagel::NoInstance
-{
-};
+    class DrawingSystem final : bagel::NoInstance
+    {
+    public:
+        static void run(SDL_Renderer *ren, SDL_Texture *tex);
+    };
 
-class SceneSystem final : bagel::NoInstance
-{
-};
-// ============= ENTITIES   =============
+    class CollisionSystem final : bagel::NoInstance
+    {
+    public:
+        static void run(b2WorldId box);
+    };
 
-ent_type createPlayer(float x, float y /*or vector2 like type*/, int hp);
+    class HealthSystem final : bagel::NoInstance
+    {
+    public:
+        static void run();
+    };
 
-ent_type createEnemy(float x, float y, int hp);
+    class AISystem final : bagel::NoInstance
+    {
+    public:
+        static void run();
+    };
 
-ent_type createBoss(float x, float y, int hp);
+    class SoundSystem final : bagel::NoInstance
+    {
+    public:
+        static void run();
+    };
+    // ============= ENTITIES   =============
 
-ent_type createPlatform(float x, float y, bool isMoving);
+    ent_type createPlayer(float x, float y /*or vector2 like type*/, int hp);
 
-ent_type createProjectile(float x, float y, float velX, float velY);
+    ent_type createEnemy(float x, float y, int hp);
 
-ent_type createTrigger(float x, float y, float width, float height);
+    ent_type createBoss(float x, float y, int hp);
 
-ent_type createItem(float x, float y);
+    ent_type createPlatform(float x, float y, bool isMoving);
 
-ent_type createText(float x, float y, const std::string& text);
+    ent_type createProjectile(float x, float y, float velX, float velY);
 
-ent_type createSoundSource(float x, float y, int sound);
+    ent_type createTrigger(float x, float y, float width, float height);
 
-ent_type createScene(const std::string& mapFilePath);
+    ent_type createItem(float x, float y);
+
+    ent_type createText(float x, float y, const std::string &text);
+
+    ent_type createSoundSource(float x, float y, int sound);
+
+    ent_type createScene(const std::string &mapFilePath);
 } // namespace megaman

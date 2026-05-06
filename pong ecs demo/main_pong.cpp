@@ -1,7 +1,7 @@
 #include <iostream>
 using namespace std;
 
-#include <bagel.h>
+#include "bagel.h"
 using namespace bagel;
 
 #include "pong.h"
