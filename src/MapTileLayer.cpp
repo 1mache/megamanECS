@@ -1,12 +1,11 @@
-#include "MapLayer.h"
+#include "MapTileLayer.h"
 
 #include <tmxlite/TileLayer.hpp>
 
 #include <cassert>
 
-bool MapLayer::create(const tmx::Map&                              map,
-                      std::uint32_t                                layerIndex,
-                      const std::vector<std::unique_ptr<Texture>>& textures)
+bool MapTileLayer::create(const tmx::Map& map, std::uint32_t layerIndex,
+                          const std::vector<std::unique_ptr<Texture>>& textures)
 {
     const auto& layers = map.getLayers();
     // we are loading a tile layer. not object or image
@@ -18,10 +17,7 @@ bool MapLayer::create(const tmx::Map&                              map,
     const auto& tileSets = map.getTilesets();
 
     const auto       tint = layer.getTintColour();
-    const SDL_FColor vertColour = {tint.r / 255.f,
-                                   tint.g / 255.f,
-                                   tint.b / 255.f,
-                                   tint.a / 255.f};
+    const SDL_FColor vertColour = {tint.r / 255.f, tint.g / 255.f, tint.b / 255.f, tint.a / 255.f};
 
     for (auto i = 0u; i < tileSets.size(); ++i)
     {
@@ -34,10 +30,8 @@ bool MapLayer::create(const tmx::Map&                              map,
         // UV space: texture coordinates. (0,0) = top-left, (1,1) = bottom-right of texture
 
         // norms are size of 1 tile in UV space
-        const float uNorm =
-            static_cast<float>(mapTileSize.x) / static_cast<float>(texSize.x);
-        const float vNorm =
-            static_cast<float>(mapTileSize.y) / static_cast<float>(texSize.y);
+        const float uNorm = static_cast<float>(mapTileSize.x) / static_cast<float>(texSize.x);
+        const float vNorm = static_cast<float>(mapTileSize.y) / static_cast<float>(texSize.y);
 
         std::vector<SDL_Vertex> verts;
         for (auto y = 0u; y < mapSize.y; ++y)
@@ -54,18 +48,14 @@ bool MapLayer::create(const tmx::Map&                              map,
 
                 const auto localId = tileIDs[idx].ID - ts.getFirstGID();
                 // calculate coordinates of tile in uv space
-                float u =
-                    static_cast<float>(localId % static_cast<std::uint32_t>(tileCountX)) *
-                    static_cast<float>(mapTileSize.x) / static_cast<float>(texSize.x);
-                float v =
-                    static_cast<float>(localId / static_cast<std::uint32_t>(tileCountX)) *
-                    static_cast<float>(mapTileSize.y) / static_cast<float>(texSize.y);
+                float u = static_cast<float>(localId % static_cast<std::uint32_t>(tileCountX)) *
+                          static_cast<float>(mapTileSize.x) / static_cast<float>(texSize.x);
+                float v = static_cast<float>(localId / static_cast<std::uint32_t>(tileCountX)) *
+                          static_cast<float>(mapTileSize.y) / static_cast<float>(texSize.y);
 
-                //pixel coordinates
-                const float px =
-                    static_cast<float>(x) * static_cast<float>(mapTileSize.x);
-                const float py =
-                    static_cast<float>(y) * static_cast<float>(mapTileSize.y);
+                // pixel coordinates
+                const float px = static_cast<float>(x) * static_cast<float>(mapTileSize.x);
+                const float py = static_cast<float>(y) * static_cast<float>(mapTileSize.y);
                 // tile dims
                 const float tw = static_cast<float>(mapTileSize.x);
                 const float th = static_cast<float>(mapTileSize.y);
@@ -99,17 +89,12 @@ bool MapLayer::create(const tmx::Map&                              map,
     return true;
 }
 
-void MapLayer::draw(SDL_Renderer* renderer) const
+void MapTileLayer::draw(SDL_Renderer* renderer) const
 {
     assert(renderer);
     for (const auto& s : _subsets)
     {
         // draw all verts using that texture
-        SDL_RenderGeometry(renderer,
-                           s.texture,
-                           s.vertexData.data(),
-                           static_cast<int>(s.vertexData.size()),
-                           nullptr,
-                           0);
+        SDL_RenderGeometry(renderer, s.texture, s.vertexData.data(), static_cast<int>(s.vertexData.size()), nullptr, 0);
     }
 }

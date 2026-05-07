@@ -8,18 +8,16 @@
 #include <memory>
 #include <vector>
 
-class MapLayer final
+class MapTileLayer final
 {
-public:
-    MapLayer() = default;
+  public:
+    MapTileLayer() = default;
 
-    bool create(const tmx::Map&                              map,
-                std::uint32_t                                layerIndex,
-                const std::vector<std::unique_ptr<Texture>>& textures);
+    bool create(const tmx::Map& map, std::uint32_t layerIndex, const std::vector<std::unique_ptr<Texture>>& textures);
 
     void draw(SDL_Renderer* renderer) const;
 
-private:
+  private:
     // one subset per used tileset
     struct Subset final
     {

@@ -1,4 +1,4 @@
-#include "MapLayer.h"
+#include "MapTileLayer.h"
 #include "Texture.h"
 
 #include <SDL3/SDL.h>
@@ -38,8 +38,8 @@ int main(int, char**)
     SDL_SetRenderScale(renderer, SCALE_FACTOR, SCALE_FACTOR);
     SDL_SetRenderVSync(renderer, 1);
 
-    std::vector<std::unique_ptr<Texture>>  textures;
-    std::vector<std::unique_ptr<MapLayer>> renderLayers;
+    std::vector<std::unique_ptr<Texture>>      textures;
+    std::vector<std::unique_ptr<MapTileLayer>> renderLayers;
 
     tmx::Map map;
     if (map.load("res/map/map.tmx"))
@@ -58,7 +58,7 @@ int main(int, char**)
         {
             if (mapLayers[i]->getType() == tmx::Layer::Type::Tile)
             {
-                renderLayers.emplace_back(std::make_unique<MapLayer>());
+                renderLayers.emplace_back(std::make_unique<MapTileLayer>());
                 renderLayers.back()->create(map, i, textures);
             }
         }

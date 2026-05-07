@@ -4,8 +4,8 @@ target_sources(
     PRIVATE
         GlobalData.h
         MTransform.h
-        MapLayer.h
-        MapLayer.cpp
+        MapTileLayer.h
+        MapTileLayer.cpp
         Texture.h
         Texture.cpp
         megaman.cpp
