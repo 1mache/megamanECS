@@ -102,8 +102,61 @@ set_target_properties(tmxlite PROPERTIES
 
 # SUBDIRECTORIES
 
-add_subdirectory(app)
+add_subdirectory("pong ecs demo")
 add_subdirectory(src)
+
+add_executable(megaman_demo
+    app/mockup.cpp
+)
+
+target_include_directories(megaman_demo
+    PRIVATE
+        ${CMAKE_CURRENT_SOURCE_DIR}/dependencies/bagel
+        ${CMAKE_CURRENT_SOURCE_DIR}/src
+)
+
+target_link_libraries(megaman_demo
+    PRIVATE
+        SDL3-static
+        SDL3_image-static
+)
+
+add_custom_command(
+    TARGET megaman_demo
+    POST_BUILD
+    COMMAND ${CMAKE_COMMAND} -E copy_directory
+            "${CMAKE_SOURCE_DIR}/res"
+            "$<TARGET_FILE_DIR:megaman_demo>/res"
+    COMMENT "Copying res directory to megaman_demo output folder")
+
+add_executable(megaman_ecs
+    app/megaman_ecs.cpp
+    src/megamanGame.cpp
+    src/megaman.cpp
+)
+
+target_include_directories(megaman_ecs
+    PRIVATE
+        ${CMAKE_CURRENT_SOURCE_DIR}/src
+        ${CMAKE_CURRENT_SOURCE_DIR}/dependencies/bagel
+)
+
+target_link_libraries(megaman_ecs
+    PRIVATE
+        SDL3-static
+        SDL3_image-static
+        box2d
+)
+
+add_custom_command(
+    TARGET megaman_ecs
+    POST_BUILD
+    COMMAND ${CMAKE_COMMAND} -E copy_directory
+            "${CMAKE_SOURCE_DIR}/res"
+            "$<TARGET_FILE_DIR:megaman_ecs>/res"
+    COMMENT "Copying res directory to megaman_ecs output folder")
+
+
 if(ENABLE_TESTING)
     include(CTest)
     enable_testing()
