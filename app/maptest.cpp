@@ -1,3 +1,5 @@
+#include "GlobalData.h"
+#include "MTransform.h"
 #include "MapTileLayer.h"
 #include "Texture.h"
 
@@ -9,17 +11,29 @@
 #include <memory>
 #include <vector>
 
-constexpr float SCALE_FACTOR = 2;
 
 int main(int, char**)
 {
+    using namespace megaman;
+    using gd = GlobalData;
+
+    float     scaleFactor = gd::SCALE_FACTOR;
+    bool      inputLeft{}, inputRight{};
+    Transform cameraPos = {gd::START_CAM_X, gd::START_CAM_Y};
+
+    float camVelX = 2.f;
+
     if (!SDL_Init(SDL_INIT_VIDEO))
     {
         std::cerr << "SDL_Init failed: " << SDL_GetError() << "\n";
         return 1;
     }
 
-    SDL_Window* window = SDL_CreateWindow("tmxlite SDL3 Example", 800, 600, 0);
+
+    int         winW = static_cast<int>(gd::START_WIN_W);
+    int         winH = static_cast<int>(gd::START_WIN_H);
+    SDL_Window* window =
+        SDL_CreateWindow("tmxlite SDL3 Example", winW, winH, 0);
     if (!window)
     {
         std::cerr << "SDL_CreateWindow failed: " << SDL_GetError() << "\n";
@@ -35,8 +49,10 @@ int main(int, char**)
         SDL_Quit();
         return 1;
     }
-    SDL_SetRenderScale(renderer, SCALE_FACTOR, SCALE_FACTOR);
+    SDL_SetRenderScale(renderer, scaleFactor, scaleFactor);
     SDL_SetRenderVSync(renderer, 1);
+    gd::setWindow(window);
+    gd::setRenderer(renderer);
 
     std::vector<std::unique_ptr<Texture>>      textures;
     std::vector<std::unique_ptr<MapTileLayer>> renderLayers;
@@ -49,7 +65,8 @@ int main(int, char**)
         {
             textures.emplace_back(std::make_unique<Texture>());
             if (!textures.back()->loadFromFile(ts.getImagePath(), renderer))
-                std::cerr << "Failed to load tileset: " << ts.getImagePath() << "\n";
+                std::cerr << "Failed to load tileset: " << ts.getImagePath()
+                          << "\n";
         }
 
         // create all map layers
@@ -78,13 +95,36 @@ int main(int, char**)
         {
             if (evt.type == SDL_EVENT_QUIT)
                 running = false;
-            else if (evt.type == SDL_EVENT_KEY_DOWN && evt.key.key == SDLK_ESCAPE)
+            else if (evt.type == SDL_EVENT_KEY_DOWN &&
+                     evt.key.key == SDLK_ESCAPE)
                 running = false;
+            else if (evt.type == SDL_EVENT_KEY_DOWN && evt.key.key == SDLK_A)
+                inputLeft = true;
+            else if (evt.type == SDL_EVENT_KEY_UP && evt.key.key == SDLK_A)
+                inputLeft = false;
+            else if (evt.type == SDL_EVENT_KEY_DOWN && evt.key.key == SDLK_D)
+                inputRight = true;
+            else if (evt.type == SDL_EVENT_KEY_UP && evt.key.key == SDLK_D)
+                inputRight = false;
         }
 
+        auto camData = gd::getCamData();
+        if (inputRight)
+        {
+            gd::updateCamPosition(camData.posX - (camVelX * gd::FRAME_DELTA_MS),
+                                  camData.posY);
+        }
+        if (inputLeft)
+        {
+            gd::updateCamPosition(camData.posX + (camVelX * gd::FRAME_DELTA_MS),
+                                  camData.posY);
+        }
+
+        auto camOffset = SDL_Point{static_cast<int>(camData.posX),
+                                   static_cast<int>(camData.posY)};
         SDL_RenderClear(renderer);
         for (const auto& l : renderLayers)
-            l->draw(renderer);
+            l->draw(renderer, camOffset);
         SDL_RenderPresent(renderer);
     }
 
