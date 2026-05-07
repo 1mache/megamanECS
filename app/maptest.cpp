@@ -111,17 +111,16 @@ int main(int, char**)
         auto camData = gd::getCamData();
         if (inputRight)
         {
-            gd::updateCamPosition(camData.posX - (camVelX * gd::FRAME_DELTA_MS),
+            gd::updateCamPosition(camData.posX + (camVelX * gd::FRAME_DELTA_MS),
                                   camData.posY);
         }
         if (inputLeft)
         {
-            gd::updateCamPosition(camData.posX + (camVelX * gd::FRAME_DELTA_MS),
+            gd::updateCamPosition(camData.posX - (camVelX * gd::FRAME_DELTA_MS),
                                   camData.posY);
         }
 
-        auto camOffset = SDL_Point{static_cast<int>(camData.posX),
-                                   static_cast<int>(camData.posY)};
+        auto camOffset = SDL_FPoint{camData.posX, camData.posY};
         SDL_RenderClear(renderer);
         for (const auto& l : renderLayers)
             l->draw(renderer, camOffset);

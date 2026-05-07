@@ -105,27 +105,25 @@ bool MapTileLayer::create(const tmx::Map& map,
     return true;
 }
 
-void MapTileLayer::draw(SDL_Renderer* renderer, SDL_Point vpOffset) const
+void MapTileLayer::draw(SDL_Renderer* renderer, SDL_FPoint cameraOffset) const
 {
     assert(renderer);
+
     for (const auto& s : _subsets)
     {
-        int w, h;
-        SDL_GetRenderOutputSize(renderer, &w, &h);
-        SDL_Rect vpRect = {vpOffset.x,
-                           vpOffset.y,
-                           w - vpOffset.x,
-                           h - vpOffset.y};
-        // TODO: this applies to everything
-        SDL_SetRenderViewport(renderer, &vpRect);
+        auto offsetVerts = s.vertexData;
+        for (auto& v : offsetVerts)
+        {
+            v.position = {v.position.x - cameraOffset.x,
+                          v.position.y - cameraOffset.y};
+        };
+
         // draw all verts using that texture
         SDL_RenderGeometry(renderer,
                            s.texture,
-                           s.vertexData.data(),
-                           static_cast<int>(s.vertexData.size()),
+                           offsetVerts.data(),
+                           static_cast<int>(offsetVerts.size()),
                            nullptr,
                            0);
-
-        SDL_SetRenderViewport(renderer, nullptr);
     }
 }

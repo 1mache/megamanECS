@@ -17,7 +17,7 @@ public:
                 std::uint32_t                                layerIndex,
                 const std::vector<std::unique_ptr<Texture>>& textures);
 
-    void draw(SDL_Renderer* renderer, SDL_Point vpOffset) const;
+    void draw(SDL_Renderer* renderer, SDL_FPoint camOffset) const;
 
 private:
     // one subset per used tileset
