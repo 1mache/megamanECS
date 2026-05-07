@@ -1,5 +1,6 @@
+# point to entry point file here 
 set(APP_SOURCES
-    "${CMAKE_CURRENT_SOURCE_DIR}/megaman_ecs.cpp"
+    maptest.cpp
 )
 
 add_executable(${EXECUTABLE_NAME} ${APP_SOURCES})

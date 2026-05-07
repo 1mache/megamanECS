@@ -1,8 +1,13 @@
+# add new code files here to compile
 target_sources(
     ${EXECUTABLE_NAME}
     PRIVATE
         GlobalData.h
         MTransform.h
+        MapLayer.h
+        MapLayer.cpp
+        Texture.h
+        Texture.cpp
         megaman.cpp
         megaman.h
         megamanGame.cpp
