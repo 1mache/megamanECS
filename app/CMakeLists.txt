@@ -1,7 +1,5 @@
 set(APP_SOURCES
-    "${CMAKE_CURRENT_SOURCE_DIR}/maptest.cpp"
-    "${CMAKE_CURRENT_SOURCE_DIR}/Texture.cpp"
-    "${CMAKE_CURRENT_SOURCE_DIR}/MapLayer.cpp"
+    "${CMAKE_CURRENT_SOURCE_DIR}/megaman_ecs.cpp"
 )
 
 add_executable(${EXECUTABLE_NAME} ${APP_SOURCES})
@@ -9,7 +7,7 @@ add_executable(${EXECUTABLE_NAME} ${APP_SOURCES})
 target_include_directories(
     ${EXECUTABLE_NAME}
     PUBLIC
-    "${CMAKE_CURRENT_SOURCE_DIR}"
+    "${CMAKE_SOURCE_DIR}/dependencies/bagel"
 )
 
 target_link_libraries(

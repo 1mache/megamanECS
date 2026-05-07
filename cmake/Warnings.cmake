@@ -44,7 +44,6 @@ function(target_set_warnings)
         -Wshadow # if a variable declaration shadows one from a parent context
         -Wpedantic # warn if non-standard is used
         # C and C++ Warnings
-        -Wunused # warn on anything being unused
         -Wformat=2 # warn on security issues around functions that format output
         -Wcast-align # warn for potential performance problem casts
         -Wconversion # warn on type conversions that may lose data
@@ -64,6 +63,16 @@ function(target_set_warnings)
         -Wduplicated-branches # warn if if / else branches have duplicated code
         -Wlogical-op # warn about logical operations being used where bitwise were probably wanted
     )
+
+    if(ENABLE_UNUSED_WARNINGS)
+        list(APPEND CLANG_WARNINGS -Wunused)
+        list(APPEND GCC_WARNINGS   -Wunused)
+        list(APPEND MSVC_WARNINGS  /w14101 /w14189)
+    else()
+        list(APPEND CLANG_WARNINGS -Wno-unused -Wno-unused-parameter)
+        list(APPEND GCC_WARNINGS   -Wno-unused -Wno-unused-parameter)
+        list(APPEND MSVC_WARNINGS  /wd4100 /wd4101 /wd4189)
+    endif()
 
     if(${TARGET_SET_WARNINGS_AS_ERRORS})
         set(CLANG_WARNINGS ${CLANG_WARNINGS} -Werror)
