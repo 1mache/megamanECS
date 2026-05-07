@@ -1,12 +1,17 @@
 #pragma once
+#include "CameraData.h"
 #include <SDL3/SDL.h>
 #include <cassert>
 #include <utility>
 
+namespace megaman
+{
 class GlobalData
 {
 public:
     static constexpr float PTM = 30.f;
+    static constexpr float START_WIN_SCALE[] = {720, 540};
+    static constexpr float START_CAM_POS[] = {0, 0};
 
 public:
     static void setWindow(SDL_Window* window)
@@ -35,13 +40,9 @@ public:
         return _renderer;
     }
 
-    static float winW()
+    static CameraData& getCamData()
     {
-        return _winW;
-    }
-    static float winH()
-    {
-        return _winH;
+        return _camData;
     }
 
 private:
@@ -51,6 +52,8 @@ private:
 
     static inline SDL_Window*   _window{};
     static inline SDL_Renderer* _renderer{};
+    static inline CameraData    _camData{};
 
-    static inline float _winW{720}, _winH{540}; // hardcoded for now
+    static inline float _winW{START_WIN_SCALE[0]}, _winH{START_WIN_SCALE[1]};
 };
+} // namespace megaman

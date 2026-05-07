@@ -8,6 +8,7 @@ target_sources(
         MapTileLayer.cpp
         Texture.h
         Texture.cpp
+        CameraData.h
         megaman.cpp
         megaman.h
         megamanGame.cpp
