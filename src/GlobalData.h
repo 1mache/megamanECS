@@ -16,7 +16,7 @@ public:
     static constexpr float START_WIN_H = 540;
     static constexpr float START_CAM_X = 0;
     static constexpr float START_CAM_Y = 0;
-    static constexpr float SCALE_FACTOR = 2; // hard coded for now
+    static constexpr float SCALE_FACTOR = 3.f;
 
 public:
     static void setWindow(SDL_Window* window)
@@ -70,7 +70,7 @@ private:
     static inline SDL_Renderer* _renderer{};
     static inline CameraData    _camData{START_CAM_X,
                                          START_CAM_Y,
-                                         START_WIN_W,
-                                         START_WIN_H};
+                                         START_WIN_W / SCALE_FACTOR,
+                                         START_WIN_H / SCALE_FACTOR};
 };
 } // namespace megaman

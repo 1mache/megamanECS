@@ -18,6 +18,8 @@ namespace megaman
             return;
         }
 
+        SDL_SetRenderScale(_ren, GlobalData::SCALE_FACTOR, GlobalData::SCALE_FACTOR);
+
         SDL_Surface *surf = IMG_Load("res/player.png"); // The mockup app now TODO: load the new level
         if (surf == nullptr)
         {

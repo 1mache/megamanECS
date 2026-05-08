@@ -4,7 +4,6 @@ namespace
 {
 constexpr float SPRITE_W = 28.f;
 constexpr float SPRITE_H = 28.f;
-constexpr float DRAW_SCALE = 3.f;
 constexpr int   RUN_START = 0;
 constexpr int   RUN_COUNT = 4;
 constexpr int   IDLE_START = 8;
@@ -22,7 +21,11 @@ ent_type createPlayer(float x, float y, int hp)
 
     bagel::World::addComponent<Animation>(ent, {});
     bagel::World::addComponent<Drawable>(ent, {.texture = nullptr});
-    bagel::World::addComponent<MTransform>(ent, {.x = x, .y = y});
+    bagel::World::addComponent<MTransform>(ent,
+                                           {.x = x,
+                                            .y = y,
+                                            .w = SPRITE_W / GlobalData::PTM,
+                                            .h = SPRITE_H / GlobalData::PTM});
     bagel::World::addComponent<Movement>(ent, {.mass = 1});
     bagel::World::addComponent<Collision>(ent, {});
     bagel::World::addComponent<Health>(ent, {.points = hp});
@@ -251,10 +254,7 @@ void DrawingSystem::run(SDL_Renderer* ren, SDL_Texture* tex)
 
             const int frame = startFrame + (a.currentFrame % frameCount);
             SDL_FRect src = {frame * SPRITE_W, 0.f, SPRITE_W, SPRITE_H};
-            SDL_FRect dest = {t.x,
-                              t.y,
-                              SPRITE_W * DRAW_SCALE,
-                              SPRITE_H * DRAW_SCALE};
+            SDL_FRect dest = transformToFrect(t);
 
             SDL_RenderTexture(ren, tex, &src, &dest);
         }
