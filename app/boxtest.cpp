@@ -15,7 +15,9 @@ constexpr float           WIN_WIDTHF = WIN_WIDTH;
 constexpr float           WIN_HEIGHTF = WIN_HEIGHT;
 constexpr SDL_WindowFlags WIN_FLAGS = 0;
 
-bool createWindowAndRenderer(const char* title, SDL_Window*& window, SDL_Renderer*& renderer)
+bool createWindowAndRenderer(const char*    title,
+                             SDL_Window*&   window,
+                             SDL_Renderer*& renderer)
 {
     if (!SDL_Init(SDL_INIT_VIDEO))
     {
@@ -23,15 +25,23 @@ bool createWindowAndRenderer(const char* title, SDL_Window*& window, SDL_Rendere
         return false;
     }
 
-    auto success = SDL_CreateWindowAndRenderer(title, WIN_WIDTH, WIN_HEIGHT, WIN_FLAGS, &window, &renderer);
+    auto success = SDL_CreateWindowAndRenderer(title,
+                                               WIN_WIDTH,
+                                               WIN_HEIGHT,
+                                               WIN_FLAGS,
+                                               &window,
+                                               &renderer);
     if (!success)
     {
-        std::cerr << "Window and renderer creation error : " << SDL_GetError() << '\n';
+        std::cerr << "Window and renderer creation error : " << SDL_GetError()
+                  << '\n';
         SDL_Quit();
         return false;
     }
 
-    SDL_SetWindowPosition(window, SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED);
+    SDL_SetWindowPosition(window,
+                          SDL_WINDOWPOS_CENTERED,
+                          SDL_WINDOWPOS_CENTERED);
 
     return true;
 }
@@ -50,10 +60,17 @@ int main()
 
     auto ptm = GlobalData::PTM;
 
-    Transform gtransform = {.x = WIN_WIDTH / ptm / 2.f, .y = 2.f, .w = WIN_WIDTH / ptm, .h = 0.3f, .rot = 0.f};
+    MTransform gtransform = {.x = WIN_WIDTH / ptm / 2.f,
+                             .y = 2.f,
+                             .w = WIN_WIDTH / ptm,
+                             .h = 0.3f,
+                             .rot = 0.f};
 
-    Transform boxTransform = {
-        .x = (WIN_WIDTHF / ptm / 2.f), .y = (WIN_HEIGHTF / ptm / 2.f), .w = 0.5f, .h = 0.5f, .rot = 0.f};
+    MTransform boxTransform = {.x = (WIN_WIDTHF / ptm / 2.f),
+                               .y = (WIN_HEIGHTF / ptm / 2.f),
+                               .w = 0.5f,
+                               .h = 0.5f,
+                               .rot = 0.f};
 
     b2WorldDef wd = b2DefaultWorldDef();
     wd.gravity = {0.f, -1.f * GRAVITY_SCALE};
@@ -114,7 +131,8 @@ int main()
         if (SDL_PollEvent(&event))
         {
             if (event.type == SDL_EVENT_WINDOW_CLOSE_REQUESTED ||
-                (event.type == SDL_EVENT_KEY_UP && event.key.key == SDLK_ESCAPE))
+                (event.type == SDL_EVENT_KEY_UP &&
+                 event.key.key == SDLK_ESCAPE))
                 isRunning = false;
         }
 

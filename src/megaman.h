@@ -1,5 +1,6 @@
 #pragma once
 
+#include "MTransform.h"
 #include "SDL3/SDL.h"
 #include "bagel.h"
 #include <box2d/box2d.h>
@@ -8,7 +9,6 @@
 namespace megaman
 { // forward declarations
 struct Animation;
-struct Transform;
 struct Movement;
 struct Collision;
 struct Drawable;
@@ -30,9 +30,9 @@ struct bagel::Storage<megaman::Animation> final : bagel::NoInstance
 };
 
 template <>
-struct bagel::Storage<megaman::Transform> final : bagel::NoInstance
+struct bagel::Storage<megaman::MTransform> final : bagel::NoInstance
 {
-    using type = bagel::SparseStorage<megaman::Transform>;
+    using type = bagel::SparseStorage<megaman::MTransform>;
 };
 
 template <>
@@ -112,20 +112,6 @@ struct Animation
     State state{IDLE};
     int   currentFrame{};
     int   frameTimer{};
-};
-
-struct Transform
-{
-    // Preferred storage: Sparse, almost every entity will have a transform,
-    // so almost no holes and array will be well utilized.
-
-    // pos and scale can also be a Vector2 or equivalent if exists in SDL. or stay like this.
-    float posX{};
-    float posY{};
-    float scaleX{};
-    float scaleY{};
-    // degrees or radians but can be converted into another type later
-    float rotation{};
 };
 
 struct Movement
@@ -216,49 +202,49 @@ struct Sound
 
 class InputSystem final : bagel::NoInstance
 {
-  public:
+public:
     static void run();
 };
 
 class MovementSystem final : bagel::NoInstance
 {
-  public:
+public:
     static void run();
 };
 
 class AnimationSystem final : bagel::NoInstance
 {
-  public:
+public:
     static void run();
 };
 
 class DrawingSystem final : bagel::NoInstance
 {
-  public:
+public:
     static void run(SDL_Renderer* ren, SDL_Texture* tex);
 };
 
 class CollisionSystem final : bagel::NoInstance
 {
-  public:
+public:
     static void run(b2WorldId box);
 };
 
 class HealthSystem final : bagel::NoInstance
 {
-  public:
+public:
     static void run();
 };
 
 class AISystem final : bagel::NoInstance
 {
-  public:
+public:
     static void run();
 };
 
 class SoundSystem final : bagel::NoInstance
 {
-  public:
+public:
     static void run();
 };
 // ============= ENTITIES   =============

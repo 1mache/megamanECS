@@ -22,7 +22,7 @@ ent_type createPlayer(float x, float y, int hp)
 
     bagel::World::addComponent<Animation>(ent, {});
     bagel::World::addComponent<Drawable>(ent, {.texture = nullptr});
-    bagel::World::addComponent<Transform>(ent, {.posX = x, .posY = y});
+    bagel::World::addComponent<MTransform>(ent, {.x = x, .y = y});
     bagel::World::addComponent<Movement>(ent, {.mass = 1});
     bagel::World::addComponent<Collision>(ent, {});
     bagel::World::addComponent<Health>(ent, {.points = hp});
@@ -37,7 +37,7 @@ ent_type createEnemy(float x, float y, int hp)
     ent_type ent = bagel::World::createEntity();
 
     bagel::World::addComponent<Drawable>(ent, {.texture = nullptr});
-    bagel::World::addComponent<Transform>(ent, {.posX = x, .posY = y});
+    bagel::World::addComponent<MTransform>(ent, {.x = x, .y = y});
     bagel::World::addComponent<Movement>(ent, {.mass = 1});
     bagel::World::addComponent<Collision>(ent, {});
     bagel::World::addComponent<Health>(ent, {.points = hp});
@@ -52,7 +52,7 @@ ent_type createBoss(float x, float y, int hp)
     ent_type ent = bagel::World::createEntity();
 
     bagel::World::addComponent<Drawable>(ent, {.texture = nullptr});
-    bagel::World::addComponent<Transform>(ent, {.posX = x, .posY = y});
+    bagel::World::addComponent<MTransform>(ent, {.x = x, .y = y});
     bagel::World::addComponent<Movement>(ent, {.mass = 1});
     bagel::World::addComponent<Collision>(ent, {});
     bagel::World::addComponent<Health>(ent, {.points = hp});
@@ -68,7 +68,7 @@ ent_type createPlatform(float x, float y, bool isMoving)
 {
     ent_type ent = bagel::World::createEntity();
 
-    bagel::World::addComponent<Transform>(ent, {.posX = x, .posY = y});
+    bagel::World::addComponent<MTransform>(ent, {.x = x, .y = y});
     bagel::World::addComponent<Collision>(ent, {});
     if (isMoving)
         bagel::World::addComponent<Movement>(ent, {.mass = 0});
@@ -81,8 +81,10 @@ ent_type createProjectile(float x, float y, float velX, float velY)
     ent_type ent = bagel::World::createEntity();
 
     bagel::World::addComponent<Drawable>(ent, {.texture = nullptr});
-    bagel::World::addComponent<Transform>(ent, {.posX = x, .posY = y});
-    bagel::World::addComponent<Movement>(ent, {.mass = 1, .velX = velX, .velY = velY});
+    bagel::World::addComponent<MTransform>(ent, {.x = x, .y = y});
+    bagel::World::addComponent<Movement>(
+        ent,
+        {.mass = 1, .velX = velX, .velY = velY});
     bagel::World::addComponent<Collision>(ent, {});
 
     return ent;
@@ -92,8 +94,9 @@ ent_type createTrigger(float x, float y, float width, float height)
 {
     ent_type ent = bagel::World::createEntity();
 
-    bagel::World::addComponent<Transform>(ent, {.posX = x, .posY = y});
-    bagel::World::addComponent<Collision>(ent, {.width = width, .height = height});
+    bagel::World::addComponent<MTransform>(ent, {.x = x, .y = y});
+    bagel::World::addComponent<Collision>(ent,
+                                          {.width = width, .height = height});
 
     return ent;
 }
@@ -103,7 +106,7 @@ ent_type createItem(float x, float y)
     ent_type ent = bagel::World::createEntity();
 
     bagel::World::addComponent<Drawable>(ent, {.texture = nullptr});
-    bagel::World::addComponent<Transform>(ent, {.posX = x, .posY = y});
+    bagel::World::addComponent<MTransform>(ent, {.x = x, .y = y});
     bagel::World::addComponent<Collision>(ent, {});
 
     return ent;
@@ -113,8 +116,10 @@ ent_type createText(float x, float y, const std::string& text)
 {
     ent_type ent = bagel::World::createEntity();
 
-    bagel::World::addComponent<Drawable>(ent, {.texture = nullptr}); // tie it to the text later somehow
-    bagel::World::addComponent<Transform>(ent, {.posX = x, .posY = y});
+    bagel::World::addComponent<Drawable>(
+        ent,
+        {.texture = nullptr}); // tie it to the text later somehow
+    bagel::World::addComponent<MTransform>(ent, {.x = x, .y = y});
 
     return ent;
 }
@@ -123,7 +128,7 @@ ent_type createSoundSource(float x, float y, int sound)
 {
     ent_type ent = bagel::World::createEntity();
 
-    bagel::World::addComponent<Transform>(ent, {.posX = x, .posY = y});
+    bagel::World::addComponent<MTransform>(ent, {.x = x, .y = y});
     bagel::World::addComponent<Sound>(ent, {.sound = sound});
 
     return ent;
@@ -142,7 +147,8 @@ ent_type createScene(const std::string& mapFilePath)
 
 void InputSystem::run()
 {
-    static const bagel::Mask mask = bagel::MaskBuilder().set<Input>().set<Movement>().build();
+    static const bagel::Mask mask =
+        bagel::MaskBuilder().set<Input>().set<Movement>().build();
 
     SDL_PumpEvents();
     const bool* keys = SDL_GetKeyboardState(nullptr);
@@ -165,23 +171,25 @@ void InputSystem::run()
 
 void MovementSystem::run()
 {
-    static const bagel::Mask mask = bagel::MaskBuilder().set<Transform>().set<Movement>().build();
+    static const bagel::Mask mask =
+        bagel::MaskBuilder().set<MTransform>().set<Movement>().build();
 
     for (bagel::Entity e = bagel::Entity::first(); !e.eof(); e.next())
     {
         if (e.test(mask))
         {
-            auto&       t = e.get<Transform>();
+            auto&       t = e.get<MTransform>();
             const auto& m = e.get<Movement>();
-            t.posX += m.velX;
-            t.posY += m.velY;
+            t.x += m.velX;
+            t.y += m.velY;
         }
     }
 }
 
 void AnimationSystem::run()
 {
-    static const bagel::Mask mask = bagel::MaskBuilder().set<Animation>().set<Movement>().build();
+    static const bagel::Mask mask =
+        bagel::MaskBuilder().set<Animation>().set<Movement>().build();
 
     for (bagel::Entity e = bagel::Entity::first(); !e.eof(); e.next())
     {
@@ -190,7 +198,8 @@ void AnimationSystem::run()
             auto&       a = e.get<Animation>();
             const auto& m = e.get<Movement>();
 
-            const Animation::State newState = m.velX != 0.f ? Animation::RUN : Animation::IDLE;
+            const Animation::State newState =
+                m.velX != 0.f ? Animation::RUN : Animation::IDLE;
 
             if (newState != a.state)
             {
@@ -210,13 +219,17 @@ void AnimationSystem::run()
 
 void DrawingSystem::run(SDL_Renderer* ren, SDL_Texture* tex)
 {
-    static const bagel::Mask mask = bagel::MaskBuilder().set<Transform>().set<Drawable>().set<Animation>().build();
+    static const bagel::Mask mask = bagel::MaskBuilder()
+                                        .set<MTransform>()
+                                        .set<Drawable>()
+                                        .set<Animation>()
+                                        .build();
 
     for (bagel::Entity e = bagel::Entity::first(); !e.eof(); e.next())
     {
         if (e.test(mask))
         {
-            const auto& t = e.get<Transform>();
+            const auto& t = e.get<MTransform>();
             const auto& a = e.get<Animation>();
 
             int startFrame, frameCount;
@@ -238,7 +251,10 @@ void DrawingSystem::run(SDL_Renderer* ren, SDL_Texture* tex)
 
             const int frame = startFrame + (a.currentFrame % frameCount);
             SDL_FRect src = {frame * SPRITE_W, 0.f, SPRITE_W, SPRITE_H};
-            SDL_FRect dest = {t.posX, t.posY, SPRITE_W * DRAW_SCALE, SPRITE_H * DRAW_SCALE};
+            SDL_FRect dest = {t.x,
+                              t.y,
+                              SPRITE_W * DRAW_SCALE,
+                              SPRITE_H * DRAW_SCALE};
 
             SDL_RenderTexture(ren, tex, &src, &dest);
         }

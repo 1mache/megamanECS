@@ -17,9 +17,9 @@ int main(int, char**)
     using namespace megaman;
     using gd = GlobalData;
 
-    float     scaleFactor = gd::SCALE_FACTOR;
-    bool      inputLeft{}, inputRight{};
-    Transform cameraPos = {gd::START_CAM_X, gd::START_CAM_Y};
+    float      scaleFactor = gd::SCALE_FACTOR;
+    bool       inputLeft{}, inputRight{};
+    MTransform cameraPos = {gd::START_CAM_X, gd::START_CAM_Y};
 
     float camVelX = 2.f;
 

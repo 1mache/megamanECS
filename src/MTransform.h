@@ -6,7 +6,7 @@
 
 namespace megaman
 {
-struct Transform
+struct MTransform
 {
     // *In world coordinates
     // Preferred storage: Sparse, almost every entity will have a transform,
@@ -18,33 +18,19 @@ struct Transform
     float rot{};
 };
 
-SDL_FRect transformToFrect(const Transform& t)
-{
-    auto ptm = GlobalData::PTM;
-    auto camData = GlobalData::getCamData();
+SDL_FRect transformToFrect(const MTransform& t);
 
-    // position offseted by camera position
-    auto transx = t.x - camData.posX;
-    auto transy = t.y - camData.posY;
-
-    // invert y and convert to pixels
-    return SDL_FRect{.x = (transx - t.w) * ptm,
-                     .y = camData.vpH - ((transy + t.h) * ptm),
-                     .w = t.w * 2 * ptm,
-                     .h = t.h * 2 * ptm};
-}
-
-constexpr b2Vec2 transformToB2Pos(const Transform& t)
+constexpr b2Vec2 transformToB2Pos(const MTransform& t)
 {
     return b2Vec2{t.x, t.y};
 }
 
-constexpr b2Vec2 transformToB2Scale(const Transform& t)
+constexpr b2Vec2 transformToB2Scale(const MTransform& t)
 {
     return b2Vec2{t.w, t.h};
 }
 
-constexpr void transformUpdateWithB2Pos(Transform& t, b2Vec2 pos)
+constexpr void transformUpdateWithB2Pos(MTransform& t, b2Vec2 pos)
 {
     t.x = pos.x;
     t.y = pos.y;
