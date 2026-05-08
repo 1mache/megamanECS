@@ -68,6 +68,9 @@ private:
 
     static inline SDL_Window*   _window{};
     static inline SDL_Renderer* _renderer{};
-    static inline CameraData    _camData{};
+    static inline CameraData    _camData{START_CAM_X,
+                                         START_CAM_Y,
+                                         START_WIN_W,
+                                         START_WIN_H};
 };
 } // namespace megaman
