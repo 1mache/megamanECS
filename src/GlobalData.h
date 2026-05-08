@@ -16,7 +16,7 @@ public:
     static constexpr float START_WIN_H = 540;
     static constexpr float START_CAM_X = 0;
     static constexpr float START_CAM_Y = 0;
-    static constexpr float SCALE_FACTOR = 3.f;
+    static constexpr float SCALE_FACTOR = 2.f;
 
 public:
     static void setWindow(SDL_Window* window)

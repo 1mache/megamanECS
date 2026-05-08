@@ -42,9 +42,7 @@ MegamanGame::MegamanGame()
     worldDef.gravity = {0, 20.f};
     _box = b2CreateWorld(&worldDef);
 
-    // SDL_Frect cameraCenter();
-
-    createPlayer(1, 1, MegamanGame::HP);
+    createPlayer(2, 2, MegamanGame::HP);
 }
 
 MegamanGame::~MegamanGame()
