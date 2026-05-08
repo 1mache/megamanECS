@@ -48,7 +48,7 @@ enum class MegamanState
     JUMP
 };
 // =============== ENEMY =================
-constexpr int ENEMY_SPRITE_DIM[] = {22, 24};
+constexpr int ENEMY_SPRITE_DIM[] = {24, 24};
 
 enum class Enemy
 { // one animation, for consistency left the enum
@@ -68,7 +68,7 @@ constexpr int EXPLOSION_SPRITE_DIM[] = {22, 24};
 constexpr int EXPLOSION_FRAME_COUNT = 3;
 
 // ================ SHOT =================
-constexpr int   SHOT_SPRITE_DIM[] = {8, 6};
+constexpr int   SHOT_SPRITE_DIM[] = {8, 8};
 constexpr float SHOT_SPEED = 10.f;
 
 // ============ UTILITY  ============
@@ -107,14 +107,14 @@ struct MegamanInput
 
 struct MegamanRuntime
 {
-    SDL_FRect     dstRect{};
-    SDL_FlipMode  flip{SDL_FLIP_NONE};
-    MegamanState  state{MegamanState::IDLE};
-    int           animFrame{};
-    int           jumpFrame{};
-    int           shootAnimTimer{};
-    bool          isJumping{};
-    float         worldWidth{};
+    SDL_FRect    dstRect{};
+    SDL_FlipMode flip{SDL_FLIP_NONE};
+    MegamanState state{MegamanState::IDLE};
+    int          animFrame{};
+    int          jumpFrame{};
+    int          shootAnimTimer{};
+    bool         isJumping{};
+    float        worldWidth{};
 };
 
 bool createWindowAndRenderer(const char*    title,
@@ -304,14 +304,15 @@ void setMegamanState(MegamanRuntime& megaman, MegamanState nextState)
     megaman.animFrame = 0;
 }
 
-void advanceMegamanAnimation(MegamanRuntime& megaman, const Animation& currentAnim)
+void advanceMegamanAnimation(MegamanRuntime&  megaman,
+                             const Animation& currentAnim)
 {
     megaman.animFrame = (megaman.animFrame + 1) % currentAnim.frameCount;
 }
 
-void handleMegamanIdle(MegamanRuntime&            megaman,
-                       const MegamanAnimations&   animations,
-                       const Animation*&          currentAnim)
+void handleMegamanIdle(MegamanRuntime&          megaman,
+                       const MegamanAnimations& animations,
+                       const Animation*&        currentAnim)
 {
     megaman.dstRect.y = getMegamanSupportY(megaman.dstRect);
 
@@ -402,7 +403,8 @@ void handleMegamanJump(MegamanRuntime&          megaman,
                                           megaman.worldWidth);
     }
 
-    const float t = static_cast<float>(megaman.jumpFrame) / JUMP_DURATION_FRAMES;
+    const float t =
+        static_cast<float>(megaman.jumpFrame) / JUMP_DURATION_FRAMES;
     const float supportY = getMegamanSupportY(megaman.dstRect);
     megaman.dstRect.y = supportY - JUMP_PEAK_OFFSET * SDL_sinf(SDL_PI_F * t);
     ++megaman.jumpFrame;
@@ -418,10 +420,10 @@ void handleMegamanJump(MegamanRuntime&          megaman,
     currentAnim = animations.jump;
 }
 
-void handleMegamanShoot(MegamanRuntime& megaman,
-                        bool&           shotActive,
-                        SDL_FRect&      shotDstRect,
-                        float&          shotVelocityX,
+void handleMegamanShoot(MegamanRuntime&    megaman,
+                        bool&              shotActive,
+                        SDL_FRect&         shotDstRect,
+                        float&             shotVelocityX,
                         const SpriteSheet& shot)
 {
     if (shotActive)
@@ -429,7 +431,8 @@ void handleMegamanShoot(MegamanRuntime& megaman,
 
     megaman.shootAnimTimer = 4;
     shotActive = true;
-    shotVelocityX = megaman.flip == SDL_FLIP_HORIZONTAL ? -SHOT_SPEED : SHOT_SPEED;
+    shotVelocityX =
+        megaman.flip == SDL_FLIP_HORIZONTAL ? -SHOT_SPEED : SHOT_SPEED;
 
     if (shotVelocityX > 0.f)
         shotDstRect.x = megaman.dstRect.x + megaman.dstRect.w;
@@ -480,18 +483,16 @@ int main()
                                         &megamanShootAnim,
                                         &megamanJumpAnim};
 
-    MegamanRuntime megamanRuntime{{MEGAMAN_START_POS[0],
-                                   MEGAMAN_START_POS[1],
-                                   megaman.sw,
-                                   megaman.sh},
-                                  SDL_FLIP_NONE,
-                                  MegamanState::IDLE,
-                                  0,
-                                  0,
-                                  0,
-                                  false,
-                                  bg.w};
-    MegamanInput   megamanInput{};
+    MegamanRuntime megamanRuntime{
+        {MEGAMAN_START_POS[0], MEGAMAN_START_POS[1], megaman.sw, megaman.sh},
+        SDL_FLIP_NONE,
+        MegamanState::IDLE,
+        0,
+        0,
+        0,
+        false,
+        bg.w};
+    MegamanInput megamanInput{};
 
     SpriteSheet enemy = createEnemySpriteSheet(window, renderer);
     Animation   enemyHoverAnim{&enemy,
@@ -652,7 +653,8 @@ int main()
                         enemyDstRect.y + enemy.sh * 0.5f - explosion.sh * 0.5f;
                 }
             }
-            else if (shotDstRect.x > bg.w || shotDstRect.x + shotDstRect.w < 0.f)
+            else if (shotDstRect.x > bg.w ||
+                     shotDstRect.x + shotDstRect.w < 0.f)
             {
                 shotActive = false;
             }
