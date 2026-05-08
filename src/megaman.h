@@ -249,7 +249,7 @@ public:
 };
 // ============= ENTITIES   =============
 
-ent_type createPlayer(float x, float y /*or vector2 like type*/, int hp);
+ent_type createPlayer(float x, float y, int hp);
 
 ent_type createEnemy(float x, float y, int hp);
 

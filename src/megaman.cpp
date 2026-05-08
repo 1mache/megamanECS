@@ -1,4 +1,5 @@
 #include "megaman.h"
+#include <iostream>
 
 namespace
 {
@@ -255,6 +256,8 @@ void DrawingSystem::run(SDL_Renderer* ren, SDL_Texture* tex)
             const int frame = startFrame + (a.currentFrame % frameCount);
             SDL_FRect src = {frame * SPRITE_W, 0.f, SPRITE_W, SPRITE_H};
             SDL_FRect dest = transformToFrect(t);
+
+            std::cout << "<" << dest.x << ',' << dest.y << ">\n";
 
             SDL_RenderTexture(ren, tex, &src, &dest);
         }
