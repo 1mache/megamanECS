@@ -18,8 +18,7 @@ namespace bagel
 
 /**** Parameters ****/
 // Maximum number of different component types that can be represented in a mask.
-// The Pong demo has exactly six component types.
-constexpr int MaxComponents = 6;
+constexpr int MaxComponents = 12;
 
 // If true, internal arrays can grow when more entities/components are created.
 // If false, the fixed-size StaticBag version is used.
@@ -36,9 +35,13 @@ struct ent_type
 // A mask is a group of bits. Each component type gets one bit.
 // The integer type is chosen small or large enough for MaxComponents.
 using mask_type = std::conditional_t<
-    MaxComponents <= 8, std::uint_fast8_t,
-    std::conditional_t<MaxComponents <= 16, std::uint_fast16_t,
-                       std::conditional_t<MaxComponents <= 32, std::uint_fast32_t, std::uint_fast64_t>>>;
+    MaxComponents <= 8,
+    std::uint_fast8_t,
+    std::conditional_t<MaxComponents <= 16,
+                       std::uint_fast16_t,
+                       std::conditional_t<MaxComponents <= 32,
+                                          std::uint_fast32_t,
+                                          std::uint_fast64_t>>>;
 
 // Utility base classes.
 // NoInstance marks classes that are only namespaces for static functions/data.
@@ -59,7 +62,7 @@ template <class T, int N>
 // It is easy to understand but cannot grow past N.
 class StaticBag
 {
-  public:
+public:
     int size() const
     {
         return _size;
@@ -85,7 +88,7 @@ class StaticBag
         return _arr[idx];
     }
 
-  private:
+private:
     T   _arr[N];
     int _size = 0;
 };
@@ -94,7 +97,7 @@ template <class T, int N>
 // It starts with capacity N and reallocates when more room is needed.
 class DynamicBag : NoCopy
 {
-  public:
+public:
     int size() const
     {
         return _size;
@@ -104,7 +107,8 @@ class DynamicBag : NoCopy
         if (new_capacity > _capacity)
         {
             _capacity = std::max(_capacity * 2, new_capacity);
-            _arr = static_cast<T*>(realloc(_arr, sizeof(T) * static_cast<std::size_t>(_capacity)));
+            _arr = static_cast<T*>(
+                realloc(_arr, sizeof(T) * static_cast<std::size_t>(_capacity)));
         }
     }
     void push(const T& val)
@@ -112,7 +116,8 @@ class DynamicBag : NoCopy
         if (_size == _capacity)
         {
             _capacity *= 2;
-            _arr = static_cast<T*>(realloc(_arr, sizeof(T) * static_cast<std::size_t>(_capacity)));
+            _arr = static_cast<T*>(
+                realloc(_arr, sizeof(T) * static_cast<std::size_t>(_capacity)));
         }
         _arr[_size] = val;
         ++_size;
@@ -135,7 +140,7 @@ class DynamicBag : NoCopy
         return _arr[idx];
     }
 
-  private:
+private:
     T*  _arr = static_cast<T*>(malloc(sizeof(T) * static_cast<std::size_t>(N)));
     int _size = 0;
     int _capacity = N;
@@ -159,7 +164,7 @@ template <class T>
 // Tradeoff: fast lookup, but it can waste space when ids have gaps.
 class SparseStorage final : NoInstance
 {
-  public:
+public:
     static void add(ent_type ent, const T& val)
     {
         _comps.ensure(ent.id + 1);
@@ -173,7 +178,7 @@ class SparseStorage final : NoInstance
         return _comps[ent.id];
     }
 
-  private:
+private:
     static inline Bag<T, 100>                       _comps;
     __attribute__((used)) static inline Register<T> _reg{nullptr};
 };
@@ -183,7 +188,7 @@ template <class T>
 // The mask bit is enough, so add/del do not store an actual object.
 class TaggedStorage final : NoInstance
 {
-  public:
+public:
     static void add(ent_type, const T&)
     {
     }
@@ -192,7 +197,7 @@ class TaggedStorage final : NoInstance
     }
     static T& get(ent_type) = delete;
 
-  private:
+private:
     __attribute__((used)) static inline Register<T> _reg{nullptr};
 };
 template <class T>
@@ -201,7 +206,7 @@ template <class T>
 // Extra lookup arrays translate entity id <-> packed component index.
 class PackedStorage final : NoInstance
 {
-  public:
+public:
     static void add(const ent_type ent, const T& val)
     {
         _idToComp.ensure(ent.id + 1);
@@ -225,7 +230,7 @@ class PackedStorage final : NoInstance
         return _comps[_idToComp[ent.id]];
     }
 
-  private:
+private:
     static inline Bag<T, 100>                       _comps;
     static inline Bag<int, 100>                     _idToComp;
     static inline Bag<id_type, 100>                 _compToId;
@@ -237,7 +242,7 @@ template <class T>
 // want every delete to move the last component like PackedStorage does.
 class StackStorage final : NoInstance
 {
-  public:
+public:
     static void add(const ent_type ent, const T& val)
     {
         _idToComp.ensure(ent.id + 1);
@@ -264,7 +269,7 @@ class StackStorage final : NoInstance
         return _comps[_idToComp[ent.id]];
     }
 
-  private:
+private:
     static inline Bag<T, 100>                       _comps;
     static inline Bag<int, 100>                     _idToComp;
     static inline Bag<id_type, 100>                 _freeIdx;
@@ -286,7 +291,7 @@ struct Storage final : NoInstance
 // components attached to that entity.
 class Mask final
 {
-  public:
+public:
     using bit_type = mask_type;
 
     // Convert a component index into its bit value.
@@ -330,7 +335,7 @@ class Mask final
         return _mask ? __builtin_ctz(_mask) : -1;
     }
 
-  private:
+private:
     mask_type _mask{0};
 };
 
@@ -350,7 +355,7 @@ struct Component final : NoInstance
 // - routes add/get/delete operations to the selected Storage<T>::type
 class World final : NoInstance
 {
-  public:
+public:
     static ent_type createEntity()
     {
         // Reuse a previously destroyed id if possible.
@@ -419,7 +424,7 @@ class World final : NoInstance
         return _maxId;
     }
 
-  private:
+private:
     static inline Bag<Mask, 100>      _masks;
     static inline Bag<id_type, 100>   _ids;
     static inline Bag<DeleteFunc, 10> _deleters;
@@ -443,7 +448,7 @@ struct Register
 // means "entities that have both Transform and Drawable".
 class MaskBuilder
 {
-  public:
+public:
     template <class T>
     MaskBuilder& set()
     {
@@ -455,7 +460,7 @@ class MaskBuilder
         return m;
     }
 
-  private:
+private:
     Mask m;
 };
 
@@ -464,7 +469,7 @@ class MaskBuilder
 // The actual data still lives in World and the component storages.
 class Entity
 {
-  public:
+public:
     Entity(ent_type ent) : _ent(ent)
     {
     }
@@ -546,7 +551,7 @@ class Entity
         ++_ent.id;
     }
 
-  private:
+private:
     ent_type _ent;
 };
 } // namespace bagel
