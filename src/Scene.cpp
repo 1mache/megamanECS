@@ -10,8 +10,8 @@ void Scene::load(SDL_Renderer* renderer)
         // load all tileset textures
         for (const auto& ts : map.getTilesets())
         {
-            textures.emplace_back(std::make_unique<Texture>());
-            if (!textures.back()->loadFromFile(ts.getImagePath(), renderer))
+            _textures.emplace_back(std::make_unique<Texture>());
+            if (!_textures.back()->loadFromFile(ts.getImagePath(), renderer))
                 std::cerr << "Failed to load tileset: " << ts.getImagePath()
                           << "\n";
         }
@@ -22,8 +22,8 @@ void Scene::load(SDL_Renderer* renderer)
         {
             if (mapLayers[i]->getType() == tmx::Layer::Type::Tile)
             {
-                renderLayers.emplace_back(std::make_unique<MapTileLayer>());
-                renderLayers.back()->create(map, i, textures);
+                _tileLayers.emplace_back(std::make_unique<MapTileLayer>());
+                _tileLayers.back()->create(map, i, _textures);
             }
         }
     }
@@ -36,7 +36,7 @@ void Scene::load(SDL_Renderer* renderer)
 void Scene::draw(SDL_Renderer* renderer, SDL_FPoint camOffset)
 {
     assert(isValid());
-    for (const auto& l : renderLayers)
+    for (const auto& l : _tileLayers)
         l->draw(renderer, camOffset);
 }
 } // namespace megaman

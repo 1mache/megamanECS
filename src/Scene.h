@@ -20,14 +20,14 @@ public:
 
     bool isValid()
     {
-        return !renderLayers.empty();
+        return !_tileLayers.empty();
     }
 
     void draw(SDL_Renderer* renderer, SDL_FPoint camOffset);
 
 private:
     const std::string                          _filePath;
-    std::vector<std::unique_ptr<Texture>>      textures;
-    std::vector<std::unique_ptr<MapTileLayer>> renderLayers;
+    std::vector<std::unique_ptr<Texture>>      _textures;
+    std::vector<std::unique_ptr<MapTileLayer>> _tileLayers;
 };
 } //namespace megaman
