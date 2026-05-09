@@ -13,6 +13,7 @@ bool MapTileLayer::create(const tmx::Map& map,
     assert(layers[layerIndex]->getType() == tmx::Layer::Type::Tile);
 
     const auto& layer = layers[layerIndex]->getLayerAs<tmx::TileLayer>();
+    _className = layer.getClass();
     const auto  mapSize = map.getTileCount();
     const auto  mapTileSize = map.getTileSize();
     const auto& tileSets = map.getTilesets();
@@ -102,7 +103,7 @@ bool MapTileLayer::create(const tmx::Map& map,
         }
     }
 
-    return true;
+    return !(_subsets.empty());
 }
 
 void MapTileLayer::draw(SDL_Renderer* renderer, SDL_FPoint cameraOffset) const
@@ -111,11 +112,14 @@ void MapTileLayer::draw(SDL_Renderer* renderer, SDL_FPoint cameraOffset) const
 
     for (const auto& s : _subsets)
     {
-        auto offsetVerts = s.vertexData;
-        for (auto& v : offsetVerts)
+        std::vector<SDL_Vertex> offsetVerts{};
+        offsetVerts.reserve(s.vertexData.size());
+        for (auto& v : s.vertexData)
         {
-            v.position = {v.position.x - cameraOffset.x,
-                          v.position.y - cameraOffset.y};
+            auto vnew = v;
+            vnew.position = {vnew.position.x - cameraOffset.x,
+                             vnew.position.y - cameraOffset.y};
+            offsetVerts.push_back(vnew);
         };
 
         // draw all verts using that texture

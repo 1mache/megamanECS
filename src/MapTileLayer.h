@@ -19,12 +19,19 @@ public:
 
     void draw(SDL_Renderer* renderer, SDL_FPoint camOffset) const;
 
+    std::string getClassName() const
+    {
+        return _className;
+    }
+
 private:
     // one subset per used tileset
-    struct Subset final
+    struct TileSubset final
     {
         std::vector<SDL_Vertex> vertexData;
         SDL_Texture*            texture = nullptr;
     };
-    std::vector<Subset> _subsets;
+
+    std::vector<TileSubset> _subsets;
+    std::string             _className;
 };
