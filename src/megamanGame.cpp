@@ -19,10 +19,6 @@ MegamanGame::MegamanGame()
         return;
     }
 
-    SDL_SetRenderScale(_ren,
-                       GlobalData::SCALE_FACTOR,
-                       GlobalData::SCALE_FACTOR);
-
     _tex = IMG_LoadTexture(_ren, PLAYER_TEXTURE_PATH);
 
     if (_tex == nullptr)

@@ -45,7 +45,6 @@ int main(int, char**)
         SDL_Quit();
         return 1;
     }
-    SDL_SetRenderScale(renderer, scaleFactor, scaleFactor);
     SDL_SetRenderVSync(renderer, 1);
     gd::setWindow(window);
     gd::setRenderer(renderer);
