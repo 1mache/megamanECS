@@ -1,6 +1,7 @@
 #include "megaman.h"
 #include <cmath>
 #include <iostream>
+#include <vector>
 
 namespace
 {
@@ -14,11 +15,12 @@ namespace
     constexpr int JUMP_START = 10;
     constexpr int JUMP_COUNT = 1;
     constexpr int ANIM_SPEED = 8; // frames between animation ticks
+    constexpr float BULLET_SPEED = 0.15f;
 } // namespace
 
 namespace megaman
 {
-    ent_type createPlayer(float x, float y, int hp)
+    ent_type createPlayer(float x, float y, float hp)
     {
         ent_type ent = bagel::World::createEntity();
 
@@ -36,13 +38,13 @@ namespace megaman
         return ent;
     }
 
-    ent_type createPatroller(float x, float y, int hp, float patrolMinX, float patrolMaxX, float detectionRange, float speed)
+    ent_type createPatroller(float x, float y, float hp, float patrolMinX, float patrolMaxX, float detectionRange, float speed)
     {
         ent_type ent = bagel::World::createEntity();
 
         bagel::World::addComponent<Drawable>(ent, {.texture = nullptr});
         bagel::World::addComponent<MTransform>(ent, {.x = x, .y = y, .w = 0.733f, .h = 0.8f});
-        bagel::World::addComponent<Movement>(ent, {.mass = 1});
+        bagel::World::addComponent<Movement>(ent, {.mass = 1, .velX = speed});
         bagel::World::addComponent<Collision>(ent, {});
         bagel::World::addComponent<Health>(ent, {.points = hp});
         bagel::World::addComponent<Enemy>(ent, {});
@@ -56,7 +58,26 @@ namespace megaman
         return ent;
     }
 
-    ent_type createBoss(float x, float y, int hp) // is boss is nesserary or enemy is enough?
+    ent_type createLockster(float x, float y, float hp, float detectionRange, float chargeSpeed)
+    {
+        ent_type ent = bagel::World::createEntity();
+
+        bagel::World::addComponent<Drawable>(ent, {.texture = nullptr});
+        bagel::World::addComponent<MTransform>(ent, {.x = x, .y = y, .w = 0.7f, .h = 0.7f});
+        bagel::World::addComponent<Movement>(ent, {.mass = 1});
+        bagel::World::addComponent<Collision>(ent, {});
+        bagel::World::addComponent<Health>(ent, {.points = hp});
+        bagel::World::addComponent<Enemy>(ent, {});
+        bagel::World::addComponent<AI>(ent, {.type = AI::Type::Lockster,
+                                             .detectionRange = detectionRange,
+                                             .chargeSpeed = chargeSpeed,
+                                             .spawnX = x});
+        bagel::World::addComponent<Animation>(ent, {});
+
+        return ent;
+    }
+
+    ent_type createBoss(float x, float y, float hp) // is boss is nesserary or enemy is enough?
     {
         ent_type ent = bagel::World::createEntity();
 
@@ -85,16 +106,16 @@ namespace megaman
         return ent;
     }
 
-    ent_type createProjectile(float x, float y, float velX, float velY)
+    ent_type createProjectile(float x, float y, float velX, float velY, bool fromEnemy)
     {
         ent_type ent = bagel::World::createEntity();
 
-        bagel::World::addComponent<Drawable>(ent, {.texture = nullptr});
-        bagel::World::addComponent<MTransform>(ent, {.x = x, .y = y});
-        bagel::World::addComponent<Movement>(
-            ent,
-            {.mass = 1, .velX = velX, .velY = velY});
+        bagel::World::addComponent<Drawable>(ent, {.texture = GlobalData::getShotTexture(), .spriteW = 16.f, .spriteH = 8.f, .drawScale = 1.f, .idleStart = 0, .idleCount = 1});
+        bagel::World::addComponent<Animation>(ent, {});
+        bagel::World::addComponent<MTransform>(ent, {.x = x, .y = y, .w = 0.2f, .h = 0.2f});
+        bagel::World::addComponent<Movement>(ent, {.mass = 1, .velX = velX, .velY = velY});
         bagel::World::addComponent<Collision>(ent, {});
+        bagel::World::addComponent<Projectile>(ent, {.fromEnemy = fromEnemy});
 
         return ent;
     }
@@ -157,7 +178,7 @@ namespace megaman
     void InputSystem::run()
     {
         static const bagel::Mask mask =
-            bagel::MaskBuilder().set<Input>().set<Movement>().build();
+            bagel::MaskBuilder().set<Input>().set<Movement>().set<Weapon>().build();
 
         SDL_PumpEvents();
         const bool *keys = SDL_GetKeyboardState(nullptr);
@@ -183,6 +204,22 @@ namespace megaman
                     m.velY = 0.083f;
                 if (keys[SDL_SCANCODE_DOWN])
                     m.velY = -0.083f;
+
+                auto &w = e.get<Weapon>();
+                if (w.shootCooldown > 0)
+                    --w.shootCooldown;
+
+                if (keys[SDL_SCANCODE_SPACE])
+                {
+                    if (w.shootCooldown <= 0)
+                    {
+                        const auto &t = e.get<MTransform>();
+                        const float velX = m.facingLeft ? -BULLET_SPEED : BULLET_SPEED;
+                        ent_type bullet = createProjectile(t.x, t.y, velX, 0.f, false);
+                        std::cout << "bullet created id=" << bullet.id << " tex=" << GlobalData::getShotTexture() << "\n";
+                        w.shootCooldown = 20;
+                    }
+                }
             }
         }
     }
@@ -216,17 +253,25 @@ namespace megaman
                 auto &a = e.get<Animation>();
                 const auto &m = e.get<Movement>();
 
-                const Animation::State newState =
-                    m.velX != 0.f ? Animation::RUN : Animation::IDLE;
-
-                if (newState != a.state)
+                if (!e.has<AI>() && !e.has<Projectile>())
                 {
-                    a.state = newState;
+                    const Animation::State newState =
+                        m.velX != 0.f ? Animation::RUN : Animation::IDLE;
+
+                    if (newState != a.state)
+                    {
+                        a.state = newState;
+                        a.currentFrame = 0;
+                        a.frameTimer = 0;
+                    }
+                }
+
+                if (a.state == Animation::IDLE)
+                {
                     a.currentFrame = 0;
                     a.frameTimer = 0;
                 }
-
-                if (++a.frameTimer >= ANIM_SPEED)
+                else if (++a.frameTimer >= ANIM_SPEED)
                 {
                     a.frameTimer = 0;
                     ++a.currentFrame;
@@ -270,6 +315,9 @@ namespace megaman
                     break;
                 }
 
+                if (d.texture == nullptr || frameCount <= 0)
+                    continue;
+
                 const int frame = startFrame + (a.currentFrame % frameCount);
                 SDL_FRect src = {frame * d.spriteW, 0.f, d.spriteW, d.spriteH};
                 SDL_FRect dest = transformToFrect(t);
@@ -283,10 +331,223 @@ namespace megaman
 
     void CollisionSystem::run(b2WorldId)
     {
+        static const bagel::Mask playerMask = bagel::MaskBuilder()
+                                                  .set<Input>()
+                                                  .set<MTransform>()
+                                                  .set<Health>()
+                                                  .build();
+        static const bagel::Mask enemyMask = bagel::MaskBuilder()
+                                                 .set<Enemy>()
+                                                 .set<MTransform>()
+                                                 .set<Health>()
+                                                 .build();
+        static const bagel::Mask bulletMask = bagel::MaskBuilder()
+                                                  .set<Projectile>()
+                                                  .set<MTransform>()
+                                                  .set<Movement>()
+                                                  .build();
+
+        ent_type playerEnt{};
+        bool playerFound = false;
+        for (bagel::Entity p = bagel::Entity::first(); !p.eof(); p.next())
+        {
+            if (p.test(playerMask))
+            {
+                playerEnt = p.entity();
+                playerFound = true;
+                break;
+            }
+        }
+
+        std::vector<ent_type> toDestroy;
+
+        for (bagel::Entity bullet = bagel::Entity::first(); !bullet.eof(); bullet.next())
+        {
+            if (!bullet.test(bulletMask))
+                continue;
+
+            const MTransform bt = bullet.get<MTransform>();
+            const bool isEnemyBullet = bullet.get<Projectile>().fromEnemy;
+
+            if (isEnemyBullet)
+            {
+                if (playerFound)
+                {
+                    bagel::Entity p{playerEnt};
+                    auto &ph = p.get<Health>();
+                    if (!ph.isInvulnerable)
+                    {
+                        const MTransform pt = p.get<MTransform>();
+                        const bool overlapX = std::abs(pt.x - bt.x) < (pt.w + bt.w) / 2.f;
+                        const bool overlapY = std::abs(pt.y - bt.y) < (pt.h + bt.h) / 2.f;
+                        if (overlapX && overlapY)
+                        {
+                            ph.points -= 0.5f;
+                            ph.isInvulnerable = true;
+                            ph.invulnerableTimer = 90;
+                            toDestroy.push_back(bullet.entity());
+                            std::cout << "enemy bullet hit player, hp=" << ph.points << "\n";
+                        }
+                    }
+                }
+            }
+            else
+            {
+                for (bagel::Entity en = bagel::Entity::first(); !en.eof(); en.next())
+                {
+                    if (!en.test(enemyMask))
+                        continue;
+                    const MTransform et = en.get<MTransform>();
+                    const bool overlapX = std::abs(et.x - bt.x) < (et.w + bt.w) / 2.f;
+                    const bool overlapY = std::abs(et.y - bt.y) < (et.h + bt.h) / 2.f;
+                    if (overlapX && overlapY)
+                    {
+                        en.get<Health>().points -= 0.5f;
+                        std::cout << "player bullet hit enemy id=" << en.entity().id << " hp=" << en.get<Health>().points << "\n";
+                        toDestroy.push_back(bullet.entity());
+                        break;
+                    }
+                }
+            }
+        }
+
+        for (ent_type e : toDestroy)
+            bagel::Entity{e}.destroy();
+
+        if (playerFound)
+        {
+            bagel::Entity p{playerEnt};
+            auto &ph = p.get<Health>();
+            if (!ph.isInvulnerable)
+            {
+                const auto &pt = p.get<MTransform>();
+                static const bagel::Mask bodyEnemyMask = bagel::MaskBuilder()
+                                                             .set<Enemy>()
+                                                             .set<MTransform>()
+                                                             .build();
+                for (bagel::Entity en = bagel::Entity::first(); !en.eof(); en.next())
+                {
+                    if (!en.test(bodyEnemyMask))
+                        continue;
+                    const auto &et = en.get<MTransform>();
+                    const bool overlapX = std::abs(pt.x - et.x) < (pt.w + et.w) / 2.f;
+                    const bool overlapY = std::abs(pt.y - et.y) < (pt.h + et.h) / 2.f;
+                    if (overlapX && overlapY)
+                    {
+                        ph.points -= 1.f;
+                        ph.isInvulnerable = true;
+                        ph.invulnerableTimer = 90;
+                        break;
+                    }
+                }
+            }
+        }
     }
+
     void HealthSystem::run()
     {
+        static const bagel::Mask mask = bagel::MaskBuilder().set<Health>().build();
+
+        for (bagel::Entity e = bagel::Entity::first(); !e.eof(); e.next())
+        {
+            if (e.test(mask))
+            {
+                auto &h = e.get<Health>();
+                if (h.isInvulnerable && --h.invulnerableTimer <= 0)
+                    h.isInvulnerable = false;
+                if (h.points <= 0)
+                    h.isDead = true;
+            }
+        }
     }
+
+    namespace
+    {
+        void updateFacing(Movement &m)
+        {
+            if (m.velX < 0)
+                m.facingLeft = true;
+            else if (m.velX > 0)
+                m.facingLeft = false;
+        }
+
+        void tickPatroller(AI &ai, MTransform &t, Movement &m, float playerX, float playerY)
+        {
+            const float distX = std::abs(t.x - playerX);
+            const float distY = std::abs(t.y - playerY);
+
+            if (distX < ai.detectionRange && distY < ai.detectionRange)
+            {
+                ai.state = AI::CHASE_SHOOT;
+                m.velX = t.x < playerX ? ai.speed : -ai.speed;
+            }
+            else
+            {
+                ai.state = AI::PATROL;
+                if (t.x < ai.patrolMinX)
+                    m.velX = ai.speed;
+                else if (t.x > ai.patrolMaxX)
+                    m.velX = -ai.speed;
+            }
+
+            updateFacing(m);
+
+            if (ai.state == AI::CHASE_SHOOT)
+            {
+                if (ai.shootCooldown > 0)
+                    --ai.shootCooldown;
+
+                else
+                {
+                    const float velX = t.x < playerX ? BULLET_SPEED : -BULLET_SPEED;
+                    createProjectile(t.x, t.y, velX, 0.f, true);
+                    ai.shootCooldown = 60;
+                }
+            }
+        }
+
+        void tickLockster(AI &ai, MTransform &t, Movement &m, Animation &a, float playerX, float playerY)
+        {
+            const float distX = std::abs(t.x - playerX);
+            const float distY = std::abs(t.y - playerY);
+
+            if (distX < ai.detectionRange && distY < ai.detectionRange)
+            {
+                if (ai.alertTimer < 30)
+                {
+                    ++ai.alertTimer;
+                    m.velX = 0.f;
+                    a.state = Animation::JUMP; // alert/opening frames
+
+                    if (ai.shotsFired < 3 && ai.alertTimer % 10 == 0)
+                    {
+                        const float velX = t.x < playerX ? 0.15f : -0.15f;
+                        createProjectile(t.x, t.y, velX, 0.f, true);
+                        ++ai.shotsFired;
+                    }
+                }
+                else
+                {
+                    m.velX = t.x < playerX ? ai.chargeSpeed : -ai.chargeSpeed;
+                    a.state = Animation::RUN; // charge frames
+                }
+            }
+            else
+            {
+                ai.alertTimer = 0;
+                ai.shotsFired = 0;
+                const float dx = ai.spawnX - t.x;
+                if (std::abs(dx) > 0.05f)
+                    m.velX = dx > 0 ? ai.speed : -ai.speed;
+                else
+                    m.velX = 0.f;
+                a.state = Animation::IDLE;
+            }
+
+            updateFacing(m);
+        }
+    } // namespace
+
     void AISystem::run()
     {
         static const bagel::Mask playerMask = bagel::MaskBuilder()
@@ -298,6 +559,7 @@ namespace megaman
                                                  .set<AI>()
                                                  .set<Movement>()
                                                  .set<MTransform>()
+                                                 .set<Animation>()
                                                  .build();
 
         float playerX = 0.f;
@@ -320,29 +582,18 @@ namespace megaman
                 auto &ai = e.get<AI>();
                 auto &t = e.get<MTransform>();
                 auto &m = e.get<Movement>();
+                auto &a = e.get<Animation>();
 
-                const float distanceX = std::abs(t.x - playerX);
-                const float distanceY = std::abs(t.y - playerY);
-
-                if (distanceX < ai.detectionRange && distanceY < ai.detectionRange)
+                switch (ai.type)
                 {
-                    ai.state = AI::CHASE_SHOOT;
-                    m.velX = t.x < playerX ? ai.speed : -ai.speed;
+                case AI::Type::Patroller:
+                    tickPatroller(ai, t, m, playerX, playerY);
+                    a.state = Animation::RUN; // patroller has no idle or jump frames, so just use run animation for all states
+                    break;
+                case AI::Type::Lockster:
+                    tickLockster(ai, t, m, a, playerX, playerY);
+                    break;
                 }
-
-                else
-                {
-                    ai.state = AI::PATROL;
-                    if (t.x < ai.patrolMinX)
-                        m.velX = ai.speed;
-                    else if (t.x > ai.patrolMaxX)
-                        m.velX = -ai.speed;
-                }
-
-                if (m.velX < 0)
-                    m.facingLeft = true;
-                else if (m.velX > 0)
-                    m.facingLeft = false;
             }
         }
     }

@@ -19,6 +19,7 @@ namespace megaman
     struct Weapon;
     struct Scene;
     struct Sound;
+    struct Projectile;
 } // namespace megaman
 
 // ============= STORAGE SPECIALIZATIONS =============
@@ -95,6 +96,12 @@ struct bagel::Storage<megaman::Sound> final : bagel::NoInstance
     using type = bagel::StackStorage<megaman::Sound>;
 };
 
+template <>
+struct bagel::Storage<megaman::Projectile> final : bagel::NoInstance
+{
+    using type = bagel::StackStorage<megaman::Projectile>;
+};
+
 namespace megaman
 {
     using ent_type = bagel::ent_type;
@@ -161,9 +168,10 @@ namespace megaman
         // Preferred storage: Stack, relatively few entities will have health and
         // they are created and destroyed a lot.
 
-        int points{};
+        float points{};
         bool isInvulnerable{};
         bool isDead{};
+        int invulnerableTimer{};
     };
 
     struct Input
@@ -182,7 +190,7 @@ namespace megaman
         enum class Type
         {
             Patroller,
-            Helmet
+            Lockster
         };
         enum State
         {
@@ -191,11 +199,16 @@ namespace megaman
         };
 
         Type type{};
-        State state{PATROL};
+        State state{};
         float patrolMinX{};
         float patrolMaxX{};
         float detectionRange{};
         float speed{};
+        int alertTimer{};
+        float chargeSpeed{};
+        float spawnX{};
+        int shootCooldown{};
+        int shotsFired{};
     };
 
     struct Weapon
@@ -203,7 +216,8 @@ namespace megaman
         // Preferred storage: Stack, few entities will be able to shoot
         // and be in the scene at the same time, we dont want to waste large array for their possibly large ids.
 
-        int projectileType{-1}; // or some custom type later
+        int projectileType{-1};
+        int shootCooldown{};
     };
 
     struct Scene
@@ -221,6 +235,11 @@ namespace megaman
 
         int sound{-1}; // or some way to hold sound data
         bool isPlaying{false};
+    };
+
+    struct Projectile
+    {
+        bool fromEnemy{};
     };
 
     // ============= SYSTEMS    =============
@@ -274,15 +293,17 @@ namespace megaman
     };
     // ============= ENTITIES   =============
 
-    ent_type createPlayer(float x, float y /*or vector2 like type*/, int hp);
+    ent_type createPlayer(float x, float y, float hp);
 
-    ent_type createPatroller(float x, float y, int hp, float patrolMinX, float patrolMaxX, float detectionRange, float speed);
+    ent_type createPatroller(float x, float y, float hp, float patrolMinX, float patrolMaxX, float detectionRange, float speed);
 
-    ent_type createBoss(float x, float y, int hp);
+    ent_type createLockster(float x, float y, float hp, float detectionRange, float chargeSpeed);
+
+    ent_type createBoss(float x, float y, float hp);
 
     ent_type createPlatform(float x, float y, bool isMoving);
 
-    ent_type createProjectile(float x, float y, float velX, float velY);
+    ent_type createProjectile(float x, float y, float velX, float velY, bool fromEnemy);
 
     ent_type createTrigger(float x, float y, float width, float height);
 

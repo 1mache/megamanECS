@@ -20,7 +20,7 @@ namespace megaman
         void run();
 
     private:
-        static constexpr int HP = 3;
+        static constexpr float HP = 3.f;
         static constexpr int WIN_W = 720;
         static constexpr int WIN_H = 540;
         static constexpr int FPS = 60;
@@ -32,11 +32,14 @@ namespace megaman
         void drawSystem();
         void animationSystem();
         void aiSystem();
+        void healthSystem();
 
         SDL_Window *_win = nullptr;
         SDL_Renderer *_ren = nullptr;
         SDL_Texture *_tex = nullptr;
         SDL_Texture *_enemyTex = nullptr;
+        SDL_Texture *_locksterTex = nullptr;
+        SDL_Texture *_shotTex = nullptr;
 
         b2WorldId _box = b2_nullWorldId;
     };

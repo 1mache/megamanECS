@@ -34,6 +34,17 @@ namespace megaman
             _renderer = renderer;
         }
 
+        static void setShotTexture(SDL_Texture *tex)
+        {
+            assert(tex != nullptr && "setShotTexture: trying to pass nullptr");
+            _shotTex = tex;
+        }
+
+        static SDL_Texture *getShotTexture()
+        {
+            return _shotTex;
+        }
+
         static SDL_Window *getWindow()
         {
             assert(_window != nullptr && "getWindow: window was not created");
@@ -68,6 +79,7 @@ namespace megaman
 
         static inline SDL_Window *_window{};
         static inline SDL_Renderer *_renderer{};
+        static inline SDL_Texture *_shotTex{};
         static inline CameraData _camData{START_CAM_X,
                                           START_CAM_Y,
                                           START_WIN_W / SCALE_FACTOR,

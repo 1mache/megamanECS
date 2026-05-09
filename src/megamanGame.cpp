@@ -14,7 +14,7 @@ namespace
     constexpr int PLAYER_JUMP_START = 10;
     constexpr int PLAYER_JUMP_COUNT = 1;
 
-    constexpr float ENEMY_SPRITE_W = 22.f;
+    constexpr float ENEMY_SPRITE_W = 24.f;
     constexpr float ENEMY_SPRITE_H = 24.f;
     constexpr float ENEMY_SCALE = 2.f;
     constexpr int ENEMY_IDLE_START = 0;
@@ -23,6 +23,16 @@ namespace
     constexpr int ENEMY_RUN_COUNT = 2;
     constexpr int ENEMY_JUMP_START = 0;
     constexpr int ENEMY_JUMP_COUNT = 1;
+
+    constexpr float LOCKSTER_SPRITE_W = 24.f;
+    constexpr float LOCKSTER_SPRITE_H = 24.f;
+    constexpr float LOCKSTER_SCALE = 2.f;
+    constexpr int LOCKSTER_IDLE_START = 0;
+    constexpr int LOCKSTER_IDLE_COUNT = 2;
+    constexpr int LOCKSTER_ALERT_START = 2; // mapped to JUMP state
+    constexpr int LOCKSTER_ALERT_COUNT = 4;
+    constexpr int LOCKSTER_CHARGE_START = 6; // mapped to RUN state
+    constexpr int LOCKSTER_CHARGE_COUNT = 2;
 } // namespace
 
 namespace megaman
@@ -63,6 +73,26 @@ namespace megaman
         _enemyTex = SDL_CreateTextureFromSurface(_ren, enemySurf);
         SDL_DestroySurface(enemySurf);
 
+        SDL_Surface *locksterSurf = IMG_Load("res/lockster.png");
+        if (locksterSurf == nullptr)
+        {
+            std::cout << SDL_GetError() << std::endl;
+            return;
+        }
+
+        _locksterTex = SDL_CreateTextureFromSurface(_ren, locksterSurf);
+        SDL_DestroySurface(locksterSurf);
+
+        SDL_Surface *shotSurf = IMG_Load("res/shot.png");
+        if (shotSurf == nullptr)
+        {
+            std::cout << SDL_GetError() << std::endl;
+            return;
+        }
+        _shotTex = SDL_CreateTextureFromSurface(_ren, shotSurf);
+        SDL_DestroySurface(shotSurf);
+        GlobalData::setShotTexture(_shotTex);
+
         if (_tex == nullptr)
         {
             std::cout << SDL_GetError() << std::endl;
@@ -73,7 +103,7 @@ namespace megaman
         worldDef.gravity = {0, 20.f};
         _box = b2CreateWorld(&worldDef);
 
-        ent_type player = createPlayer(6.f, 4.5f, MegamanGame::HP);
+        ent_type player = createPlayer(20.f, 4.5f, MegamanGame::HP);
         {
             auto &d = bagel::World::getComponent<Drawable>(player);
             d.texture = _tex;
@@ -103,6 +133,22 @@ namespace megaman
             d.jumpCount = 1;
             d.defaultFacingLeft = false;
         }
+
+        ent_type lockster = createLockster(8.f, 4.5f, MegamanGame::HP, 5.f, 0.12f);
+        {
+            auto &d = bagel::World::getComponent<Drawable>(lockster);
+            d.texture = _locksterTex;
+            d.spriteW = LOCKSTER_SPRITE_W;
+            d.spriteH = LOCKSTER_SPRITE_H;
+            d.drawScale = LOCKSTER_SCALE;
+            d.idleStart = LOCKSTER_IDLE_START;
+            d.idleCount = LOCKSTER_IDLE_COUNT;
+            d.jumpStart = LOCKSTER_ALERT_START;
+            d.jumpCount = LOCKSTER_ALERT_COUNT;
+            d.runStart = LOCKSTER_CHARGE_START;
+            d.runCount = LOCKSTER_CHARGE_COUNT;
+            d.defaultFacingLeft = false;
+        }
     }
 
     MegamanGame::~MegamanGame()
@@ -117,6 +163,10 @@ namespace megaman
             SDL_DestroyWindow(_win);
         if (_enemyTex != nullptr)
             SDL_DestroyTexture(_enemyTex);
+        if (_locksterTex != nullptr)
+            SDL_DestroyTexture(_locksterTex);
+        if (_shotTex != nullptr)
+            SDL_DestroyTexture(_shotTex);
 
         SDL_Quit();
     }
@@ -127,6 +177,7 @@ namespace megaman
     void MegamanGame::drawSystem() { DrawingSystem::run(_ren); }
     void MegamanGame::animationSystem() { AnimationSystem::run(); }
     void MegamanGame::aiSystem() { AISystem::run(); }
+    void MegamanGame::healthSystem() { HealthSystem::run(); }
 
     void MegamanGame::run()
     {
@@ -140,6 +191,7 @@ namespace megaman
             animationSystem();
             moveSystem();
             boxSystem();
+            healthSystem();
 
             SDL_RenderClear(_ren);
             drawSystem();
