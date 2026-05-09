@@ -1,4 +1,6 @@
 #include "megaman.h"
+#include "GlobalData.h"
+#include <cmath>
 #include <iostream>
 
 namespace
@@ -213,6 +215,27 @@ void AnimationSystem::run()
     }
 }
 
+#ifndef NDEBUG
+static void drawCameraDebug(SDL_Renderer* ren)
+{
+    constexpr float PI = 3.14159265f;
+    constexpr float r = 5.f;
+    constexpr int   N = 32;
+    SDL_FPoint      pts[N + 1];
+    auto            camScreenPos = camPosToScreenPos(GlobalData::getCamData());
+
+    for (int i = 0; i <= N; ++i)
+    {
+        const float a = (2.f * PI * static_cast<float>(i)) / N;
+        pts[i] = {camScreenPos.x + r * std::cos(a),
+                  camScreenPos.y + r * std::sin(a)};
+    }
+    SDL_SetRenderDrawColor(ren, 255, 0, 0, 255);
+    SDL_RenderLines(ren, pts, N + 1);
+    SDL_SetRenderDrawColor(ren, 0, 0, 0, 255);
+}
+#endif
+
 void DrawingSystem::run(SDL_Renderer* ren, SDL_Texture* tex)
 {
     static const bagel::Mask mask = bagel::MaskBuilder()
@@ -254,6 +277,9 @@ void DrawingSystem::run(SDL_Renderer* ren, SDL_Texture* tex)
             SDL_RenderTexture(ren, tex, &src, &dest);
         }
     }
+#ifndef NDEBUG
+    drawCameraDebug(ren);
+#endif
 }
 
 void CollisionSystem::run(b2WorldId)

@@ -1,10 +1,12 @@
 #pragma once
+#include <SDL3/SDL.h>
 
 namespace megaman
 {
 struct CameraData
 {
     float posX{}, posY{};
-    float vpW{}, vpH{};
 };
+
+SDL_FPoint camPosToScreenPos(const CameraData& cam);
 } // namespace megaman

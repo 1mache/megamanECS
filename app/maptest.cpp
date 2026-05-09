@@ -76,7 +76,7 @@ int main(int, char**)
                 inputRight = false;
         }
 
-        auto camData = gd::getCamData();
+        auto camData = gd::getCamTransform();
         if (inputRight)
         {
             gd::updateCamPosition(camData.posX + (camVelX * gd::FRAME_DELTA_MS),

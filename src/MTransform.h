@@ -1,6 +1,4 @@
 #pragma once
-#include "CameraData.h"
-#include "GlobalData.h"
 #include <SDL3/SDL.h>
 #include <box2d/box2d.h>
 

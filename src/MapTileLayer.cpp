@@ -76,6 +76,9 @@ bool MapTileLayer::create(const tmx::Map& map,
                 const float tw = static_cast<float>(mapTileSize.x);
                 const float th = static_cast<float>(mapTileSize.y);
 
+                _minX = std::min(_minX, px);
+                _minY = std::min(_minY, py);
+
                 // calculate tile vertex
                 // Triangle1:
                 // TL
@@ -102,6 +105,9 @@ bool MapTileLayer::create(const tmx::Map& map,
             _subsets.back().vertexData.swap(verts);
         }
     }
+
+    _maxX = _minX + static_cast<float>(map.getTileCount().x * mapTileSize.x);
+    _maxY = _minY + static_cast<float>(map.getTileCount().y * mapTileSize.y);
 
     return !(_subsets.empty());
 }

@@ -15,8 +15,8 @@ public:
     static constexpr float START_WIN_W = 720;
     static constexpr float START_WIN_H = 540;
     static constexpr float START_CAM_X = 0;
-    static constexpr float START_CAM_Y = 0;
-    static constexpr float SCALE_FACTOR = 2.f;
+    static constexpr float START_CAM_Y = 1;
+    static constexpr float SCALE_FACTOR = 1.f;
 
 public:
     static void setWindow(SDL_Window* window)
@@ -39,15 +39,22 @@ public:
         assert(_window != nullptr && "getWindow: window was not created");
         return _window;
     }
+
     static SDL_Renderer* getRenderer()
     {
         assert(_renderer != nullptr && "getWindow: renderer was not created");
         return _renderer;
     }
 
-    static float getScaleFactor()
+    // TODO: hard coded for now, if window resizing is implemented, these should be updated to return the current window size
+    static float getWinW()
     {
-        return SCALE_FACTOR;
+        return START_WIN_W;
+    }
+
+    static float getWinH()
+    {
+        return START_WIN_H;
     }
 
     static const CameraData& getCamData()
@@ -68,9 +75,6 @@ private:
 
     static inline SDL_Window*   _window{};
     static inline SDL_Renderer* _renderer{};
-    static inline CameraData    _camData{START_CAM_X,
-                                         START_CAM_Y,
-                                         START_WIN_W / SCALE_FACTOR,
-                                         START_WIN_H / SCALE_FACTOR};
+    static inline CameraData    _camData{START_CAM_X, START_CAM_Y};
 };
 } // namespace megaman

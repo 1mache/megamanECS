@@ -1,4 +1,5 @@
 #include "megamanGame.h"
+#include "GlobalData.h"
 #include <SDL3_image/SDL_image.h>
 #include <iostream>
 
@@ -36,7 +37,7 @@ MegamanGame::MegamanGame()
 
     _scene.load(_ren);
 
-    createPlayer(4, 4, MegamanGame::HP);
+    createPlayer(1, 1, MegamanGame::HP);
 }
 
 MegamanGame::~MegamanGame()
@@ -87,8 +88,7 @@ void MegamanGame::run()
         boxSystem();
 
         SDL_RenderClear(_ren);
-        auto       camData = GlobalData::getCamData();
-        SDL_FPoint camOffset{camData.posX, camData.posY};
+        SDL_FPoint camOffset = camPosToScreenPos(GlobalData::getCamData());
         if (_scene.isValid())
             _scene.draw(_ren, camOffset);
 

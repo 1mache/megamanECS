@@ -34,4 +34,9 @@ private:
 
     std::vector<TileSubset> _subsets;
     std::string             _className;
+
+    float _minX{};
+    float _maxX{};
+    float _minY{};
+    float _maxY{};
 };
