@@ -5,6 +5,8 @@ target_sources(
         GlobalData.h
         MTransform.h
         MTransform.cpp
+        Scene.h
+        Scene.cpp
         MapTileLayer.h
         MapTileLayer.cpp
         Texture.h

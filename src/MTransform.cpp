@@ -1,6 +1,7 @@
 #include "MTransform.h"
-
-SDL_FRect megaman::transformToFrect(const MTransform& t)
+namespace megaman
+{
+SDL_FRect transformToFrect(const MTransform& t)
 {
     auto ptm = GlobalData::PTM;
     auto camData = GlobalData::getCamData();
@@ -15,3 +16,4 @@ SDL_FRect megaman::transformToFrect(const MTransform& t)
                      .w = t.w * 2 * ptm,
                      .h = t.h * 2 * ptm};
 }
+} // namespace megaman

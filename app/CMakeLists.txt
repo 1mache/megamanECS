@@ -1,6 +1,6 @@
 # point to entry point file here 
 set(APP_SOURCES
-    megaman_ecs.cpp
+    maptest.cpp
 )
 
 add_executable(${EXECUTABLE_NAME} ${APP_SOURCES})
