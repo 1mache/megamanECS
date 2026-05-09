@@ -22,16 +22,8 @@ MegamanGame::MegamanGame()
                        GlobalData::SCALE_FACTOR,
                        GlobalData::SCALE_FACTOR);
 
-    SDL_Surface* surf = IMG_Load(
-        "res/player.png"); // The mockup app now TODO: load the new level
-    if (surf == nullptr)
-    {
-        std::cout << SDL_GetError() << std::endl;
-        return;
-    }
+    _tex = IMG_LoadTexture(_ren, PLAYER_TEXTURE_PATH);
 
-    _tex = SDL_CreateTextureFromSurface(_ren, surf);
-    SDL_DestroySurface(surf);
     if (_tex == nullptr)
     {
         std::cout << SDL_GetError() << std::endl;
@@ -42,7 +34,9 @@ MegamanGame::MegamanGame()
     worldDef.gravity = {0, 20.f};
     _box = b2CreateWorld(&worldDef);
 
-    createPlayer(2, 2, MegamanGame::HP);
+    _scene.load(_ren);
+
+    createPlayer(4, 4, MegamanGame::HP);
 }
 
 MegamanGame::~MegamanGame()
@@ -93,6 +87,11 @@ void MegamanGame::run()
         boxSystem();
 
         SDL_RenderClear(_ren);
+        auto       camData = GlobalData::getCamData();
+        SDL_FPoint camOffset{camData.posX, camData.posY};
+        if (_scene.isValid())
+            _scene.draw(_ren, camOffset);
+
         drawSystem();
         SDL_RenderPresent(_ren);
 

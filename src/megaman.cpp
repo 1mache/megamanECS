@@ -22,11 +22,12 @@ ent_type createPlayer(float x, float y, int hp)
 
     bagel::World::addComponent<Animation>(ent, {});
     bagel::World::addComponent<Drawable>(ent, {.texture = nullptr});
-    bagel::World::addComponent<MTransform>(ent,
-                                           {.x = x,
-                                            .y = y,
-                                            .w = SPRITE_W / GlobalData::PTM,
-                                            .h = SPRITE_H / GlobalData::PTM});
+    bagel::World::addComponent<MTransform>(
+        ent,
+        {.x = x,
+         .y = y,
+         .w = SPRITE_W / (2 * GlobalData::PTM),
+         .h = SPRITE_H / (2 * GlobalData::PTM)});
     bagel::World::addComponent<Movement>(ent, {.mass = 1});
     bagel::World::addComponent<Collision>(ent, {});
     bagel::World::addComponent<Health>(ent, {.points = hp});
@@ -134,15 +135,6 @@ ent_type createSoundSource(float x, float y, int sound)
 
     bagel::World::addComponent<MTransform>(ent, {.x = x, .y = y});
     bagel::World::addComponent<Sound>(ent, {.sound = sound});
-
-    return ent;
-}
-
-ent_type createScene(const std::string& mapFilePath)
-{
-    ent_type ent = bagel::World::createEntity();
-
-    bagel::World::addComponent<Scene>(ent, {.mapFilePath = mapFilePath});
 
     return ent;
 }

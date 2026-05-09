@@ -8,25 +8,23 @@
 
 namespace megaman
 {
-struct Scene
+class Scene
 {
-    // Preferred storage: Sparse, probably only one entity of this type with
-    // small id value so one short array is good.
+public:
+    explicit Scene(std::string filePath) : _filePath(std::move(filePath)) {};
 
-    std::string                                filePath{};
-    bool                                       loaded{};
-    std::vector<std::unique_ptr<Texture>>      textures;
-    std::vector<std::unique_ptr<MapTileLayer>> tileLayers;
+    bool isValid() const
+    {
+        return _loaded && !_tileLayers.empty();
+    }
+
+    void load(SDL_Renderer* renderer);
+    void draw(SDL_Renderer* renderer, SDL_FPoint camOffset) const;
+
+private:
+    std::string                                _filePath;
+    bool                                       _loaded{};
+    std::vector<std::unique_ptr<Texture>>      _textures;
+    std::vector<std::unique_ptr<MapTileLayer>> _tileLayers;
 };
-
-inline bool isSceneValid(const Scene& s)
-{
-    return s.loaded && !s.tileLayers.empty();
-}
-
-void loadScene(Scene& scene, SDL_Renderer* renderer);
-void drawScene(const Scene&  scene,
-               SDL_Renderer* renderer,
-               SDL_FPoint    camOffset);
-
 } // namespace megaman

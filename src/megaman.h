@@ -1,7 +1,6 @@
 #pragma once
 
 #include "MTransform.h"
-#include "Scene.h"
 #include "SDL3/SDL.h"
 #include "bagel.h"
 #include <box2d/box2d.h>
@@ -81,12 +80,6 @@ template <>
 struct bagel::Storage<megaman::Weapon> final : bagel::NoInstance
 {
     using type = bagel::StackStorage<megaman::Weapon>;
-};
-
-template <>
-struct bagel::Storage<megaman::Scene> final : bagel::NoInstance
-{
-    using type = bagel::SparseStorage<megaman::Scene>;
 };
 
 template <>
@@ -239,6 +232,7 @@ class SoundSystem final : bagel::NoInstance
 public:
     static void run();
 };
+
 // ============= ENTITIES   =============
 
 ent_type createPlayer(float x, float y, int hp);
@@ -258,6 +252,4 @@ ent_type createItem(float x, float y);
 ent_type createText(float x, float y, const std::string& text);
 
 ent_type createSoundSource(float x, float y, int sound);
-
-ent_type createScene(const std::string& mapFilePath);
 } // namespace megaman
