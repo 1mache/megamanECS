@@ -1,6 +1,7 @@
 #pragma once
 
 #include "MTransform.h"
+#include "Scene.h"
 #include "SDL3/SDL.h"
 #include "bagel.h"
 #include <box2d/box2d.h>
@@ -17,7 +18,6 @@ struct Input;
 struct Enemy;
 struct AI;
 struct Weapon;
-struct Scene;
 struct Sound;
 } // namespace megaman
 
@@ -179,14 +179,6 @@ struct Weapon
     // and be in the scene at the same time, we dont want to waste large array for their possibly large ids.
 
     int projectileType{-1}; // or some custom type later
-};
-
-struct Scene
-{
-    // Preferred storage: Sparse, probably only one entity of this type with
-    // small id value so one short array is good.
-
-    std::string mapFilePath{"res/..."}; // or some way to hold layout data
 };
 
 struct Sound

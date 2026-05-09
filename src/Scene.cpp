@@ -1,17 +1,22 @@
 #include "Scene.h"
 
+#include <tmxlite/Map.hpp>
+
+#include <cassert>
+#include <iostream>
+
 namespace megaman
 {
-void Scene::load(SDL_Renderer* renderer)
+void loadScene(Scene& scene, SDL_Renderer* renderer)
 {
     tmx::Map map;
-    if (map.load(_filePath))
+    if (map.load(scene.filePath))
     {
         // load all tileset textures
         for (const auto& ts : map.getTilesets())
         {
-            _textures.emplace_back(std::make_unique<Texture>());
-            if (!_textures.back()->loadFromFile(ts.getImagePath(), renderer))
+            scene.textures.emplace_back(std::make_unique<Texture>());
+            if (!scene.textures.back()->loadFromFile(ts.getImagePath(), renderer))
                 std::cerr << "Failed to load tileset: " << ts.getImagePath()
                           << "\n";
         }
@@ -22,8 +27,8 @@ void Scene::load(SDL_Renderer* renderer)
         {
             if (mapLayers[i]->getType() == tmx::Layer::Type::Tile)
             {
-                _tileLayers.emplace_back(std::make_unique<MapTileLayer>());
-                _tileLayers.back()->create(map, i, _textures);
+                scene.tileLayers.emplace_back(std::make_unique<MapTileLayer>());
+                scene.tileLayers.back()->create(map, i, scene.textures);
             }
         }
     }
@@ -33,10 +38,10 @@ void Scene::load(SDL_Renderer* renderer)
     }
 }
 
-void Scene::draw(SDL_Renderer* renderer, SDL_FPoint camOffset)
+void drawScene(const Scene& scene, SDL_Renderer* renderer, SDL_FPoint camOffset)
 {
-    assert(isValid());
-    for (const auto& l : _tileLayers)
+    assert(isSceneValid(scene));
+    for (const auto& l : scene.tileLayers)
         l->draw(renderer, camOffset);
 }
 } // namespace megaman
