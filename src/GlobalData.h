@@ -15,7 +15,7 @@ public:
     static constexpr float START_WIN_W = 720;
     static constexpr float START_WIN_H = 540;
     static constexpr float START_CAM_X = 0;
-    static constexpr float START_CAM_Y = 1;
+    static constexpr float START_CAM_Y = 0;
     static constexpr float SCALE_FACTOR = 1.f;
 
 public:

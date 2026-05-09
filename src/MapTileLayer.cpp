@@ -1,5 +1,8 @@
 #include "MapTileLayer.h"
 
+#include "GlobalData.h"
+#include "MTransform.h"
+
 #include <tmxlite/TileLayer.hpp>
 
 #include <cassert>
@@ -24,6 +27,14 @@ bool MapTileLayer::create(const tmx::Map& map,
                                    tint.b / 255.f,
                                    tint.a / 255.f};
 
+    // Map pixel space is Y-down, with (0,0) at the top-left of the map.
+    // Convert to world units (meters, Y-up) so verts share a coord system with
+    // MTransform. Map's bottom-left ends up at world (0,0); its top-left at
+    // world (0, mapH_m).
+    constexpr float invPTM = 1.f / megaman::GlobalData::PTM;
+    const float mapHM =
+        static_cast<float>(mapSize.y * mapTileSize.y) * invPTM;
+
     for (auto i = 0u; i < tileSets.size(); ++i)
     {
         const auto& ts = tileSets[i];
@@ -39,6 +50,9 @@ bool MapTileLayer::create(const tmx::Map& map,
             static_cast<float>(mapTileSize.x) / static_cast<float>(texSize.x);
         const float vNorm =
             static_cast<float>(mapTileSize.y) / static_cast<float>(texSize.y);
+
+        const float tileWM = static_cast<float>(mapTileSize.x) * invPTM;
+        const float tileHM = static_cast<float>(mapTileSize.y) * invPTM;
 
         std::vector<SDL_Vertex> verts;
         for (auto y = 0u; y < mapSize.y; ++y)
@@ -67,34 +81,31 @@ bool MapTileLayer::create(const tmx::Map& map,
                     static_cast<float>(mapTileSize.y) /
                     static_cast<float>(texSize.y);
 
-                // pixel coordinates
-                const float px =
-                    static_cast<float>(x) * static_cast<float>(mapTileSize.x);
-                const float py =
-                    static_cast<float>(y) * static_cast<float>(mapTileSize.y);
-                // tile dims
-                const float tw = static_cast<float>(mapTileSize.x);
-                const float th = static_cast<float>(mapTileSize.y);
+                // World-unit corner positions (Y-up).
+                const float wxL = static_cast<float>(x) * tileWM;
+                const float wxR = wxL + tileWM;
+                const float wyT = mapHM - static_cast<float>(y) * tileHM;
+                const float wyB = wyT - tileHM;
 
-                _minX = std::min(_minX, px);
-                _minY = std::min(_minY, py);
+                _minX = std::min(_minX, wxL);
+                _minY = std::min(_minY, wyB);
 
                 // calculate tile vertex
                 // Triangle1:
-                // TL
-                verts.push_back({{px, py}, vertColour, {u, v}});
+                // TL (UV top -> world top)
+                verts.push_back({{wxL, wyT}, vertColour, {u, v}});
                 // TR
-                verts.push_back({{px + tw, py}, vertColour, {u + uNorm, v}});
+                verts.push_back({{wxR, wyT}, vertColour, {u + uNorm, v}});
                 // BL
-                verts.push_back({{px, py + th}, vertColour, {u, v + vNorm}});
+                verts.push_back({{wxL, wyB}, vertColour, {u, v + vNorm}});
                 // Triangle2:
                 // BL
-                verts.push_back({{px, py + th}, vertColour, {u, v + vNorm}});
+                verts.push_back({{wxL, wyB}, vertColour, {u, v + vNorm}});
                 // TR
-                verts.push_back({{px + tw, py}, vertColour, {u + uNorm, v}});
+                verts.push_back({{wxR, wyT}, vertColour, {u + uNorm, v}});
                 // BR
                 verts.push_back(
-                    {{px + tw, py + th}, vertColour, {u + uNorm, v + vNorm}});
+                    {{wxR, wyB}, vertColour, {u + uNorm, v + vNorm}});
             }
         }
 
@@ -106,33 +117,35 @@ bool MapTileLayer::create(const tmx::Map& map,
         }
     }
 
-    _maxX = _minX + static_cast<float>(map.getTileCount().x * mapTileSize.x);
-    _maxY = _minY + static_cast<float>(map.getTileCount().y * mapTileSize.y);
+    _maxX = _minX +
+            static_cast<float>(map.getTileCount().x * mapTileSize.x) * invPTM;
+    _maxY = _minY +
+            static_cast<float>(map.getTileCount().y * mapTileSize.y) * invPTM;
 
     return !(_subsets.empty());
 }
 
-void MapTileLayer::draw(SDL_Renderer* renderer, SDL_FPoint cameraOffset) const
+void MapTileLayer::draw(SDL_Renderer*              renderer,
+                        const megaman::CameraData& cam) const
 {
     assert(renderer);
 
     for (const auto& s : _subsets)
     {
-        std::vector<SDL_Vertex> offsetVerts{};
-        offsetVerts.reserve(s.vertexData.size());
+        std::vector<SDL_Vertex> screenVerts{};
+        screenVerts.reserve(s.vertexData.size());
         for (auto& v : s.vertexData)
         {
             auto vnew = v;
-            vnew.position = {vnew.position.x - cameraOffset.x,
-                             vnew.position.y - cameraOffset.y};
-            offsetVerts.push_back(vnew);
+            vnew.position = megaman::worldToScreen(v.position, cam);
+            screenVerts.push_back(vnew);
         };
 
         // draw all verts using that texture
         SDL_RenderGeometry(renderer,
                            s.texture,
-                           offsetVerts.data(),
-                           static_cast<int>(offsetVerts.size()),
+                           screenVerts.data(),
+                           static_cast<int>(screenVerts.size()),
                            nullptr,
                            0);
     }

@@ -1,4 +1,5 @@
 #pragma once
+#include "CameraData.h"
 #include "MapTileLayer.h"
 #include "Texture.h"
 #include <SDL3/SDL.h>
@@ -19,7 +20,7 @@ public:
     }
 
     void load(SDL_Renderer* renderer);
-    void draw(SDL_Renderer* renderer, SDL_FPoint camOffset) const;
+    void draw(SDL_Renderer* renderer, const CameraData& cam) const;
 
 private:
     std::string                                _filePath;

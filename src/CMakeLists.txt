@@ -12,7 +12,6 @@ target_sources(
         Texture.h
         Texture.cpp
         CameraData.h
-        CameraData.cpp
         megaman.cpp
         megaman.h
         megamanGame.cpp

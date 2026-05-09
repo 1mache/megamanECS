@@ -1,5 +1,6 @@
 #include "megaman.h"
 #include "GlobalData.h"
+#include "MTransform.h"
 #include <cmath>
 #include <iostream>
 
@@ -222,7 +223,10 @@ static void drawCameraDebug(SDL_Renderer* ren)
     constexpr float r = 5.f;
     constexpr int   N = 32;
     SDL_FPoint      pts[N + 1];
-    auto            camScreenPos = camPosToScreenPos(GlobalData::getCamData());
+    const auto&     cam = GlobalData::getCamData();
+    // Marker at camera world position, drawn with no camera offset.
+    auto camScreenPos =
+        worldToScreen({cam.posX, cam.posY}, CameraData{0.f, 0.f});
 
     for (int i = 0; i <= N; ++i)
     {

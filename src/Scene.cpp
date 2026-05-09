@@ -37,10 +37,10 @@ void Scene::load(SDL_Renderer* renderer)
     }
 }
 
-void Scene::draw(SDL_Renderer* renderer, SDL_FPoint camOffset) const
+void Scene::draw(SDL_Renderer* renderer, const CameraData& cam) const
 {
     assert(isValid());
     for (const auto& l : _tileLayers)
-        l->draw(renderer, camOffset);
+        l->draw(renderer, cam);
 }
 } // namespace megaman

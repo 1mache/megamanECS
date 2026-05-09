@@ -76,7 +76,7 @@ int main(int, char**)
                 inputRight = false;
         }
 
-        auto camData = gd::getCamTransform();
+        const auto& camData = gd::getCamData();
         if (inputRight)
         {
             gd::updateCamPosition(camData.posX + (camVelX * gd::FRAME_DELTA_MS),
@@ -88,9 +88,8 @@ int main(int, char**)
                                   camData.posY);
         }
 
-        auto camOffset = SDL_FPoint{camData.posX, camData.posY};
         SDL_RenderClear(renderer);
-        scene.draw(renderer, camOffset);
+        scene.draw(renderer, gd::getCamData());
         SDL_RenderPresent(renderer);
     }
 

@@ -37,7 +37,7 @@ MegamanGame::MegamanGame()
 
     _scene.load(_ren);
 
-    createPlayer(1, 1, MegamanGame::HP);
+    createPlayer(5, 7, MegamanGame::HP);
 }
 
 MegamanGame::~MegamanGame()
@@ -88,9 +88,8 @@ void MegamanGame::run()
         boxSystem();
 
         SDL_RenderClear(_ren);
-        SDL_FPoint camOffset = camPosToScreenPos(GlobalData::getCamData());
         if (_scene.isValid())
-            _scene.draw(_ren, camOffset);
+            _scene.draw(_ren, GlobalData::getCamData());
 
         drawSystem();
         SDL_RenderPresent(_ren);

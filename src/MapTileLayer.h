@@ -1,5 +1,6 @@
 #pragma once
 
+#include "CameraData.h"
 #include "Texture.h"
 
 #include <SDL3/SDL.h>
@@ -17,7 +18,7 @@ public:
                 std::uint32_t                                layerIndex,
                 const std::vector<std::unique_ptr<Texture>>& textures);
 
-    void draw(SDL_Renderer* renderer, SDL_FPoint camOffset) const;
+    void draw(SDL_Renderer* renderer, const megaman::CameraData& cam) const;
 
     std::string getClassName() const
     {
