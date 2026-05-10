@@ -30,6 +30,19 @@ void Scene::load(SDL_Renderer* renderer)
             {
                 _tileLayers.emplace_back(std::make_unique<MapTileLayer>());
                 _tileLayers.back()->create(map, i, _textures);
+
+                // TODO: physics here
+                if (_tileLayers.back()->getClassName() == SOLID_CLASS)
+                    std::cout << "Loaded tile layer marked solid. Id: " << i
+                              << "\n";
+            }
+            else if (mapLayers[i]->getType() == tmx::Layer::Type::Object)
+            {
+                std::cout << "Loaded object layer. Id: " << i << "\n";
+            }
+            else if (mapLayers[i]->getType() == tmx::Layer::Type::Image)
+            {
+                std::cout << "Loaded image layer. Id: " << i << "\n";
             }
         }
         _loaded = true;

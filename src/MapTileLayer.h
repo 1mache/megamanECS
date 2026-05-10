@@ -2,17 +2,13 @@
 
 #include "CameraData.h"
 #include "Texture.h"
+#include "WorldBoundsM.h"
 
 #include <SDL3/SDL.h>
 #include <tmxlite/Map.hpp>
 
 #include <memory>
 #include <vector>
-
-struct WorldBoundsM
-{
-    float minX{}, maxX{}, minY{}, maxY{};
-};
 
 class MapTileLayer final
 {

@@ -12,6 +12,9 @@ namespace megaman
 class Scene
 {
 public:
+    constexpr static const char* SOLID_CLASS = "solid";
+
+public:
     explicit Scene(std::string filePath) : _filePath(std::move(filePath)) {};
 
     bool isValid() const
