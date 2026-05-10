@@ -117,6 +117,8 @@ struct Movement
     float velY{};
     float accX{}; // acceleration
     float accY{};
+    // Box2D body. If non-null, body owns position (Movement integration skipped).
+    b2BodyId bodyId{};
 };
 
 struct Collision
@@ -235,7 +237,7 @@ public:
 
 // ============= ENTITIES   =============
 
-ent_type createPlayer(float x, float y, int hp);
+ent_type createPlayer(b2WorldId world, float x, float y, int hp);
 
 ent_type createEnemy(float x, float y, int hp);
 

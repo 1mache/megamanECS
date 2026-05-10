@@ -28,13 +28,13 @@ MegamanGame::MegamanGame()
     }
 
     b2WorldDef worldDef = b2DefaultWorldDef();
-    worldDef.gravity = {0, 20.f};
+    worldDef.gravity = {0, -GlobalData::GRAVITY};
     _box = b2CreateWorld(&worldDef);
 
     _scene.load(_ren);
 
     // TODO: take position from _scene
-    createPlayer(5, 7, MegamanGame::HP);
+    createPlayer(_box, 5, 7, MegamanGame::HP);
 }
 
 MegamanGame::~MegamanGame()

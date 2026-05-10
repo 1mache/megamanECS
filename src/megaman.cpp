@@ -19,19 +19,31 @@ constexpr int   ANIM_SPEED = 8; // frames between animation ticks
 
 namespace megaman
 {
-ent_type createPlayer(float x, float y, int hp)
+ent_type createPlayer(b2WorldId world, float x, float y, int hp)
 {
+    constexpr float halfW = SPRITE_W / (2 * GlobalData::PTM);
+    constexpr float halfH = SPRITE_H / (2 * GlobalData::PTM);
+
+    // Box2D dynamic body: gravity pulls it. Fixed rotation so sprite stays upright.
+    b2BodyDef bodyDef = b2DefaultBodyDef();
+    bodyDef.type = b2_dynamicBody;
+    bodyDef.position = {x, y};
+    bodyDef.motionLocks.angularZ = true;
+    b2BodyId body = b2CreateBody(world, &bodyDef);
+
+    b2ShapeDef shapeDef = b2DefaultShapeDef();
+    shapeDef.density = 1.f;
+    b2Polygon boxShape = b2MakeBox(halfW, halfH);
+    b2CreatePolygonShape(body, &shapeDef, &boxShape);
+
     ent_type ent = bagel::World::createEntity();
 
     bagel::World::addComponent<Animation>(ent, {});
     bagel::World::addComponent<Drawable>(ent, {.texture = nullptr});
     bagel::World::addComponent<MTransform>(
         ent,
-        {.x = x,
-         .y = y,
-         .w = SPRITE_W / (2 * GlobalData::PTM),
-         .h = SPRITE_H / (2 * GlobalData::PTM)});
-    bagel::World::addComponent<Movement>(ent, {.mass = 1});
+        {.x = x, .y = y, .w = halfW, .h = halfH});
+    bagel::World::addComponent<Movement>(ent, {.mass = 1.f, .bodyId = body});
     bagel::World::addComponent<Collision>(ent, {});
     bagel::World::addComponent<Health>(ent, {.points = hp});
     bagel::World::addComponent<Input>(ent, {});
@@ -163,7 +175,7 @@ void InputSystem::run()
             if (keys[SDL_SCANCODE_RIGHT])
                 m.velX = 3.f;
             if (keys[SDL_SCANCODE_UP])
-                m.velY = -5.f;
+                m.velY = 0.2f;
         }
     }
 }
@@ -177,12 +189,14 @@ void MovementSystem::run()
     {
         if (e.test(mask))
         {
-            auto&       t = e.get<MTransform>();
             const auto& m = e.get<Movement>();
+            // Body-owned entities: position handled by CollisionSystem sync.
+            if (B2_IS_NON_NULL(m.bodyId))
+                continue;
+
+            auto& t = e.get<MTransform>();
             t.x += m.velX;
             t.y += m.velY;
-
-            GlobalData::updateCamPosition(t.x, t.y);
         }
     }
 }
@@ -261,8 +275,31 @@ void DrawingSystem::run(SDL_Renderer* ren, SDL_Texture* tex)
     }
 }
 
-void CollisionSystem::run(b2WorldId)
+void CollisionSystem::run(b2WorldId world)
 {
+    constexpr float dt = 1.f / static_cast<float>(GlobalData::FPS);
+    constexpr int   subSteps = 4;
+    b2World_Step(world, dt, subSteps);
+
+    static const bagel::Mask mask =
+        bagel::MaskBuilder().set<MTransform>().set<Movement>().build();
+
+    for (bagel::Entity e = bagel::Entity::first(); !e.eof(); e.next())
+    {
+        if (e.test(mask))
+        {
+            const auto& m = e.get<Movement>();
+            if (B2_IS_NULL(m.bodyId))
+                continue;
+
+            auto&        t = e.get<MTransform>();
+            const b2Vec2 pos = b2Body_GetPosition(m.bodyId);
+            t.x = pos.x;
+            t.y = pos.y;
+
+            GlobalData::updateCamPosition(t.x, t.y);
+        }
+    }
 }
 void HealthSystem::run()
 {
