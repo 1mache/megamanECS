@@ -42,6 +42,10 @@ bool MapImageLayer::create(const tmx::Map& map,
 
     const auto p = layer.getParallaxFactor();
     _parallax = {p.x, p.y};
+    _parallaxRef = {map.getParallaxOrigin().x, map.getParallaxOrigin().y};
+    // translate to world space
+    _parallaxRef.x *= invPTM;
+    _parallaxRef.y = _mapHM - (_parallaxRef.y * invPTM);
 
     const auto tint = layer.getTintColour();
     _tint = {tint.r / 255.f, tint.g / 255.f, tint.b / 255.f, tint.a / 255.f};
@@ -57,25 +61,49 @@ void MapImageLayer::draw(SDL_Renderer* renderer, const CameraData& cam) const
 
     // Parallax reference: camera position where viewport top-left aligns with map top-left
     // (matches Tiled's parallax model — offsets are relative to this origin, not world (0,0)).
-    const float      ptmS = GlobalData::PTM * GlobalData::SCALE_FACTOR;
-    const float      refCamX = GlobalData::getWinW() * 0.5f / ptmS;
-    const float      refCamY = _mapHM - GlobalData::getWinH() * 0.5f / ptmS;
-    const CameraData parallaxCam{refCamX + (cam.posX - refCamX) * _parallax.x,
-                                 refCamY + (cam.posY - refCamY) * _parallax.y};
+    const CameraData parallaxCam{
+        _parallaxRef.x + (cam.posX - _parallaxRef.x) * _parallax.x,
+        _parallaxRef.y + (cam.posY - _parallaxRef.y) * _parallax.y};
 
     const float ptmScaled = GlobalData::PTM * GlobalData::SCALE_FACTOR;
     const float wPx = _transform.w * ptmScaled;
     const float hPx = _transform.h * ptmScaled;
 
-    const float endX = _repeatX ? _mapWM : _transform.x + _transform.w;
-    const float endY = _repeatY ? _mapHM : _transform.y + _transform.h;
+    // in world size
+    const float halfW = GlobalData::getWinW() / 2.f / ptmScaled;
+    const float halfH = GlobalData::getWinH() / 2.f / ptmScaled;
+
+    // Calculate image bounds
+    float startX = _transform.x;
+    float endX = _transform.x + _transform.w;
+    float startY = _transform.y;
+    float endY = _transform.y + _transform.h;
+
+    if (_repeatX)
+    {
+        // Find first tile position to left of parallax viewport
+        startX =
+            floor((parallaxCam.posX - halfW - _transform.x) / _transform.w) *
+                _transform.w +
+            _transform.x;
+        endX = parallaxCam.posX + halfW + _transform.w;
+    }
+
+    if (_repeatY)
+    {
+        startY =
+            floor((parallaxCam.posY - halfH - _transform.y) / _transform.h) *
+                _transform.h +
+            _transform.y;
+        endY = parallaxCam.posY + halfH + _transform.h;
+    }
 
     SDL_SetTextureColorModFloat(_texture, _tint.r, _tint.g, _tint.b);
     SDL_SetTextureAlphaModFloat(_texture, _tint.a);
 
-    for (float ty = _transform.y; ty < endY; ty += _transform.h)
+    for (float ty = startY; ty < endY; ty += _transform.h)
     {
-        for (float tx = _transform.x; tx < endX; tx += _transform.w)
+        for (float tx = startX; tx < endX; tx += _transform.w)
         {
             // top-left world: (tx, ty + h) because Y-up, SDL draws from top-left
             const auto screenTL =

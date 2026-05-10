@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <map version="1.10" tiledversion="1.12.1" orientation="orthogonal" renderorder="right-down" width="200" height="20" tilewidth="16" tileheight="16" infinite="0" nextlayerid="6" nextobjectid="18">
  <tileset firstgid="1" source="mega-tileset.tsx"/>
- <imagelayer id="4" name="bg" offsetx="0" offsety="50" parallaxx="0.7" parallaxy="0.3" repeatx="1">
+ <imagelayer id="4" name="bg" parallaxx="0.7" parallaxy="0.3" repeatx="1">
   <image source="bg.png" width="64" height="112"/>
  </imagelayer>
  <layer id="1" name="Ground layer" class="solid" width="200" height="20">
