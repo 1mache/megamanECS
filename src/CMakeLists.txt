@@ -7,6 +7,8 @@ target_sources(
         MTransform.cpp
         Scene.h
         Scene.cpp
+        MapImageLayer.h
+        MapImageLayer.cpp
         MapTileLayer.h
         MapTileLayer.cpp
         Texture.h

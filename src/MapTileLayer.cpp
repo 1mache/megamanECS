@@ -40,6 +40,9 @@ bool MapTileLayer::create(const tmx::Map& map,
         const auto& ts = tileSets[i];
         const auto& tileIDs = layer.getTiles();
 
+        if (textures.size() <= i || textures[i] == nullptr)
+            return false;
+
         const auto texSize = textures[i]->getSize();
         const int  tileCountX = texSize.x / static_cast<int>(mapTileSize.x);
 

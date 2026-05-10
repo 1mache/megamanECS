@@ -2,6 +2,7 @@
 
 #include "GlobalData.h"
 
+#include <tmxlite/ImageLayer.hpp>
 #include <tmxlite/Map.hpp>
 
 #include <algorithm>
@@ -28,13 +29,7 @@ void Scene::load(SDL_Renderer* renderer)
         {
             if (mapLayers[i]->getType() == tmx::Layer::Type::Tile)
             {
-                _tileLayers.emplace_back(std::make_unique<MapTileLayer>());
-                _tileLayers.back()->create(map, i, _textures);
-
-                // TODO: physics here
-                if (_tileLayers.back()->getClassName() == SOLID_CLASS)
-                    std::cout << "Loaded tile layer marked solid. Id: " << i
-                              << "\n";
+                processTileLayer(mapLayers[i], i, map);
             }
             else if (mapLayers[i]->getType() == tmx::Layer::Type::Object)
             {
@@ -42,7 +37,7 @@ void Scene::load(SDL_Renderer* renderer)
             }
             else if (mapLayers[i]->getType() == tmx::Layer::Type::Image)
             {
-                std::cout << "Loaded image layer. Id: " << i << "\n";
+                processImageLayer(renderer, mapLayers[i], i, map);
             }
         }
         _loaded = true;
@@ -56,6 +51,8 @@ void Scene::load(SDL_Renderer* renderer)
 void Scene::draw(SDL_Renderer* renderer, const CameraData& cam) const
 {
     assert(isValid());
+    for (const auto& l : _imageLayers)
+        l->draw(renderer, cam);
     for (const auto& l : _tileLayers)
         l->draw(renderer, cam);
 }
@@ -105,5 +102,37 @@ void Scene::clampCameraToBounds(CameraData& cam) const
                                : std::clamp(cam.posX, minCx, maxCx);
     cam.posY = (minCy > maxCy) ? (b.minY + b.maxY) * 0.5f
                                : std::clamp(cam.posY, minCy, maxCy);
+}
+
+void Scene::processTileLayer(const tmx::Layer::Ptr& layer,
+                             unsigned int           idx,
+                             const tmx::Map&        map)
+{
+    _tileLayers.emplace_back(std::make_unique<MapTileLayer>());
+    bool created = _tileLayers.back()->create(map, idx, _textures);
+    if (!created)
+        std::cerr << "Failed to create tile layer. Id: " << idx << "\n";
+
+    // TODO: physics here
+    if (_tileLayers.back()->getClassName() == SOLID_CLASS)
+        std::cout << "Loaded tile layer marked solid. Id: " << idx << "\n";
+}
+
+void Scene::processImageLayer(SDL_Renderer*          renderer,
+                              const tmx::Layer::Ptr& layer,
+                              unsigned int           idx,
+                              const tmx::Map&        map)
+{
+    const auto& imgLayer = layer->getLayerAs<tmx::ImageLayer>();
+    _textures.emplace_back(std::make_unique<Texture>());
+    if (!_textures.back()->loadFromFile(imgLayer.getImagePath(), renderer))
+        std::cerr << "Failed to load image layer: " << imgLayer.getImagePath()
+                  << "\n";
+
+    _imageLayers.emplace_back(std::make_unique<MapImageLayer>());
+    bool created =
+        _imageLayers.back()->create(map, idx, _textures.back().get());
+    if (!created)
+        std::cerr << "Failed to create image layer. Id: " << idx << "\n";
 }
 } // namespace megaman

@@ -171,9 +171,9 @@ void InputSystem::run()
             auto& m = e.get<Movement>();
             m.velX = 0.f;
             if (keys[SDL_SCANCODE_LEFT])
-                m.velX = -3.f;
+                m.velX = -1.f;
             if (keys[SDL_SCANCODE_RIGHT])
-                m.velX = 3.f;
+                m.velX = 1.f;
             if (keys[SDL_SCANCODE_UP])
                 m.velY = 0.2f;
         }
@@ -190,9 +190,9 @@ void MovementSystem::run()
         if (e.test(mask))
         {
             const auto& m = e.get<Movement>();
-            // Body-owned entities: position handled by CollisionSystem sync.
-            if (B2_IS_NON_NULL(m.bodyId))
-                continue;
+            // // Body-owned entities: position handled by CollisionSystem sync.
+            // if (B2_IS_NON_NULL(m.bodyId))
+            //     continue;
 
             auto& t = e.get<MTransform>();
             t.x += m.velX;
@@ -288,14 +288,14 @@ void CollisionSystem::run(b2WorldId world)
     {
         if (e.test(mask))
         {
-            const auto& m = e.get<Movement>();
-            if (B2_IS_NULL(m.bodyId))
-                continue;
+            // const auto& m = e.get<Movement>();
+            // if (B2_IS_NULL(m.bodyId))
+            //     continue;
 
-            auto&        t = e.get<MTransform>();
-            const b2Vec2 pos = b2Body_GetPosition(m.bodyId);
-            t.x = pos.x;
-            t.y = pos.y;
+            auto& t = e.get<MTransform>();
+            // const b2Vec2 pos = b2Body_GetPosition(m.bodyId);
+            // t.x = pos.x;
+            // t.y = pos.y;
 
             GlobalData::updateCamPosition(t.x, t.y);
         }

@@ -1,5 +1,6 @@
 #pragma once
 #include "CameraData.h"
+#include "MapImageLayer.h"
 #include "MapTileLayer.h"
 #include "Texture.h"
 #include <SDL3/SDL.h>
@@ -31,9 +32,19 @@ public:
     void clampCameraToBounds(CameraData& cam) const;
 
 private:
-    std::string                                _filePath;
-    bool                                       _loaded{};
-    std::vector<std::unique_ptr<Texture>>      _textures;
-    std::vector<std::unique_ptr<MapTileLayer>> _tileLayers;
+    void processTileLayer(const tmx::Layer::Ptr& layer,
+                          unsigned int           idx,
+                          const tmx::Map&        map);
+    void processImageLayer(SDL_Renderer*          renderer,
+                           const tmx::Layer::Ptr& layer,
+                           unsigned int           idx,
+                           const tmx::Map&        map);
+
+
+    std::string                                 _filePath;
+    bool                                        _loaded{};
+    std::vector<std::unique_ptr<Texture>>       _textures;
+    std::vector<std::unique_ptr<MapImageLayer>> _imageLayers;
+    std::vector<std::unique_ptr<MapTileLayer>>  _tileLayers;
 };
 } // namespace megaman
