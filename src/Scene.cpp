@@ -52,16 +52,17 @@ WorldBoundsM Scene::getBoundsM() const
     if (_tileLayers.empty())
         return {};
 
-    auto b = _tileLayers.front()->getBoundsM();
+    auto bounds = _tileLayers.front()->getBoundsM();
+    // find min/max across all layers
     for (std::size_t i = 1; i < _tileLayers.size(); ++i)
     {
         const auto bi = _tileLayers[i]->getBoundsM();
-        b.minX = std::min(b.minX, bi.minX);
-        b.maxX = std::max(b.maxX, bi.maxX);
-        b.minY = std::min(b.minY, bi.minY);
-        b.maxY = std::max(b.maxY, bi.maxY);
+        bounds.minX = std::min(bounds.minX, bi.minX);
+        bounds.maxX = std::max(bounds.maxX, bi.maxX);
+        bounds.minY = std::min(bounds.minY, bi.minY);
+        bounds.maxY = std::max(bounds.maxY, bi.maxY);
     }
-    return b;
+    return bounds;
 }
 
 void Scene::clampCameraToBounds(CameraData& cam) const
@@ -70,17 +71,23 @@ void Scene::clampCameraToBounds(CameraData& cam) const
         return;
 
     const auto  b = getBoundsM();
-    const float invPTMS =
+    const float invPTMScaled =
         1.f / (GlobalData::PTM * GlobalData::SCALE_FACTOR);
-    const float halfW = GlobalData::getWinW() * 0.5f * invPTMS;
-    const float halfH = GlobalData::getWinH() * 0.5f * invPTMS;
+    const float halfW = GlobalData::getWinW() * 0.5f * invPTMScaled;
+    const float halfH = GlobalData::getWinH() * 0.5f * invPTMScaled;
 
-    const float minCx = b.minX + halfW;
-    const float maxCx = b.maxX - halfW;
-    const float minCy = b.minY + halfH;
+    // calculate min and max cam center positions
+    const float minCx =
+        b.minX + halfW; // leftmost center where left edge touches b.minX
+    const float maxCx =
+        b.maxX - halfW; // rightmost center where right edge touches b.maxX
+    const float minCy = b.minY + halfH; // similarly for Y
     const float maxCy = b.maxY - halfH;
 
     // View bigger than map on an axis -> lock to map center on that axis.
+    // otherwise clamp
+    // maxCx - minCx = (b.maxX - halfW) - (b.minX + halfW)
+    //               = mapWidth - viewWidth
     cam.posX = (minCx > maxCx) ? (b.minX + b.maxX) * 0.5f
                                : std::clamp(cam.posX, minCx, maxCx);
     cam.posY = (minCy > maxCy) ? (b.minY + b.maxY) * 0.5f
