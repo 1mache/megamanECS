@@ -6,7 +6,8 @@
 #include <tmxlite/TileLayer.hpp>
 
 #include <cassert>
-
+namespace megaman
+{
 bool MapTileLayer::create(const tmx::Map& map,
                           std::uint32_t   layerIndex,
                           const std::vector<std::unique_ptr<Texture>>& textures)
@@ -32,8 +33,7 @@ bool MapTileLayer::create(const tmx::Map& map,
     // MTransform. Map's bottom-left ends up at world (0,0); its top-left at
     // world (0, mapH_m).
     constexpr float invPTM = 1.f / megaman::GlobalData::PTM;
-    const float mapHM =
-        static_cast<float>(mapSize.y * mapTileSize.y) * invPTM;
+    const float mapHM = static_cast<float>(mapSize.y * mapTileSize.y) * invPTM;
 
     for (auto i = 0u; i < tileSets.size(); ++i)
     {
@@ -125,8 +125,7 @@ bool MapTileLayer::create(const tmx::Map& map,
     return !(_subsets.empty());
 }
 
-void MapTileLayer::draw(SDL_Renderer*              renderer,
-                        const megaman::CameraData& cam) const
+void MapTileLayer::draw(SDL_Renderer* renderer, const CameraData& cam) const
 {
     assert(renderer);
 
@@ -150,3 +149,4 @@ void MapTileLayer::draw(SDL_Renderer*              renderer,
                            0);
     }
 }
+} // namespace megaman

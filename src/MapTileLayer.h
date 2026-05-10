@@ -10,6 +10,8 @@
 #include <memory>
 #include <vector>
 
+namespace megaman
+{
 class MapTileLayer final
 {
 public:
@@ -19,7 +21,7 @@ public:
                 std::uint32_t                                layerIndex,
                 const std::vector<std::unique_ptr<Texture>>& textures);
 
-    void draw(SDL_Renderer* renderer, const megaman::CameraData& cam) const;
+    void draw(SDL_Renderer* renderer, const CameraData& cam) const;
 
     std::string getClassName() const
     {
@@ -47,3 +49,4 @@ private:
     float _minY{};
     float _maxY{};
 };
+} // namespace megaman
