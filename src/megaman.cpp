@@ -28,7 +28,7 @@ ent_type createPlayer(b2WorldId world, float x, float y, int hp)
     b2BodyDef bodyDef = b2DefaultBodyDef();
     bodyDef.type = b2_dynamicBody;
     bodyDef.position = {x, y};
-    bodyDef.motionLocks.angularZ = true;
+    bodyDef.fixedRotation = true;
     b2BodyId body = b2CreateBody(world, &bodyDef);
 
     b2ShapeDef shapeDef = b2DefaultShapeDef();
