@@ -22,6 +22,11 @@ public:
     void load(SDL_Renderer* renderer);
     void draw(SDL_Renderer* renderer, const CameraData& cam) const;
 
+    WorldBoundsM getBoundsM() const;
+    // Clamps cam so view never shows outside map. If view bigger than map on
+    // an axis, locks cam to map center on that axis.
+    void clampCameraToBounds(CameraData& cam) const;
+
 private:
     std::string                                _filePath;
     bool                                       _loaded{};

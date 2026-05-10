@@ -33,6 +33,7 @@ MegamanGame::MegamanGame()
 
     _scene.load(_ren);
 
+    // TODO: take position from _scene
     createPlayer(5, 7, MegamanGame::HP);
 }
 
@@ -82,6 +83,13 @@ void MegamanGame::run()
         animationSystem();
         moveSystem();
         boxSystem();
+
+        if (_scene.isValid())
+        {
+            CameraData cam = GlobalData::getCamData();
+            _scene.clampCameraToBounds(cam);
+            GlobalData::updateCamPosition(cam.posX, cam.posY);
+        }
 
         SDL_RenderClear(_ren);
         if (_scene.isValid())

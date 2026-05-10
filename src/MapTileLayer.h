@@ -9,6 +9,11 @@
 #include <memory>
 #include <vector>
 
+struct WorldBoundsM
+{
+    float minX{}, maxX{}, minY{}, maxY{};
+};
+
 class MapTileLayer final
 {
 public:
@@ -23,6 +28,11 @@ public:
     std::string getClassName() const
     {
         return _className;
+    }
+
+    WorldBoundsM getBoundsM() const
+    {
+        return {_minX, _maxX, _minY, _maxY};
     }
 
 private:
