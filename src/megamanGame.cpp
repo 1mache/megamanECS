@@ -107,7 +107,7 @@ MegamanGame::MegamanGame()
         d.jumpCount = PLAYER_JUMP_COUNT;
     }
 
-    ent_type patrolingEnemy = createPatroller(3.f, 4.5f, MegamanGame::HP, 1.f, 5.f, 6.f, 0.05f);
+    ent_type patrolingEnemy = createPatroller(_box, 3.f, 4.5f, MegamanGame::HP, 1.f, 5.f, 6.f, 0.05f);
     {
         auto &d = bagel::World::getComponent<Drawable>(patrolingEnemy);
         d.texture  = _enemyTex;
@@ -123,7 +123,7 @@ MegamanGame::MegamanGame()
         d.defaultFacingLeft = false;
     }
 
-    ent_type lockster = createLockster(8.f, 4.5f, MegamanGame::HP, 5.f, 0.12f);
+    ent_type lockster = createLockster(_box, 8.f, 4.5f, MegamanGame::HP, 5.f, 0.12f);
     {
         auto &d = bagel::World::getComponent<Drawable>(lockster);
         d.texture  = _locksterTex;

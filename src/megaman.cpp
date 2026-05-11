@@ -26,18 +26,21 @@ ent_type createPlayer(b2WorldId world, float x, float y, int hp)
     constexpr float halfW = SPRITE_W / (2 * GlobalData::PTM);
     constexpr float halfH = SPRITE_H / (2 * GlobalData::PTM);
 
+    ent_type ent = bagel::World::createEntity();
+
     b2BodyDef bodyDef = b2DefaultBodyDef();
     bodyDef.type = b2_dynamicBody;
     bodyDef.position = {x, y};
     bodyDef.fixedRotation = true;
+    bodyDef.gravityScale = 0.f;
+    bodyDef.userData = reinterpret_cast<void*>(static_cast<uintptr_t>(ent.id));
     b2BodyId body = b2CreateBody(world, &bodyDef);
 
     b2ShapeDef shapeDef = b2DefaultShapeDef();
     shapeDef.density = 1.f;
+    shapeDef.enableContactEvents = true;
     b2Polygon boxShape = b2MakeBox(halfW, halfH);
     b2CreatePolygonShape(body, &shapeDef, &boxShape);
-
-    ent_type ent = bagel::World::createEntity();
 
     bagel::World::addComponent<Animation>(ent, {});
     bagel::World::addComponent<Drawable>(ent, {.texture = nullptr});
@@ -51,13 +54,30 @@ ent_type createPlayer(b2WorldId world, float x, float y, int hp)
     return ent;
 }
 
-ent_type createPatroller(float x, float y, float hp, float patrolMinX, float patrolMaxX, float detectionRange, float speed)
+ent_type createPatroller(b2WorldId world, float x, float y, float hp, float patrolMinX, float patrolMaxX, float detectionRange, float speed)
 {
+    constexpr float halfW = 0.733f / 2.f;
+    constexpr float halfH = 0.8f / 2.f;
+
     ent_type ent = bagel::World::createEntity();
 
+    b2BodyDef bodyDef = b2DefaultBodyDef();
+    bodyDef.type = b2_dynamicBody;
+    bodyDef.position = {x, y};
+    bodyDef.fixedRotation = true;
+    bodyDef.gravityScale = 0.f;
+    bodyDef.userData = reinterpret_cast<void*>(static_cast<uintptr_t>(ent.id));
+    b2BodyId body = b2CreateBody(world, &bodyDef);
+
+    b2ShapeDef shapeDef = b2DefaultShapeDef();
+    shapeDef.density = 1.f;
+    shapeDef.enableContactEvents = true;
+    b2Polygon boxShape = b2MakeBox(halfW, halfH);
+    b2CreatePolygonShape(body, &shapeDef, &boxShape);
+
     bagel::World::addComponent<Drawable>(ent, {.texture = nullptr});
-    bagel::World::addComponent<MTransform>(ent, {.x = x, .y = y, .w = 0.733f, .h = 0.8f});
-    bagel::World::addComponent<Movement>(ent, {.mass = 1, .velX = speed});
+    bagel::World::addComponent<MTransform>(ent, {.x = x, .y = y, .w = halfW, .h = halfH});
+    bagel::World::addComponent<Movement>(ent, {.mass = 1, .velX = speed, .bodyId = body});
     bagel::World::addComponent<Collision>(ent, {});
     bagel::World::addComponent<Health>(ent, {.points = hp});
     bagel::World::addComponent<Enemy>(ent, {});
@@ -71,13 +91,30 @@ ent_type createPatroller(float x, float y, float hp, float patrolMinX, float pat
     return ent;
 }
 
-ent_type createLockster(float x, float y, float hp, float detectionRange, float chargeSpeed)
+ent_type createLockster(b2WorldId world, float x, float y, float hp, float detectionRange, float chargeSpeed)
 {
+    constexpr float halfW = 0.7f / 2.f;
+    constexpr float halfH = 0.7f / 2.f;
+
     ent_type ent = bagel::World::createEntity();
 
+    b2BodyDef bodyDef = b2DefaultBodyDef();
+    bodyDef.type = b2_dynamicBody;
+    bodyDef.position = {x, y};
+    bodyDef.fixedRotation = true;
+    bodyDef.gravityScale = 0.f;
+    bodyDef.userData = reinterpret_cast<void*>(static_cast<uintptr_t>(ent.id));
+    b2BodyId body = b2CreateBody(world, &bodyDef);
+
+    b2ShapeDef shapeDef = b2DefaultShapeDef();
+    shapeDef.density = 1.f;
+    shapeDef.enableContactEvents = true;
+    b2Polygon boxShape = b2MakeBox(halfW, halfH);
+    b2CreatePolygonShape(body, &shapeDef, &boxShape);
+
     bagel::World::addComponent<Drawable>(ent, {.texture = nullptr});
-    bagel::World::addComponent<MTransform>(ent, {.x = x, .y = y, .w = 0.7f, .h = 0.7f});
-    bagel::World::addComponent<Movement>(ent, {.mass = 1});
+    bagel::World::addComponent<MTransform>(ent, {.x = x, .y = y, .w = halfW, .h = halfH});
+    bagel::World::addComponent<Movement>(ent, {.mass = 1, .bodyId = body});
     bagel::World::addComponent<Collision>(ent, {});
     bagel::World::addComponent<Health>(ent, {.points = hp});
     bagel::World::addComponent<Enemy>(ent, {});
@@ -209,6 +246,12 @@ void InputSystem::run()
             if (w.shootCooldown > 0)
                 --w.shootCooldown;
 
+            if (b2Body_IsValid(m.bodyId))
+            {
+                constexpr float fps = static_cast<float>(GlobalData::FPS);
+                b2Body_SetLinearVelocity(m.bodyId, {m.velX * fps, m.velY * fps});
+            }
+
             if (keys[SDL_SCANCODE_SPACE])
             {
                 if (w.shootCooldown <= 0)
@@ -235,8 +278,13 @@ void MovementSystem::run()
         {
             auto &t = e.get<MTransform>();
             const auto &m = e.get<Movement>();
-            t.x += m.velX;
-            t.y += m.velY;
+            if (b2Body_IsValid(m.bodyId))
+                transformUpdateWithB2Pos(t, b2Body_GetPosition(m.bodyId));
+            else
+            {
+                t.x += m.velX;
+                t.y += m.velY;
+            }
         }
     }
 }
@@ -399,7 +447,7 @@ void CollisionSystem::run(b2WorldId world)
             }
         }
         else
-        {
+    {
             for (bagel::Entity en = bagel::Entity::first(); !en.eof(); en.next())
             {
                 if (!en.test(enemyMask))
@@ -421,31 +469,37 @@ void CollisionSystem::run(b2WorldId world)
     for (ent_type e : toDestroy)
         bagel::Entity{e}.destroy();
 
-    if (playerFound)
+    static const bagel::Mask inputMask    = bagel::MaskBuilder().set<Input>().set<Health>().build();
+    static const bagel::Mask enemyTagMask = bagel::MaskBuilder().set<Enemy>().build();
+
+    b2ContactEvents contacts = b2World_GetContactEvents(world);
+    for (int i = 0; i < contacts.beginCount; ++i)
     {
-        bagel::Entity p{playerEnt};
-        auto &ph = p.get<Health>();
-        if (!ph.isInvulnerable)
+        const b2ContactBeginTouchEvent &ev = contacts.beginEvents[i];
+        b2BodyId bodyA = b2Shape_GetBody(ev.shapeIdA);
+        b2BodyId bodyB = b2Shape_GetBody(ev.shapeIdB);
+
+        int idA = static_cast<int>(reinterpret_cast<uintptr_t>(b2Body_GetUserData(bodyA)));
+        int idB = static_cast<int>(reinterpret_cast<uintptr_t>(b2Body_GetUserData(bodyB)));
+
+        bagel::Entity entA{ent_type{idA}};
+        bagel::Entity entB{ent_type{idB}};
+
+        bagel::Entity *pPlayer = nullptr;
+        if (entA.test(inputMask) && entB.test(enemyTagMask))
+            pPlayer = &entA;
+        else if (entB.test(inputMask) && entA.test(enemyTagMask))
+            pPlayer = &entB;
+
+        if (pPlayer)
         {
-            const auto &pt = p.get<MTransform>();
-            static const bagel::Mask bodyEnemyMask = bagel::MaskBuilder()
-                                                         .set<Enemy>()
-                                                         .set<MTransform>()
-                                                         .build();
-            for (bagel::Entity en = bagel::Entity::first(); !en.eof(); en.next())
+            auto &ph = pPlayer->get<Health>();
+            if (!ph.isInvulnerable)
             {
-                if (!en.test(bodyEnemyMask))
-                    continue;
-                const auto &et = en.get<MTransform>();
-                const bool overlapX = std::abs(pt.x - et.x) < (pt.w + et.w) / 2.f;
-                const bool overlapY = std::abs(pt.y - et.y) < (pt.h + et.h) / 2.f;
-                if (overlapX && overlapY)
-                {
-                    ph.points -= 1.f;
-                    ph.isInvulnerable = true;
-                    ph.invulnerableTimer = 90;
-                    break;
-                }
+                ph.points -= 1.f;
+                ph.isInvulnerable = true;
+                ph.invulnerableTimer = 90;
+                std::cout << "player hit by enemy, hp=" << ph.points << "\n";
             }
         }
     }
@@ -499,6 +553,12 @@ namespace
 
         updateFacing(m);
 
+        if (b2Body_IsValid(m.bodyId))
+        {
+            constexpr float fps = static_cast<float>(GlobalData::FPS);
+            b2Body_SetLinearVelocity(m.bodyId, {m.velX * fps, 0.f});
+        }
+
         if (ai.state == AI::CHASE_SHOOT)
         {
             if (ai.shootCooldown > 0)
@@ -551,6 +611,12 @@ namespace
         }
 
         updateFacing(m);
+
+        if (b2Body_IsValid(m.bodyId))
+        {
+            constexpr float fps = static_cast<float>(GlobalData::FPS);
+            b2Body_SetLinearVelocity(m.bodyId, {m.velX * fps, 0.f});
+        }
     }
 } // namespace
 
