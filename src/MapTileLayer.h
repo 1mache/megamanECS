@@ -1,6 +1,8 @@
 #pragma once
 
+#include "CameraData.h"
 #include "Texture.h"
+#include "WorldBoundsM.h"
 
 #include <SDL3/SDL.h>
 #include <tmxlite/Map.hpp>
@@ -8,6 +10,8 @@
 #include <memory>
 #include <vector>
 
+namespace megaman
+{
 class MapTileLayer final
 {
 public:
@@ -17,14 +21,32 @@ public:
                 std::uint32_t                                layerIndex,
                 const std::vector<std::unique_ptr<Texture>>& textures);
 
-    void draw(SDL_Renderer* renderer, SDL_FPoint camOffset) const;
+    void draw(SDL_Renderer* renderer, const CameraData& cam) const;
+
+    std::string getClassName() const
+    {
+        return _className;
+    }
+
+    WorldBoundsM getBoundsM() const
+    {
+        return {_minX, _maxX, _minY, _maxY};
+    }
 
 private:
     // one subset per used tileset
-    struct Subset final
+    struct TileSubset final
     {
         std::vector<SDL_Vertex> vertexData;
         SDL_Texture*            texture = nullptr;
     };
-    std::vector<Subset> _subsets;
+
+    std::vector<TileSubset> _subsets;
+    std::string             _className;
+
+    float _minX{};
+    float _maxX{};
+    float _minY{};
+    float _maxY{};
 };
+} // namespace megaman

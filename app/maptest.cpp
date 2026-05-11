@@ -1,11 +1,8 @@
 #include "GlobalData.h"
 #include "MTransform.h"
-#include "MapTileLayer.h"
-#include "Texture.h"
-
+#include "Scene.h"
 #include <SDL3/SDL.h>
 #include <SDL3/SDL_main.h>
-#include <tmxlite/Map.hpp>
 
 #include <iostream>
 #include <memory>
@@ -29,7 +26,6 @@ int main(int, char**)
         return 1;
     }
 
-
     int         winW = static_cast<int>(gd::START_WIN_W);
     int         winH = static_cast<int>(gd::START_WIN_H);
     SDL_Window* window =
@@ -49,41 +45,12 @@ int main(int, char**)
         SDL_Quit();
         return 1;
     }
-    SDL_SetRenderScale(renderer, scaleFactor, scaleFactor);
     SDL_SetRenderVSync(renderer, 1);
     gd::setWindow(window);
     gd::setRenderer(renderer);
 
-    std::vector<std::unique_ptr<Texture>>      textures;
-    std::vector<std::unique_ptr<MapTileLayer>> renderLayers;
-
-    tmx::Map map;
-    if (map.load("res/map/map.tmx"))
-    {
-        // load all tileset textures
-        for (const auto& ts : map.getTilesets())
-        {
-            textures.emplace_back(std::make_unique<Texture>());
-            if (!textures.back()->loadFromFile(ts.getImagePath(), renderer))
-                std::cerr << "Failed to load tileset: " << ts.getImagePath()
-                          << "\n";
-        }
-
-        // create all map layers
-        const auto& mapLayers = map.getLayers();
-        for (auto i = 0u; i < mapLayers.size(); ++i)
-        {
-            if (mapLayers[i]->getType() == tmx::Layer::Type::Tile)
-            {
-                renderLayers.emplace_back(std::make_unique<MapTileLayer>());
-                renderLayers.back()->create(map, i, textures);
-            }
-        }
-    }
-    else
-    {
-        std::cerr << "Failed to load map\n";
-    }
+    Scene scene{"res/map/map.tmx"};
+    scene.load(renderer);
 
     SDL_SetRenderDrawColor(renderer, 50, 50, 100, 255);
 
@@ -108,7 +75,7 @@ int main(int, char**)
                 inputRight = false;
         }
 
-        auto camData = gd::getCamData();
+        const auto& camData = gd::getCamData();
         if (inputRight)
         {
             gd::updateCamPosition(camData.posX + (camVelX * gd::FRAME_DELTA_MS),
@@ -120,10 +87,8 @@ int main(int, char**)
                                   camData.posY);
         }
 
-        auto camOffset = SDL_FPoint{camData.posX, camData.posY};
         SDL_RenderClear(renderer);
-        for (const auto& l : renderLayers)
-            l->draw(renderer, camOffset);
+        scene.draw(renderer, gd::getCamData());
         SDL_RenderPresent(renderer);
     }
 

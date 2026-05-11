@@ -2,23 +2,22 @@
 #include "CameraData.h"
 #include <SDL3/SDL.h>
 #include <cassert>
-#include <utility>
 
 namespace megaman
 {
     class GlobalData
     {
     public:
-        static constexpr int FPS = 60;
+        static constexpr int   FPS = 60;
         static constexpr float FRAME_DELTA_MS = FPS ? (1000.f / FPS) : 0.f;
-        static constexpr float PTM = 30.f;
+        static constexpr float PTM = 16.f;
         static constexpr float START_WIN_W = 720;
         static constexpr float START_WIN_H = 540;
-        static constexpr float START_CAM_X = 0;
-        static constexpr float START_CAM_Y = 0;
-        static constexpr float SCALE_FACTOR = 1.f;
+        static constexpr float START_CAM_X = (START_WIN_W / (2 * PTM)) - 8.f;
+        static constexpr float START_CAM_Y = (START_WIN_H / (2 * PTM)) - 5.5f;
+        static constexpr float SCALE_FACTOR = 2.f;
+        static constexpr float GRAVITY = 20.f;
 
-    public:
         static void setWindow(SDL_Window *window)
         {
             assert(window != nullptr && "setWindow: trying to pass nullptr");
@@ -50,10 +49,21 @@ namespace megaman
             assert(_window != nullptr && "getWindow: window was not created");
             return _window;
         }
+
         static SDL_Renderer *getRenderer()
         {
-            assert(_renderer != nullptr && "getWindow: renderer was not created");
+            assert(_renderer != nullptr && "getRenderer: renderer was not created");
             return _renderer;
+        }
+
+        static float getWinW()
+        {
+            return START_WIN_W;
+        }
+
+        static float getWinH()
+        {
+            return START_WIN_H;
         }
 
         static float getScaleFactor()
@@ -70,19 +80,16 @@ namespace megaman
         {
             _camData.posX = x;
             _camData.posY = y;
-        };
+        }
 
     private:
         GlobalData() = delete;
         GlobalData(const GlobalData &) = delete;
         void operator=(const GlobalData &) = delete;
 
-        static inline SDL_Window *_window{};
+        static inline SDL_Window   *_window{};
         static inline SDL_Renderer *_renderer{};
-        static inline SDL_Texture *_shotTex{};
-        static inline CameraData _camData{START_CAM_X,
-                                          START_CAM_Y,
-                                          START_WIN_W / SCALE_FACTOR,
-                                          START_WIN_H / SCALE_FACTOR};
+        static inline SDL_Texture  *_shotTex{};
+        static inline CameraData    _camData{START_CAM_X, START_CAM_Y};
     };
 } // namespace megaman

@@ -1,6 +1,5 @@
 #pragma once
 #include "CameraData.h"
-#include "GlobalData.h"
 #include <SDL3/SDL.h>
 #include <box2d/box2d.h>
 
@@ -17,6 +16,9 @@ struct MTransform
     // degrees or radians but can be converted into another type later
     float rot{};
 };
+
+// Y-up world coords -> SDL screen coords (pixels, Y-down).
+SDL_FPoint worldToScreen(SDL_FPoint worldPos, const CameraData& cam);
 
 SDL_FRect transformToFrect(const MTransform& t);
 

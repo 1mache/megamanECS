@@ -32,7 +32,6 @@ set(EXECUTABLE_NAME "main")
 # CMAKE MODULES
 list(APPEND CMAKE_MODULE_PATH "${PROJECT_SOURCE_DIR}/cmake/")
 include(ConfigSafeGuards)
-include(AddGitSubmodule)
 include(Docs)
 
 if(WIN32)
@@ -75,7 +74,7 @@ endif()
 
 # SDL3
 set(SDL_STATIC ON CACHE BOOL "Build SDL as a static library" FORCE)
-set(SDL_SHARED OFF CACHE BOOL "Build SDL as a static library" FORCE)
+set(SDL_SHARED OFF CACHE BOOL "Build SDL as a shared library" FORCE)
 set(SDL_TEST_LIBRARY OFF CACHE BOOL "Build the SDL3_test library" FORCE)
 set(SDL_INSTALL OFF CACHE BOOL "Enable installation of SDL3" FORCE)
 add_subdirectory(dependencies/SDL "${CMAKE_BINARY_DIR}/dependencies/SDL" EXCLUDE_FROM_ALL)
@@ -94,12 +93,24 @@ set(TMXLITE_STATIC_LIB TRUE CACHE BOOL "" FORCE)
 add_subdirectory(dependencies/tmxlite/tmxlite
 "${CMAKE_BINARY_DIR}/dependencies/tmxlite" EXCLUDE_FROM_ALL)
 target_compile_definitions(tmxlite PRIVATE _CRT_SECURE_NO_WARNINGS)
-target_compile_options(tmxlite PRIVATE
-    $<$<CXX_COMPILER_ID:MSVC>:/W0>
-    $<$<NOT:$<CXX_COMPILER_ID:MSVC>>:-w>)
-set_target_properties(tmxlite PROPERTIES
-    INTERFACE_SYSTEM_INCLUDE_DIRECTORIES
-    "${CMAKE_CURRENT_SOURCE_DIR}/dependencies/tmxlite/tmxlite/include")
+
+# Silence libs' OWN build noise (their CMakeLists enable -Wall etc).
+foreach(_dep_target box2d tmxlite)
+    target_compile_options(${_dep_target} PRIVATE
+        $<$<CXX_COMPILER_ID:MSVC>:/W0>
+        $<$<NOT:$<CXX_COMPILER_ID:MSVC>>:-w>)
+endforeach()
+
+# Mark dep headers SYSTEM so user code under -Werror won't error on them.
+foreach(_dep_target box2d tmxlite SDL3-static SDL3_Headers SDL3_image-static)
+    if(TARGET ${_dep_target})
+        get_target_property(_dep_inc ${_dep_target} INTERFACE_INCLUDE_DIRECTORIES)
+        if(_dep_inc)
+            set_target_properties(${_dep_target} PROPERTIES
+                INTERFACE_SYSTEM_INCLUDE_DIRECTORIES "${_dep_inc}")
+        endif()
+    endif()
+endforeach()
 
 # SUBDIRECTORIES
 

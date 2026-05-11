@@ -4,6 +4,8 @@
 
 #include <string>
 
+namespace megaman
+{
 class Texture final
 {
 public:
@@ -30,3 +32,4 @@ private:
     SDL_Texture* _texture;
     SDL_Point    _size;
 };
+} // namespace megaman

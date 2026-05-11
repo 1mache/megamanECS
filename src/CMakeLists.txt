@@ -5,11 +5,16 @@ target_sources(
         GlobalData.h
         MTransform.h
         MTransform.cpp
+        Scene.h
+        Scene.cpp
+        MapImageLayer.h
+        MapImageLayer.cpp
         MapTileLayer.h
         MapTileLayer.cpp
         Texture.h
         Texture.cpp
         CameraData.h
+        WorldBoundsM.h
         megaman.cpp
         megaman.h
         megamanGame.cpp

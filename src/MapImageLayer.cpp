@@ -1,0 +1,119 @@
+#include "MapImageLayer.h"
+
+#include "GlobalData.h"
+#include "MTransform.h"
+
+#include <tmxlite/ImageLayer.hpp>
+
+#include <cassert>
+
+namespace megaman
+{
+bool MapImageLayer::create(const tmx::Map& map,
+                           std::uint32_t   layerIndex,
+                           Texture*        texture)
+{
+    assert(texture);
+    const auto& layers = map.getLayers();
+    assert(layers[layerIndex]->getType() == tmx::Layer::Type::Image);
+
+    const auto& layer = layers[layerIndex]->getLayerAs<tmx::ImageLayer>();
+
+    constexpr float invPTM = 1.f / GlobalData::PTM;
+    const auto      mapSize = map.getTileCount();
+    const auto      mapTileSize = map.getTileSize();
+    _mapWM = static_cast<float>(mapSize.x * mapTileSize.x) * invPTM;
+    _mapHM = static_cast<float>(mapSize.y * mapTileSize.y) * invPTM;
+
+    const auto imageSize = layer.getImageSize();
+    const auto offset = layer.getOffset();
+
+    // _transform stores bottom-left (x,y) and full size (w,h) — not MTransform center semantics.
+    // Map pixel (0,0) is top-left; world (0,0) is map bottom-left.
+    _transform.x = static_cast<float>(offset.x) * invPTM;
+    _transform.y = _mapHM - (static_cast<float>(offset.y) +
+                             static_cast<float>(imageSize.y)) *
+                                invPTM;
+    _transform.w = static_cast<float>(imageSize.x) * invPTM;
+    _transform.h = static_cast<float>(imageSize.y) * invPTM;
+
+    _repeatX = layer.hasRepeatX();
+    _repeatY = layer.hasRepeatY();
+
+    const auto p = layer.getParallaxFactor();
+    _parallax = {p.x, p.y};
+    _parallaxRef = {map.getParallaxOrigin().x, map.getParallaxOrigin().y};
+    // translate to world space
+    _parallaxRef.x *= invPTM;
+    _parallaxRef.y = _mapHM - (_parallaxRef.y * invPTM);
+
+    const auto tint = layer.getTintColour();
+    _tint = {tint.r / 255.f, tint.g / 255.f, tint.b / 255.f, tint.a / 255.f};
+
+    _texture = *texture;
+    return _texture != nullptr;
+}
+
+void MapImageLayer::draw(SDL_Renderer* renderer, const CameraData& cam) const
+{
+    assert(renderer);
+    assert(_texture);
+
+    // Parallax reference: camera position where viewport top-left aligns with map top-left
+    // (matches Tiled's parallax model — offsets are relative to this origin, not world (0,0)).
+    const CameraData parallaxCam{
+        _parallaxRef.x + (cam.posX - _parallaxRef.x) * _parallax.x,
+        _parallaxRef.y + (cam.posY - _parallaxRef.y) * _parallax.y};
+
+    const float ptmScaled = GlobalData::PTM * GlobalData::SCALE_FACTOR;
+    const float wPx = _transform.w * ptmScaled;
+    const float hPx = _transform.h * ptmScaled;
+
+    // in world size
+    const float halfW = GlobalData::getWinW() / 2.f / ptmScaled;
+    const float halfH = GlobalData::getWinH() / 2.f / ptmScaled;
+
+    // Calculate image bounds
+    float startX = _transform.x;
+    float endX = _transform.x + _transform.w;
+    float startY = _transform.y;
+    float endY = _transform.y + _transform.h;
+
+    if (_repeatX)
+    {
+        // Find first tile position to left of parallax viewport
+        startX =
+            floor((parallaxCam.posX - halfW - _transform.x) / _transform.w) *
+                _transform.w +
+            _transform.x;
+        endX = parallaxCam.posX + halfW + _transform.w;
+    }
+
+    if (_repeatY)
+    {
+        startY =
+            floor((parallaxCam.posY - halfH - _transform.y) / _transform.h) *
+                _transform.h +
+            _transform.y;
+        endY = parallaxCam.posY + halfH + _transform.h;
+    }
+
+    SDL_SetTextureColorModFloat(_texture, _tint.r, _tint.g, _tint.b);
+    SDL_SetTextureAlphaModFloat(_texture, _tint.a);
+
+    for (float ty = startY; ty < endY; ty += _transform.h)
+    {
+        for (float tx = startX; tx < endX; tx += _transform.w)
+        {
+            // top-left world: (tx, ty + h) because Y-up, SDL draws from top-left
+            const auto screenTL =
+                worldToScreen({tx, ty + _transform.h}, parallaxCam);
+            const SDL_FRect dst{.x = screenTL.x,
+                                .y = screenTL.y,
+                                .w = wPx,
+                                .h = hPx};
+            SDL_RenderTexture(renderer, _texture, nullptr, &dst);
+        }
+    }
+}
+} // namespace megaman

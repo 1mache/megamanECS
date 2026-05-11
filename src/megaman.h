@@ -17,7 +17,6 @@ namespace megaman
     struct Enemy;
     struct AI;
     struct Weapon;
-    struct Scene;
     struct Sound;
     struct Projectile;
 } // namespace megaman
@@ -85,12 +84,6 @@ struct bagel::Storage<megaman::Weapon> final : bagel::NoInstance
 };
 
 template <>
-struct bagel::Storage<megaman::Scene> final : bagel::NoInstance
-{
-    using type = bagel::SparseStorage<megaman::Scene>;
-};
-
-template <>
 struct bagel::Storage<megaman::Sound> final : bagel::NoInstance
 {
     using type = bagel::StackStorage<megaman::Sound>;
@@ -129,9 +122,9 @@ namespace megaman
         float mass{};
         float velX{};
         float velY{};
-        float accX{}; // acceleration
+        float accX{};
         float accY{};
-
+        b2BodyId bodyId{};
         bool facingLeft{};
     };
 
@@ -139,8 +132,6 @@ namespace megaman
     {
         // Preferred storage: Packed, same reason as Movement since its also physics related.
 
-        // for now: collider box centered on entity position, so only width and height matter.
-        // note: possible different shapes of colliders in the future so shape member can be added.
         float width{};
         float height{};
     };
@@ -148,7 +139,6 @@ namespace megaman
     struct Drawable
     {
         // Preferred storage: Sparse, almost every entity can be drawn to the screen.
-        // Holes will be filled quickly with new objects so we can get away with one array.
 
         SDL_Texture *texture{nullptr};
         float spriteW{};
@@ -214,18 +204,10 @@ namespace megaman
     struct Weapon
     {
         // Preferred storage: Stack, few entities will be able to shoot
-        // and be in the scene at the same time, we dont want to waste large array for their possibly large ids.
+        // and be in the scene at the same time.
 
         int projectileType{-1};
         int shootCooldown{};
-    };
-
-    struct Scene
-    {
-        // Preferred storage: Sparse, probably only one entity of this type with
-        // small id value so one short array is good.
-
-        std::string mapFilePath{"res/..."}; // or some way to hold layout data
     };
 
     struct Sound
@@ -233,7 +215,7 @@ namespace megaman
         // Preferred storage: Stack, a lot of entities can have sound effects tied to them
         // and a lot of them die and get created frequently.
 
-        int sound{-1}; // or some way to hold sound data
+        int sound{-1};
         bool isPlaying{false};
     };
 
@@ -291,9 +273,10 @@ namespace megaman
     public:
         static void run();
     };
+
     // ============= ENTITIES   =============
 
-    ent_type createPlayer(float x, float y, float hp);
+    ent_type createPlayer(b2WorldId world, float x, float y, int hp);
 
     ent_type createPatroller(float x, float y, float hp, float patrolMinX, float patrolMaxX, float detectionRange, float speed);
 
@@ -312,6 +295,4 @@ namespace megaman
     ent_type createText(float x, float y, const std::string &text);
 
     ent_type createSoundSource(float x, float y, int sound);
-
-    ent_type createScene(const std::string &mapFilePath);
 } // namespace megaman
