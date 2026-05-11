@@ -92,7 +92,7 @@ MegamanGame::MegamanGame()
     _scene.load(_ren);
 
     // TODO: take position from _scene
-    ent_type player = createPlayer(_box, 5, 7, MegamanGame::HP);
+    ent_type player = createPlayer(_box, 14, 4.5f, MegamanGame::HP);
     {
         auto &d = bagel::World::getComponent<Drawable>(player);
         d.texture  = _tex;

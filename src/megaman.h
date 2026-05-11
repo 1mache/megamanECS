@@ -160,6 +160,7 @@ namespace megaman
 
         float points{};
         bool isInvulnerable{};
+        bool isContactInvulnerable{};
         bool isDead{};
         int invulnerableTimer{};
     };
@@ -197,6 +198,7 @@ namespace megaman
         int alertTimer{};
         float chargeSpeed{};
         float spawnX{};
+        float spawnY{};
         int shootCooldown{};
         int shotsFired{};
     };

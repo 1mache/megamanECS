@@ -123,7 +123,8 @@ ent_type createLockster(b2WorldId world, float x, float y, float hp, float detec
     bagel::World::addComponent<AI>(ent, {.type = AI::Type::Lockster,
                                          .detectionRange = detectionRange,
                                          .chargeSpeed = chargeSpeed,
-                                         .spawnX = x});
+                                         .spawnX = x,
+                                         .spawnY = y});
     bagel::World::addComponent<Animation>(ent, {});
 
     return ent;
@@ -435,15 +436,18 @@ void CollisionSystem::run(b2WorldId world)
                 if (!ph.isInvulnerable)
                 {
                     const MTransform pt = p.get<MTransform>();
-                    const bool overlapX = std::abs(pt.x - bt.x) < (pt.w + bt.w) / 2.f;
-                    const bool overlapY = std::abs(pt.y - bt.y) < (pt.h + bt.h) / 2.f;
+                    const bool overlapX = std::abs(pt.x - bt.x) < (pt.w + bt.w);
+                    const bool overlapY = std::abs(pt.y - bt.y) < (pt.h + bt.h);
                     if (overlapX && overlapY)
                     {
-                        ph.points -= DAMAGEFROMBULLET;
-                        ph.isInvulnerable = true;
-                        ph.invulnerableTimer = 90;
+                        if (!ph.isInvulnerable)
+                        {
+                            ph.points -= DAMAGEFROMBULLET;
+                            ph.isInvulnerable = true;
+                            ph.invulnerableTimer = 90;
+                            std::cout << "enemy bullet hit player, hp=" << ph.points << "\n";
+                        }
                         toDestroy.push_back(bullet.entity());
-                        std::cout << "enemy bullet hit player, hp=" << ph.points << "\n";
                     }
                 }
             }
@@ -455,8 +459,8 @@ void CollisionSystem::run(b2WorldId world)
                 if (!en.test(enemyMask))
                     continue;
                 const MTransform et = en.get<MTransform>();
-                const bool overlapX = std::abs(et.x - bt.x) < (et.w + bt.w) / 2.f;
-                const bool overlapY = std::abs(et.y - bt.y) < (et.h + bt.h) / 2.f;
+                const bool overlapX = std::abs(et.x - bt.x) < (et.w + bt.w);
+                const bool overlapY = std::abs(et.y - bt.y) < (et.h + bt.h);
                 if (overlapX && overlapY)
                 {
                     en.get<Health>().points -= 0.5f;
@@ -473,6 +477,19 @@ void CollisionSystem::run(b2WorldId world)
 
     static const bagel::Mask inputMask    = bagel::MaskBuilder().set<Input>().set<Health>().build();
     static const bagel::Mask enemyTagMask = bagel::MaskBuilder().set<Enemy>().build();
+    auto applyEnemyContactDamage = [](bagel::Entity &player) {
+        auto &ph = player.get<Health>();
+
+        if (ph.isContactInvulnerable)
+            return;
+
+        ph.points -= DAMAGEFROMENEMYCOLLISION;
+        ph.isInvulnerable = true;
+        ph.isContactInvulnerable = true;
+        ph.invulnerableTimer = 90;
+
+        std::cout << "player hit by enemy, hp=" << ph.points << "\n";
+    };
 
     b2ContactEvents contacts = b2World_GetContactEvents(world);
     for (int i = 0; i < contacts.beginCount; ++i)
@@ -488,21 +505,36 @@ void CollisionSystem::run(b2WorldId world)
         bagel::Entity entB{ent_type{idB}};
 
         bagel::Entity *pPlayer = nullptr;
+        bagel::Entity *pEnemy = nullptr;
         if (entA.test(inputMask) && entB.test(enemyTagMask))
-            pPlayer = &entA;
-        else if (entB.test(inputMask) && entA.test(enemyTagMask))
-            pPlayer = &entB;
-
-        if (pPlayer)
         {
-            auto &ph = pPlayer->get<Health>();
-            if (!ph.isInvulnerable)
-            {
-                ph.points -= DAMAGEFROMENEMYCOLLISION;
-                ph.isInvulnerable = true;
-                ph.invulnerableTimer = 90;
-                std::cout << "player hit by enemy, hp=" << ph.points << "\n";
-            }
+            pPlayer = &entA;
+            pEnemy = &entB;
+        }
+        else if (entB.test(inputMask) && entA.test(enemyTagMask))
+        {
+            pPlayer = &entB;
+            pEnemy = &entA;
+        }
+
+        if (pPlayer && pEnemy)
+            applyEnemyContactDamage(*pPlayer);
+    }
+
+    if (playerFound)
+    {
+        bagel::Entity player{playerEnt};
+        const MTransform pt = player.get<MTransform>();
+        for (bagel::Entity enemy = bagel::Entity::first(); !enemy.eof(); enemy.next())
+        {
+            if (!enemy.test(enemyMask))
+                continue;
+
+            const MTransform et = enemy.get<MTransform>();
+            const bool overlapX = std::abs(pt.x - et.x) < (pt.w + et.w);
+            const bool overlapY = std::abs(pt.y - et.y) < (pt.h + et.h);
+            if (overlapX && overlapY)
+                applyEnemyContactDamage(player);
         }
     }
 }
@@ -517,7 +549,10 @@ void HealthSystem::run()
         {
             auto &h = e.get<Health>();
             if (h.isInvulnerable && --h.invulnerableTimer <= 0)
+            {
                 h.isInvulnerable = false;
+                h.isContactInvulnerable = false;
+            }
             if (h.points <= 0)
                 h.isDead = true;
         }
@@ -576,10 +611,11 @@ namespace
 
     void tickLockster(AI &ai, MTransform &t, Movement &m, Animation &a, float playerX, float playerY)
     {
+        constexpr float Y_MARGIN = 1.5f;
         const float distX = std::abs(t.x - playerX);
         const float distY = std::abs(t.y - playerY);
 
-        if (distX < ai.detectionRange && distY < ai.detectionRange)
+        if (distX < ai.detectionRange && distY < Y_MARGIN)
         {
             if (ai.alertTimer < 30)
             {
@@ -596,20 +632,26 @@ namespace
             }
             else
             {
-                m.velX = t.x < playerX ? ai.chargeSpeed : -ai.chargeSpeed;
-                a.state = Animation::RUN;
+                if (++ai.shotsFired > 60)
+                {
+                    ai.alertTimer = 0;
+                    ai.shotsFired = 0;
+                }
+                else
+                {
+                    m.velX = t.x < playerX ? ai.chargeSpeed : -ai.chargeSpeed;
+                    a.state = Animation::RUN;
+                }
             }
         }
         else
         {
             ai.alertTimer = 0;
             ai.shotsFired = 0;
-            const float dx = ai.spawnX - t.x;
-            if (std::abs(dx) > 0.05f)
-                m.velX = dx > 0 ? ai.speed : -ai.speed;
-            else
-                m.velX = 0.f;
+            m.velX = 0.f;
             a.state = Animation::IDLE;
+            a.currentFrame = 0;
+            a.frameTimer = 0;
         }
 
         updateFacing(m);
@@ -618,6 +660,8 @@ namespace
         {
             constexpr float fps = static_cast<float>(GlobalData::FPS);
             b2Body_SetLinearVelocity(m.bodyId, {m.velX * fps, 0.f});
+            const b2Vec2 pos = b2Body_GetPosition(m.bodyId);
+            b2Body_SetTransform(m.bodyId, {pos.x, ai.spawnY}, b2Body_GetRotation(m.bodyId));
         }
     }
 } // namespace
