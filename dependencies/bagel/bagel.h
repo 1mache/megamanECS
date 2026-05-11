@@ -427,7 +427,7 @@ public:
 private:
     static inline Bag<Mask, 100>      _masks;
     static inline Bag<id_type, 100>   _ids;
-    static inline Bag<DeleteFunc, 10> _deleters;
+    static inline Bag<DeleteFunc, MaxComponents> _deleters;
     static inline id_type             _maxId = -1;
 };
 
