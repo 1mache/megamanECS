@@ -17,6 +17,8 @@ constexpr int   JUMP_START  = 10;
 constexpr int   JUMP_COUNT  = 1;
 constexpr int   ANIM_SPEED  = 8;
 constexpr float BULLET_SPEED = 0.15f;
+constexpr float DAMAGEFROMBULLET = 0.5f;
+constexpr float DAMAGEFROMENEMYCOLLISION = 1.f;
 } // namespace
 
 namespace megaman
@@ -437,7 +439,7 @@ void CollisionSystem::run(b2WorldId world)
                     const bool overlapY = std::abs(pt.y - bt.y) < (pt.h + bt.h) / 2.f;
                     if (overlapX && overlapY)
                     {
-                        ph.points -= 0.5f;
+                        ph.points -= DAMAGEFROMBULLET;
                         ph.isInvulnerable = true;
                         ph.invulnerableTimer = 90;
                         toDestroy.push_back(bullet.entity());
@@ -496,7 +498,7 @@ void CollisionSystem::run(b2WorldId world)
             auto &ph = pPlayer->get<Health>();
             if (!ph.isInvulnerable)
             {
-                ph.points -= 1.f;
+                ph.points -= DAMAGEFROMENEMYCOLLISION;
                 ph.isInvulnerable = true;
                 ph.invulnerableTimer = 90;
                 std::cout << "player hit by enemy, hp=" << ph.points << "\n";
