@@ -139,7 +139,7 @@ void MapTileLayer::draw(SDL_Renderer* renderer, const CameraData& cam) const
         for (auto& v : s.vertexData)
         {
             auto vnew = v;
-            vnew.position = megaman::worldToScreen(v.position, cam);
+            vnew.position = megaman::worldToScreenPoint(v.position, cam);
             screenVerts.push_back(vnew);
         };
 

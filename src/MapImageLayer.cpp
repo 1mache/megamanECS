@@ -65,13 +65,12 @@ void MapImageLayer::draw(SDL_Renderer* renderer, const CameraData& cam) const
         _parallaxRef.x + (cam.posX - _parallaxRef.x) * _parallax.x,
         _parallaxRef.y + (cam.posY - _parallaxRef.y) * _parallax.y};
 
-    const float ptmScaled = GlobalData::PTM * GlobalData::SCALE_FACTOR;
-    const float wPx = _transform.w * ptmScaled;
-    const float hPx = _transform.h * ptmScaled;
+    const float wPx = worldToScreenSize(_transform.w);
+    const float hPx = worldToScreenSize(_transform.h);
 
-    // in world size
-    const float halfW = GlobalData::getWinW() / 2.f / ptmScaled;
-    const float halfH = GlobalData::getWinH() / 2.f / ptmScaled;
+    // in world size (half viewport extents in world units)
+    const float halfW = screenToWorldSize(GlobalData::getWinW() * 0.5f);
+    const float halfH = screenToWorldSize(GlobalData::getWinH() * 0.5f);
 
     // Calculate image bounds
     float startX = _transform.x;
@@ -107,7 +106,7 @@ void MapImageLayer::draw(SDL_Renderer* renderer, const CameraData& cam) const
         {
             // top-left world: (tx, ty + h) because Y-up, SDL draws from top-left
             const auto screenTL =
-                worldToScreen({tx, ty + _transform.h}, parallaxCam);
+                worldToScreenPoint({tx, ty + _transform.h}, parallaxCam);
             const SDL_FRect dst{.x = screenTL.x,
                                 .y = screenTL.y,
                                 .w = wPx,

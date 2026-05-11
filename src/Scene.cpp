@@ -1,6 +1,7 @@
 #include "Scene.h"
 
 #include "GlobalData.h"
+#include "MTransform.h"
 
 #include <tmxlite/ImageLayer.hpp>
 #include <tmxlite/Map.hpp>
@@ -81,10 +82,8 @@ void Scene::clampCameraToBounds(CameraData& cam) const
         return;
 
     const auto  b = getBoundsM();
-    const float invPTMScaled =
-        1.f / (GlobalData::PTM * GlobalData::SCALE_FACTOR);
-    const float halfW = GlobalData::getWinW() * 0.5f * invPTMScaled;
-    const float halfH = GlobalData::getWinH() * 0.5f * invPTMScaled;
+    const float halfW = screenToWorldSize(GlobalData::getWinW() * 0.5f);
+    const float halfH = screenToWorldSize(GlobalData::getWinH() * 0.5f);
 
     // calculate min and max cam center positions
     const float minCx =

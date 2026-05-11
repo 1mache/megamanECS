@@ -171,9 +171,9 @@ void InputSystem::run()
             auto& m = e.get<Movement>();
             m.velX = 0.f;
             if (keys[SDL_SCANCODE_LEFT])
-                m.velX = -1.f;
+                m.velX = -0.25f;
             if (keys[SDL_SCANCODE_RIGHT])
-                m.velX = 1.f;
+                m.velX = 0.25f;
             if (keys[SDL_SCANCODE_UP])
                 m.velY = 0.2f;
         }

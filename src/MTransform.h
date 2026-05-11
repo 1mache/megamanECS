@@ -1,5 +1,6 @@
 #pragma once
 #include "CameraData.h"
+#include "GlobalData.h"
 #include <SDL3/SDL.h>
 #include <box2d/box2d.h>
 
@@ -17,8 +18,19 @@ struct MTransform
     float rot{};
 };
 
-// Y-up world coords -> SDL screen coords (pixels, Y-down).
-SDL_FPoint worldToScreen(SDL_FPoint worldPos, const CameraData& cam);
+// world coords (meters, Y-up) -> SDL screen coords (pixels, Y-down).
+SDL_FPoint worldToScreenPoint(SDL_FPoint worldPos, const CameraData& cam);
+
+// Convert sizes between world units (meters) and screen pixels,
+constexpr float worldToScreenSize(float worldSize)
+{
+    return worldSize * GlobalData::PTM * GlobalData::SCALE_FACTOR;
+}
+
+constexpr float screenToWorldSize(float pixelSize)
+{
+    return pixelSize / (GlobalData::PTM * GlobalData::SCALE_FACTOR);
+}
 
 SDL_FRect transformToFrect(const MTransform& t);
 
