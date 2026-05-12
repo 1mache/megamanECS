@@ -21,6 +21,7 @@ namespace megaman
     struct Weapon;
     struct Sound;
     struct Projectile;
+    struct Respawn;
 } // namespace megaman
 
 // ============= STORAGE SPECIALIZATIONS =============
@@ -109,6 +110,12 @@ struct bagel::Storage<megaman::Projectile> final : bagel::NoInstance
     using type = bagel::StackStorage<megaman::Projectile>;
 };
 
+template <>
+struct bagel::Storage<megaman::Respawn> final : bagel::NoInstance
+{
+    using type = bagel::StackStorage<megaman::Respawn>;
+};
+
 namespace megaman
 {
     using ent_type = bagel::ent_type;
@@ -176,6 +183,7 @@ namespace megaman
         bool isInvulnerable{};
         bool isContactInvulnerable{};
         bool isDead{};
+        bool justHit{};
         int invulnerableTimer{};
     };
 
@@ -238,6 +246,7 @@ namespace megaman
         int shotsFired{};
         bool patrollingRight{true};
         float targetX{};
+        int freezeFrames{};
     };
 
     struct Weapon
@@ -261,6 +270,15 @@ namespace megaman
     struct Projectile
     {
         bool fromEnemy{};
+    };
+
+    struct Respawn
+    {
+        float spawnX{};
+        float spawnY{};
+        float maxHp{};
+        int   flickerTimer{};
+        bool  isRespawning{};
     };
 
     // ============= SYSTEMS    =============
@@ -320,6 +338,12 @@ namespace megaman
     };
 
     class SoundSystem final : bagel::NoInstance
+    {
+    public:
+        static void run();
+    };
+
+    class RespawnSystem final : bagel::NoInstance
     {
     public:
         static void run();

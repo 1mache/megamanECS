@@ -123,7 +123,7 @@ MegamanGame::MegamanGame()
         d.defaultFacingLeft = false;
     }
 
-    ent_type lockster = createLockster(_box, 40.f, 4.5f, MegamanGame::HP, 10.f, 0.17f);
+    ent_type lockster = createLockster(_box, 40.f, 4.5f, MegamanGame::HP, 15.f, 0.18f);
     {
         auto &d = bagel::World::getComponent<Drawable>(lockster);
         d.texture  = _locksterTex;
@@ -169,6 +169,7 @@ void MegamanGame::drawSystem()     { DrawingSystem::run(_ren); }
 void MegamanGame::animationSystem(){ AnimationSystem::run(); }
 void MegamanGame::aiSystem()       { AISystem::run(); }
 void MegamanGame::healthSystem()   { HealthSystem::run(); }
+void MegamanGame::respawnSystem()  { RespawnSystem::run(); }
 
 void MegamanGame::run()
 {
@@ -184,6 +185,7 @@ void MegamanGame::run()
         boxSystem();
         damageSystem();
         healthSystem();
+        respawnSystem();
         animationSystem();
 
         if (_scene.isValid())

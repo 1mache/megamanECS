@@ -18,6 +18,7 @@ constexpr int   JUMP_COUNT  = 1;
 constexpr int   ANIM_SPEED  = 8;
 constexpr float BULLET_SPEED = 0.15f;
 constexpr float PATROLLER_Y_RANGE = 1.5f;
+constexpr bool  LOCKSTER_HAS_BULLETS = false;
 constexpr float DAMAGEFROMBULLET = 0.5f;
 constexpr float DAMAGEFROMENEMYCOLLISION = 1.f;
 } // namespace
@@ -55,6 +56,7 @@ ent_type createPlayer(b2WorldId world, float x, float y, int hp)
     bagel::World::addComponent<Input>(ent, {});
     bagel::World::addComponent<Intent>(ent, {.speed = 0.05f});
     bagel::World::addComponent<Weapon>(ent, {});
+    bagel::World::addComponent<Respawn>(ent, {.spawnX = x, .spawnY = y, .maxHp = static_cast<float>(hp)});
 
     return ent;
 }
@@ -92,7 +94,9 @@ ent_type createPatroller(b2WorldId world, float x, float y, float hp, float patr
                                          .patrolMinX = patrolMinX,
                                          .patrolMaxX = patrolMaxX,
                                          .detectionRange = detectionRange,
-                                         .speed = speed});
+                                         .speed = speed,
+                                         .spawnX = x,
+                                         .spawnY = y});
     bagel::World::addComponent<Weapon>(ent, {});
     bagel::World::addComponent<Animation>(ent, {});
 
@@ -390,6 +394,13 @@ void DrawingSystem::run(SDL_Renderer *ren)
             if (d.texture == nullptr || frameCount <= 0)
                 continue;
 
+            if (e.has<Health>())
+            {
+                const auto &h = e.get<Health>();
+                if (h.isInvulnerable && (h.invulnerableTimer / 4) % 2 == 0)
+                    continue;
+            }
+
             const int frame = startFrame + (a.currentFrame % frameCount);
             SDL_FRect src = {frame * d.spriteW, 0.f, d.spriteW, d.spriteH};
             SDL_FRect dest = transformToFrect(t);
@@ -563,10 +574,21 @@ void DamageSystem::run()
             h.points -= di.amount;
             h.isInvulnerable = true;
             h.invulnerableTimer = 90;
+            h.justHit = true;
             if (di.fromContact)
                 std::cout << "player hit by enemy, hp=" << h.points << "\n";
             else
                 std::cout << (e.has<Input>() ? "enemy bullet hit player" : "player bullet hit enemy") << ", hp=" << h.points << "\n";
+
+            if (e.has<Input>())
+            {
+                static const bagel::Mask aiMask = bagel::MaskBuilder().set<AI>().build();
+                for (bagel::Entity en = bagel::Entity::first(); !en.eof(); en.next())
+                {
+                    if (en.test(aiMask))
+                        en.get<AI>().freezeFrames = 60;
+                }
+            }
         }
         di.pending = false;
     }
@@ -654,11 +676,14 @@ namespace
             if (ai.alertTimer == 30)
                 ai.targetX = playerX;
 
-            if (ai.shotsFired < 3 && ai.alertTimer % 10 == 0)
+            if constexpr (LOCKSTER_HAS_BULLETS)
             {
-                const float velX = t.x < playerX ? 0.15f : -0.15f;
-                createProjectile(t.x, t.y, velX, 0.f, true);
-                ++ai.shotsFired;
+                if (ai.shotsFired < 3 && ai.alertTimer % 10 == 0)
+                {
+                    const float velX = t.x < playerX ? 0.15f : -0.15f;
+                    createProjectile(t.x, t.y, velX, 0.f, true);
+                    ++ai.shotsFired;
+                }
             }
         }
         else
@@ -711,9 +736,19 @@ void AISystem::run()
         if (e.test(enemyMask))
         {
             auto &ai     = e.get<AI>();
+            auto &intent = e.get<Intent>();
+
+            if (ai.freezeFrames > 0)
+            {
+                --ai.freezeFrames;
+                const float spd = intent.speed;
+                intent = {};
+                intent.speed = spd;
+                continue;
+            }
+
             const auto &t = e.get<MTransform>();
             auto &m      = e.get<Movement>();
-            auto &intent = e.get<Intent>();
             auto &a      = e.get<Animation>();
 
             switch (ai.type)
@@ -725,6 +760,100 @@ void AISystem::run()
             case AI::Type::Lockster:
                 tickLockster(ai, t, m, intent, a, playerX, playerY);
                 break;
+            }
+        }
+    }
+}
+
+void RespawnSystem::run()
+{
+    static const bagel::Mask mask = bagel::MaskBuilder()
+                                        .set<Respawn>()
+                                        .set<Health>()
+                                        .set<Movement>()
+                                        .set<MTransform>()
+                                        .build();
+
+    for (bagel::Entity e = bagel::Entity::first(); !e.eof(); e.next())
+    {
+        if (!e.test(mask))
+            continue;
+
+        auto &r = e.get<Respawn>();
+        auto &h = e.get<Health>();
+        auto &m = e.get<Movement>();
+        auto &t = e.get<MTransform>();
+
+        auto zeroIntent = [&]()
+        {
+            if (e.has<Intent>())
+            {
+                auto &intent = e.get<Intent>();
+                const float spd = intent.speed;
+                intent = {};
+                intent.speed = spd;
+            }
+        };
+
+        if (!r.isRespawning && h.justHit)
+        {
+            h.justHit      = false;
+            r.isRespawning = true;
+            r.flickerTimer = 60;
+            if (b2Body_IsValid(m.bodyId))
+                b2Body_SetLinearVelocity(m.bodyId, {0.f, 0.f});
+            zeroIntent();
+
+            static const bagel::Mask bulletMask = bagel::MaskBuilder().set<Projectile>().build();
+            for (bagel::Entity b = bagel::Entity::first(); !b.eof(); b.next())
+            {
+                if (b.test(bulletMask))
+                    b.destroy();
+            }
+        }
+        else if (r.isRespawning)
+        {
+            if (--r.flickerTimer <= 0)
+            {
+                if (b2Body_IsValid(m.bodyId))
+                {
+                    b2Body_SetTransform(m.bodyId, {r.spawnX, r.spawnY}, b2Body_GetRotation(m.bodyId));
+                    transformUpdateWithB2Pos(t, b2Body_GetPosition(m.bodyId));
+                    b2Body_SetLinearVelocity(m.bodyId, {0.f, 0.f});
+                }
+                h.isInvulnerable    = true;
+                h.invulnerableTimer = 60;
+                r.isRespawning      = false;
+
+                static const bagel::Mask aiMask = bagel::MaskBuilder()
+                                                      .set<AI>()
+                                                      .set<Movement>()
+                                                      .set<MTransform>()
+                                                      .build();
+                for (bagel::Entity en = bagel::Entity::first(); !en.eof(); en.next())
+                {
+                    if (!en.test(aiMask))
+                        continue;
+                    auto &eai = en.get<AI>();
+                    auto &em  = en.get<Movement>();
+                    auto &et  = en.get<MTransform>();
+                    if (b2Body_IsValid(em.bodyId))
+                    {
+                        b2Body_SetTransform(em.bodyId, {eai.spawnX, eai.spawnY}, b2Body_GetRotation(em.bodyId));
+                        transformUpdateWithB2Pos(et, b2Body_GetPosition(em.bodyId));
+                        b2Body_SetLinearVelocity(em.bodyId, {0.f, 0.f});
+                    }
+                    eai.alertTimer     = 0;
+                    eai.shotsFired     = 0;
+                    eai.freezeFrames   = 0;
+                    eai.patrollingRight = true;
+                }
+            }
+            else
+            {
+                if (b2Body_IsValid(m.bodyId))
+                    b2Body_SetLinearVelocity(m.bodyId, {0.f, 0.f});
+                zeroIntent();
             }
         }
     }

@@ -36,6 +36,7 @@ namespace megaman
         void animationSystem();
         void aiSystem();
         void healthSystem();
+        void respawnSystem();
 
         SDL_Window   *_win = nullptr;
         SDL_Renderer *_ren = nullptr;
