@@ -14,6 +14,8 @@ namespace megaman
     struct Drawable;
     struct Health;
     struct Input;
+    struct Intent;
+    struct DamageIntent;
     struct Enemy;
     struct AI;
     struct Weapon;
@@ -63,6 +65,18 @@ template <>
 struct bagel::Storage<megaman::Input> final : bagel::NoInstance
 {
     using type = bagel::TaggedStorage<megaman::Input>;
+};
+
+template <>
+struct bagel::Storage<megaman::Intent> final : bagel::NoInstance
+{
+    using type = bagel::PackedStorage<megaman::Intent>;
+};
+
+template <>
+struct bagel::Storage<megaman::DamageIntent> final : bagel::NoInstance
+{
+    using type = bagel::PackedStorage<megaman::DamageIntent>;
 };
 
 template <>
@@ -171,6 +185,27 @@ namespace megaman
         // so it can react to input events.
     };
 
+    struct Intent
+    {
+        // What the entity wants to do this frame.
+        // InputSystem writes this for the player; AISystem writes it for enemies.
+        // MovementSystem and ShootingSystem consume it.
+        bool moveLeft{};
+        bool moveRight{};
+        bool moveUp{};
+        bool moveDown{};
+        bool shoot{};
+        float speed{};
+    };
+
+    struct DamageIntent
+    {
+        // Queued damage written by CollisionSystem, consumed by DamageSystem.
+        float amount{};
+        bool pending{};
+        bool fromContact{};
+    };
+
     struct Enemy
     {
         // Preferred storage: Tagged, only need to know if entity has it.
@@ -201,6 +236,7 @@ namespace megaman
         float spawnY{};
         int shootCooldown{};
         int shotsFired{};
+        bool patrollingRight{true};
     };
 
     struct Weapon
@@ -252,10 +288,22 @@ namespace megaman
         static void run(SDL_Renderer *ren);
     };
 
+    class ShootingSystem final : bagel::NoInstance
+    {
+    public:
+        static void run();
+    };
+
     class CollisionSystem final : bagel::NoInstance
     {
     public:
         static void run(b2WorldId box);
+    };
+
+    class DamageSystem final : bagel::NoInstance
+    {
+    public:
+        static void run();
     };
 
     class HealthSystem final : bagel::NoInstance

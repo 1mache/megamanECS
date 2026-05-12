@@ -162,7 +162,9 @@ MegamanGame::~MegamanGame()
 
 void MegamanGame::inputSystem()    { InputSystem::run(); }
 void MegamanGame::moveSystem()     { MovementSystem::run(); }
+void MegamanGame::shootingSystem() { ShootingSystem::run(); }
 void MegamanGame::boxSystem()      { CollisionSystem::run(_box); }
+void MegamanGame::damageSystem()   { DamageSystem::run(); }
 void MegamanGame::drawSystem()     { DrawingSystem::run(_ren); }
 void MegamanGame::animationSystem(){ AnimationSystem::run(); }
 void MegamanGame::aiSystem()       { AISystem::run(); }
@@ -177,10 +179,12 @@ void MegamanGame::run()
     {
         inputSystem();
         aiSystem();
-        animationSystem();
         moveSystem();
+        shootingSystem();
         boxSystem();
+        damageSystem();
         healthSystem();
+        animationSystem();
 
         if (_scene.isValid())
         {

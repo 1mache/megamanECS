@@ -29,7 +29,9 @@ namespace megaman
 
         void inputSystem();
         void moveSystem();
+        void shootingSystem();
         void boxSystem();
+        void damageSystem();
         void drawSystem();
         void animationSystem();
         void aiSystem();
