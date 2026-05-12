@@ -28,8 +28,7 @@ int main(int, char**)
 
     int         winW = static_cast<int>(gd::START_WIN_W);
     int         winH = static_cast<int>(gd::START_WIN_H);
-    SDL_Window* window =
-        SDL_CreateWindow("tmxlite SDL3 Example", winW, winH, 0);
+    SDL_Window* window = SDL_CreateWindow("tmxlite SDL3 Example", winW, winH, 0);
     if (!window)
     {
         std::cerr << "SDL_CreateWindow failed: " << SDL_GetError() << "\n";
@@ -45,7 +44,7 @@ int main(int, char**)
         SDL_Quit();
         return 1;
     }
-    SDL_SetRenderVSync(renderer, 1);
+    SDL_SetRenderVSync(renderer, SDL_RENDERER_VSYNC_DISABLED);
     gd::setWindow(window);
     gd::setRenderer(renderer);
 
@@ -62,8 +61,7 @@ int main(int, char**)
         {
             if (evt.type == SDL_EVENT_QUIT)
                 running = false;
-            else if (evt.type == SDL_EVENT_KEY_DOWN &&
-                     evt.key.key == SDLK_ESCAPE)
+            else if (evt.type == SDL_EVENT_KEY_DOWN && evt.key.key == SDLK_ESCAPE)
                 running = false;
             else if (evt.type == SDL_EVENT_KEY_DOWN && evt.key.key == SDLK_A)
                 inputLeft = true;

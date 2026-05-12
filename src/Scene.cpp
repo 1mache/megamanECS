@@ -17,13 +17,14 @@ void Scene::load(SDL_Renderer* renderer)
     tmx::Map map;
     if (map.load(_filePath))
     {
-        for (const auto& ts : map.getTilesets())
-        {
-            _textures.emplace_back(std::make_unique<Texture>());
-            if (!_textures.back()->loadFromFile(ts.getImagePath(), renderer))
-                std::cerr << "Failed to load tileset: " << ts.getImagePath()
-                          << "\n";
-        }
+        const auto& tileSets = map.getTilesets();
+        assert(tileSets.size() == 1 &&
+               "Multiple or no tilesets provided. Not supported");
+
+        _textures.emplace_back(std::make_unique<Texture>());
+        if (!_textures.back()->loadFromFile(tileSets[0].getImagePath(), renderer))
+            std::cerr << "Failed to load tileset: " << tileSets[0].getImagePath()
+                      << "\n";
 
         const auto& mapLayers = map.getLayers();
         for (auto i = 0u; i < mapLayers.size(); ++i)
@@ -108,7 +109,7 @@ void Scene::processTileLayer(const tmx::Layer::Ptr& layer,
                              const tmx::Map&        map)
 {
     _tileLayers.emplace_back(std::make_unique<MapTileLayer>());
-    bool created = _tileLayers.back()->create(map, idx, _textures);
+    bool created = _tileLayers.back()->create(map, idx, _textures[0]);
     if (!created)
         std::cerr << "Failed to create tile layer. Id: " << idx << "\n";
 
@@ -129,8 +130,7 @@ void Scene::processImageLayer(SDL_Renderer*          renderer,
                   << "\n";
 
     _imageLayers.emplace_back(std::make_unique<MapImageLayer>());
-    bool created =
-        _imageLayers.back()->create(map, idx, _textures.back().get());
+    bool created = _imageLayers.back()->create(map, idx, _textures.back().get());
     if (!created)
         std::cerr << "Failed to create image layer. Id: " << idx << "\n";
 }

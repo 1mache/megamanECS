@@ -1,6 +1,7 @@
 #pragma once
 
 #include "CameraData.h"
+#include "MTransform.h"
 #include "Texture.h"
 #include "WorldBoundsM.h"
 
@@ -17,9 +18,9 @@ class MapTileLayer final
 public:
     MapTileLayer() = default;
 
-    bool create(const tmx::Map&                              map,
-                std::uint32_t                                layerIndex,
-                const std::vector<std::unique_ptr<Texture>>& textures);
+    bool create(const tmx::Map&                 map,
+                std::uint32_t                   layerIndex,
+                const std::unique_ptr<Texture>& texture);
 
     void draw(SDL_Renderer* renderer, const CameraData& cam) const;
 
@@ -33,15 +34,16 @@ public:
         return {_minX, _maxX, _minY, _maxY};
     }
 
-private:
-    // one subset per used tileset
-    struct TileSubset final
+    bool isValid() const
     {
-        std::vector<SDL_Vertex> vertexData;
-        SDL_Texture*            texture = nullptr;
-    };
+        return _texture && !_vertexData.empty();
+    }
 
-    std::vector<TileSubset> _subsets;
+private:
+    SDL_Texture*            _texture = nullptr;
+    std::vector<SDL_Vertex> _vertexData;
+    std::vector<int>        _indices;
+    std::vector<MTransform> _colliders;
     std::string             _className;
 
     float _minX{};
