@@ -123,7 +123,7 @@ MegamanGame::MegamanGame()
         d.defaultFacingLeft = false;
     }
 
-    ent_type lockster = createLockster(_box, 8.f, 4.5f, MegamanGame::HP, 5.f, 0.12f);
+    ent_type lockster = createLockster(_box, 40.f, 4.5f, MegamanGame::HP, 10.f, 0.17f);
     {
         auto &d = bagel::World::getComponent<Drawable>(lockster);
         d.texture  = _locksterTex;

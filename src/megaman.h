@@ -237,6 +237,7 @@ namespace megaman
         int shootCooldown{};
         int shotsFired{};
         bool patrollingRight{true};
+        float targetX{};
     };
 
     struct Weapon

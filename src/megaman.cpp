@@ -17,6 +17,7 @@ constexpr int   JUMP_START  = 10;
 constexpr int   JUMP_COUNT  = 1;
 constexpr int   ANIM_SPEED  = 8;
 constexpr float BULLET_SPEED = 0.15f;
+constexpr float PATROLLER_Y_RANGE = 1.5f;
 constexpr float DAMAGEFROMBULLET = 0.5f;
 constexpr float DAMAGEFROMENEMYCOLLISION = 1.f;
 } // namespace
@@ -601,7 +602,7 @@ namespace
         intent = {};
         intent.speed = ai.speed;
 
-        if (distX < ai.detectionRange && distY < ai.detectionRange)
+        if (distX < ai.detectionRange && distY < PATROLLER_Y_RANGE)
         {
             ai.state = AI::CHASE_SHOOT;
             if (t.x < playerX) intent.moveRight = true;
@@ -626,34 +627,38 @@ namespace
 
         intent = {};
 
-        if (distX < ai.detectionRange && distY < Y_MARGIN)
-        {
-            if (ai.alertTimer < 30)
-            {
-                ++ai.alertTimer;
-                a.state = Animation::JUMP;
+        const bool inRange    = distX < ai.detectionRange && distY < Y_MARGIN;
+        const bool isCharging = ai.alertTimer >= 30;
 
-                if (ai.shotsFired < 3 && ai.alertTimer % 10 == 0)
-                {
-                    const float velX = t.x < playerX ? 0.15f : -0.15f;
-                    createProjectile(t.x, t.y, velX, 0.f, true);
-                    ++ai.shotsFired;
-                }
+        if (isCharging)
+        {
+            const bool reached = std::abs(t.x - ai.targetX) < 0.2f;
+            if (reached)
+            {
+                ai.alertTimer = 0;
+                ai.shotsFired = 0;
             }
             else
             {
-                if (++ai.shotsFired > 60)
-                {
-                    ai.alertTimer = 0;
-                    ai.shotsFired = 0;
-                }
-                else
-                {
-                    intent.speed = ai.chargeSpeed;
-                    if (t.x < playerX) intent.moveRight = true;
-                    else               intent.moveLeft  = true;
-                    a.state = Animation::RUN;
-                }
+                intent.speed = ai.chargeSpeed;
+                if (t.x < ai.targetX) intent.moveRight = true;
+                else                  intent.moveLeft  = true;
+                a.state = Animation::RUN;
+            }
+        }
+        else if (inRange)
+        {
+            ++ai.alertTimer;
+            a.state = Animation::JUMP;
+
+            if (ai.alertTimer == 30)
+                ai.targetX = playerX;
+
+            if (ai.shotsFired < 3 && ai.alertTimer % 10 == 0)
+            {
+                const float velX = t.x < playerX ? 0.15f : -0.15f;
+                createProjectile(t.x, t.y, velX, 0.f, true);
+                ++ai.shotsFired;
             }
         }
         else
