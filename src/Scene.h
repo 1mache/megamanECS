@@ -1,5 +1,6 @@
 #pragma once
 #include "CameraData.h"
+#include "MapCollisionLayer.h"
 #include "MapImageLayer.h"
 #include "MapTileLayer.h"
 #include "Texture.h"
@@ -24,6 +25,7 @@ public:
     }
 
     void load(SDL_Renderer* renderer);
+    void attachPhysics(b2WorldId worldId);
     void draw(SDL_Renderer* renderer, const CameraData& cam) const;
 
     WorldBoundsM getBoundsM() const;
@@ -39,12 +41,16 @@ private:
                            const tmx::Layer::Ptr& layer,
                            unsigned int           idx,
                            const tmx::Map&        map);
+    void processCollisionLayer(const tmx::Layer::Ptr& layer,
+                               unsigned int           idx,
+                               const tmx::Map&        map);
 
 
-    std::string                                 _filePath;
-    bool                                        _loaded{};
-    std::vector<std::unique_ptr<Texture>>       _textures;
-    std::vector<std::unique_ptr<MapImageLayer>> _imageLayers;
-    std::vector<std::unique_ptr<MapTileLayer>>  _tileLayers;
+    std::string                                     _filePath;
+    bool                                            _loaded{};
+    std::vector<std::unique_ptr<Texture>>           _textures;
+    std::vector<std::unique_ptr<MapTileLayer>>      _tileLayers;
+    std::vector<std::unique_ptr<MapImageLayer>>     _imageLayers;
+    std::vector<std::unique_ptr<MapCollisionLayer>> _collisionLayers;
 };
 } // namespace megaman

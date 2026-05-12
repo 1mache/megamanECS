@@ -32,9 +32,10 @@ MegamanGame::MegamanGame()
     _box = b2CreateWorld(&worldDef);
 
     _scene.load(_ren);
+    _scene.attachPhysics(_box);
 
     // TODO: take position from _scene
-    createPlayer(_box, 5, 7, MegamanGame::HP);
+    createPlayer(_box, 5, 10, MegamanGame::HP);
 }
 
 MegamanGame::~MegamanGame()

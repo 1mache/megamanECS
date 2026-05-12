@@ -35,7 +35,8 @@ void Scene::load(SDL_Renderer* renderer)
             }
             else if (mapLayers[i]->getType() == tmx::Layer::Type::Object)
             {
-                std::cout << "Loaded object layer. Id: " << i << "\n";
+                if (mapLayers[i]->getClass() == SOLID_CLASS)
+                    processCollisionLayer(mapLayers[i], i, map);
             }
             else if (mapLayers[i]->getType() == tmx::Layer::Type::Image)
             {
@@ -47,6 +48,14 @@ void Scene::load(SDL_Renderer* renderer)
     else
     {
         std::cerr << "Failed to load map\n";
+    }
+}
+
+void Scene::attachPhysics(b2WorldId worldId)
+{
+    for (const auto& l : _collisionLayers)
+    {
+        l->createBodies(worldId);
     }
 }
 
@@ -133,5 +142,15 @@ void Scene::processImageLayer(SDL_Renderer*          renderer,
     bool created = _imageLayers.back()->create(map, idx, _textures.back().get());
     if (!created)
         std::cerr << "Failed to create image layer. Id: " << idx << "\n";
+}
+void Scene::processCollisionLayer(const tmx::Layer::Ptr& layer,
+                                  unsigned int           idx,
+                                  const tmx::Map&        map)
+{
+    const auto& objLayer = layer->getLayerAs<tmx::ObjectGroup>();
+    _collisionLayers.emplace_back(std::make_unique<MapCollisionLayer>());
+    bool created = _collisionLayers.back()->create(map, idx);
+    if (!created)
+        std::cerr << "Failed to create collision layer. Id: " << idx << "\n";
 }
 } // namespace megaman

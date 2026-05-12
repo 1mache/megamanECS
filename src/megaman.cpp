@@ -40,9 +40,8 @@ ent_type createPlayer(b2WorldId world, float x, float y, int hp)
 
     bagel::World::addComponent<Animation>(ent, {});
     bagel::World::addComponent<Drawable>(ent, {.texture = nullptr});
-    bagel::World::addComponent<MTransform>(
-        ent,
-        {.x = x, .y = y, .w = halfW, .h = halfH});
+    bagel::World::addComponent<MTransform>(ent,
+                                           {.x = x, .y = y, .w = halfW, .h = halfH});
     bagel::World::addComponent<Movement>(ent, {.mass = 1.f, .bodyId = body});
     bagel::World::addComponent<Collision>(ent, {});
     bagel::World::addComponent<Health>(ent, {.points = hp});
@@ -102,9 +101,8 @@ ent_type createProjectile(float x, float y, float velX, float velY)
 
     bagel::World::addComponent<Drawable>(ent, {.texture = nullptr});
     bagel::World::addComponent<MTransform>(ent, {.x = x, .y = y});
-    bagel::World::addComponent<Movement>(
-        ent,
-        {.mass = 1, .velX = velX, .velY = velY});
+    bagel::World::addComponent<Movement>(ent,
+                                         {.mass = 1, .velX = velX, .velY = velY});
     bagel::World::addComponent<Collision>(ent, {});
 
     return ent;
@@ -115,8 +113,7 @@ ent_type createTrigger(float x, float y, float width, float height)
     ent_type ent = bagel::World::createEntity();
 
     bagel::World::addComponent<MTransform>(ent, {.x = x, .y = y});
-    bagel::World::addComponent<Collision>(ent,
-                                          {.width = width, .height = height});
+    bagel::World::addComponent<Collision>(ent, {.width = width, .height = height});
 
     return ent;
 }
@@ -190,9 +187,9 @@ void MovementSystem::run()
         if (e.test(mask))
         {
             const auto& m = e.get<Movement>();
-            // // Body-owned entities: position handled by CollisionSystem sync.
-            // if (B2_IS_NON_NULL(m.bodyId))
-            //     continue;
+            // Body-owned entities: position handled by CollisionSystem sync.
+            if (B2_IS_NON_NULL(m.bodyId))
+                continue;
 
             auto& t = e.get<MTransform>();
             t.x += m.velX;
@@ -288,14 +285,17 @@ void CollisionSystem::run(b2WorldId world)
     {
         if (e.test(mask))
         {
-            // const auto& m = e.get<Movement>();
-            // if (B2_IS_NULL(m.bodyId))
-            //     continue;
+            const auto& m = e.get<Movement>();
+            if (B2_IS_NULL(m.bodyId))
+                continue;
 
-            auto& t = e.get<MTransform>();
-            // const b2Vec2 pos = b2Body_GetPosition(m.bodyId);
-            // t.x = pos.x;
-            // t.y = pos.y;
+            auto vel = b2Body_GetLinearVelocity(m.bodyId);
+            b2Body_SetLinearVelocity(m.bodyId, {m.velX * 10, vel.y});
+
+            auto&        t = e.get<MTransform>();
+            const b2Vec2 pos = b2Body_GetPosition(m.bodyId);
+            t.x = pos.x;
+            t.y = pos.y;
 
             GlobalData::updateCamPosition(t.x, t.y);
         }
