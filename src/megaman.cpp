@@ -21,6 +21,10 @@ constexpr float PATROLLER_Y_RANGE = 1.5f;
 constexpr bool  LOCKSTER_HAS_BULLETS = false;
 constexpr float DAMAGEFROMBULLET = 0.5f;
 constexpr float DAMAGEFROMENEMYCOLLISION = 1.f;
+constexpr float EXPLOSION_SPRITE_W = 22.f;
+constexpr float EXPLOSION_SPRITE_H = 24.f;
+constexpr int   EXPLOSION_FRAMES   = 3;
+constexpr float EXPLOSION_SCALE    = 2.f;
 } // namespace
 
 namespace megaman
@@ -185,6 +189,27 @@ ent_type createProjectile(float x, float y, float velX, float velY, bool fromEne
     return ent;
 }
 
+ent_type createExplosion(float x, float y)
+{
+    constexpr float halfW = EXPLOSION_SPRITE_W / (2.f * GlobalData::PTM);
+    constexpr float halfH = EXPLOSION_SPRITE_H / (2.f * GlobalData::PTM);
+
+    ent_type ent = bagel::World::createEntity();
+
+    bagel::World::addComponent<MTransform>(ent, {.x = x, .y = y, .w = halfW, .h = halfH});
+    bagel::World::addComponent<Drawable>(ent, {.texture = GlobalData::getExplosionTexture(),
+                                               .spriteW = EXPLOSION_SPRITE_W,
+                                               .spriteH = EXPLOSION_SPRITE_H,
+                                               .drawScale = EXPLOSION_SCALE,
+                                               .idleStart = 0,
+                                               .idleCount = EXPLOSION_FRAMES});
+    bagel::World::addComponent<Animation>(ent, {});
+    bagel::World::addComponent<Movement>(ent, {});
+    bagel::World::addComponent<Explosion>(ent, {});
+
+    return ent;
+}
+
 ent_type createTrigger(float x, float y, float width, float height)
 {
     ent_type ent = bagel::World::createEntity();
@@ -326,6 +351,9 @@ void AnimationSystem::run()
     {
         if (e.test(mask))
         {
+            if (e.has<Explosion>())
+                continue;
+
             auto &a = e.get<Animation>();
             const auto &m = e.get<Movement>();
 
@@ -598,20 +626,43 @@ void HealthSystem::run()
 {
     static const bagel::Mask mask = bagel::MaskBuilder().set<Health>().build();
 
+    std::vector<ent_type> toDestroy;
+
     for (bagel::Entity e = bagel::Entity::first(); !e.eof(); e.next())
     {
-        if (e.test(mask))
+        if (!e.test(mask))
+            continue;
+
+        auto &h = e.get<Health>();
+        if (h.isInvulnerable && --h.invulnerableTimer <= 0)
         {
-            auto &h = e.get<Health>();
-            if (h.isInvulnerable && --h.invulnerableTimer <= 0)
+            h.isInvulnerable = false;
+            h.isContactInvulnerable = false;
+        }
+        if (h.points <= 0)
+        {
+            if (e.has<Enemy>())
             {
-                h.isInvulnerable = false;
-                h.isContactInvulnerable = false;
+                const MTransform &t = e.get<MTransform>();
+                createExplosion(t.x, t.y);
+                if (e.has<Movement>())
+                {
+                    Movement &m = e.get<Movement>();
+                    if (b2Body_IsValid(m.bodyId))
+                        b2DestroyBody(m.bodyId);
+                    m.bodyId = b2_nullBodyId;
+                }
+                toDestroy.push_back(e.entity());
             }
-            if (h.points <= 0)
+            else
+            {
                 h.isDead = true;
+            }
         }
     }
+
+    for (ent_type e : toDestroy)
+        bagel::Entity{e}.destroy();
 }
 
 namespace
@@ -861,5 +912,33 @@ void RespawnSystem::run()
 
 void SoundSystem::run()
 {
+}
+
+void ExplosionSystem::run()
+{
+    static const bagel::Mask mask =
+        bagel::MaskBuilder().set<Explosion>().set<Animation>().set<Drawable>().build();
+
+    std::vector<ent_type> toDestroy;
+
+    for (bagel::Entity e = bagel::Entity::first(); !e.eof(); e.next())
+    {
+        if (!e.test(mask))
+            continue;
+
+        auto &a = e.get<Animation>();
+        const auto &d = e.get<Drawable>();
+
+        if (++a.frameTimer >= ANIM_SPEED)
+        {
+            a.frameTimer = 0;
+            ++a.currentFrame;
+            if (a.currentFrame >= d.idleCount)
+                toDestroy.push_back(e.entity());
+        }
+    }
+
+    for (ent_type e : toDestroy)
+        bagel::Entity{e}.destroy();
 }
 } // namespace megaman

@@ -22,6 +22,7 @@ namespace megaman
     struct Sound;
     struct Projectile;
     struct Respawn;
+    struct Explosion;
 } // namespace megaman
 
 // ============= STORAGE SPECIALIZATIONS =============
@@ -114,6 +115,12 @@ template <>
 struct bagel::Storage<megaman::Respawn> final : bagel::NoInstance
 {
     using type = bagel::StackStorage<megaman::Respawn>;
+};
+
+template <>
+struct bagel::Storage<megaman::Explosion> final : bagel::NoInstance
+{
+    using type = bagel::StackStorage<megaman::Explosion>;
 };
 
 namespace megaman
@@ -281,6 +288,11 @@ namespace megaman
         bool  isRespawning{};
     };
 
+    struct Explosion
+    {
+        // Preferred storage: Stack, short-lived entities created on enemy death.
+    };
+
     // ============= SYSTEMS    =============
 
     class InputSystem final : bagel::NoInstance
@@ -349,6 +361,12 @@ namespace megaman
         static void run();
     };
 
+    class ExplosionSystem final : bagel::NoInstance
+    {
+    public:
+        static void run();
+    };
+
     // ============= ENTITIES   =============
 
     ent_type createPlayer(b2WorldId world, float x, float y, int hp);
@@ -362,6 +380,8 @@ namespace megaman
     ent_type createPlatform(float x, float y, bool isMoving);
 
     ent_type createProjectile(float x, float y, float velX, float velY, bool fromEnemy);
+
+    ent_type createExplosion(float x, float y);
 
     ent_type createTrigger(float x, float y, float width, float height);
 

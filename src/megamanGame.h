@@ -37,6 +37,7 @@ namespace megaman
         void aiSystem();
         void healthSystem();
         void respawnSystem();
+        void explosionSystem();
 
         SDL_Window   *_win = nullptr;
         SDL_Renderer *_ren = nullptr;
@@ -44,6 +45,7 @@ namespace megaman
         SDL_Texture  *_enemyTex = nullptr;
         SDL_Texture  *_locksterTex = nullptr;
         SDL_Texture  *_shotTex = nullptr;
+        SDL_Texture  *_explosionTex = nullptr;
 
         b2WorldId _box = b2_nullWorldId;
         Scene     _scene{MAP_PATH};

@@ -85,6 +85,14 @@ MegamanGame::MegamanGame()
     }
     GlobalData::setShotTexture(_shotTex);
 
+    _explosionTex = IMG_LoadTexture(_ren, "res/explosion.png");
+    if (_explosionTex == nullptr)
+    {
+        std::cout << SDL_GetError() << std::endl;
+        return;
+    }
+    GlobalData::setExplosionTexture(_explosionTex);
+
     b2WorldDef worldDef = b2DefaultWorldDef();
     worldDef.gravity = {0, -GlobalData::GRAVITY};
     _box = b2CreateWorld(&worldDef);
@@ -152,6 +160,8 @@ MegamanGame::~MegamanGame()
         SDL_DestroyTexture(_locksterTex);
     if (_shotTex != nullptr)
         SDL_DestroyTexture(_shotTex);
+    if (_explosionTex != nullptr)
+        SDL_DestroyTexture(_explosionTex);
     if (_ren != nullptr)
         SDL_DestroyRenderer(_ren);
     if (_win != nullptr)
@@ -170,6 +180,7 @@ void MegamanGame::animationSystem(){ AnimationSystem::run(); }
 void MegamanGame::aiSystem()       { AISystem::run(); }
 void MegamanGame::healthSystem()   { HealthSystem::run(); }
 void MegamanGame::respawnSystem()  { RespawnSystem::run(); }
+void MegamanGame::explosionSystem(){ ExplosionSystem::run(); }
 
 void MegamanGame::run()
 {
@@ -185,6 +196,7 @@ void MegamanGame::run()
         boxSystem();
         damageSystem();
         healthSystem();
+        explosionSystem();
         respawnSystem();
         animationSystem();
 

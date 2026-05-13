@@ -44,6 +44,17 @@ namespace megaman
             return _shotTex;
         }
 
+        static void setExplosionTexture(SDL_Texture *tex)
+        {
+            assert(tex != nullptr && "setExplosionTexture: trying to pass nullptr");
+            _explosionTex = tex;
+        }
+
+        static SDL_Texture *getExplosionTexture()
+        {
+            return _explosionTex;
+        }
+
         static SDL_Window *getWindow()
         {
             assert(_window != nullptr && "getWindow: window was not created");
@@ -90,6 +101,7 @@ namespace megaman
         static inline SDL_Window   *_window{};
         static inline SDL_Renderer *_renderer{};
         static inline SDL_Texture  *_shotTex{};
+        static inline SDL_Texture  *_explosionTex{};
         static inline CameraData    _camData{START_CAM_X, START_CAM_Y};
     };
 } // namespace megaman
