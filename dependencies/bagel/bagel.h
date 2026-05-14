@@ -18,7 +18,7 @@ namespace bagel
 
 /**** Parameters ****/
 // Maximum number of different component types that can be represented in a mask.
-constexpr int MaxComponents = 12;
+constexpr int MaxComponents = 20;
 
 // If true, internal arrays can grow when more entities/components are created.
 // If false, the fixed-size StaticBag version is used.
@@ -427,7 +427,7 @@ public:
 private:
     static inline Bag<Mask, 100>      _masks;
     static inline Bag<id_type, 100>   _ids;
-    static inline Bag<DeleteFunc, 10> _deleters;
+    static inline Bag<DeleteFunc, MaxComponents> _deleters;
     static inline id_type             _maxId = -1;
 };
 

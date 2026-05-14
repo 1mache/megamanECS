@@ -1,44 +1,53 @@
 #pragma once
 
 #include "Scene.h"
-#include "megaman.h"
 #include <SDL3/SDL.h>
 #include <box2d/box2d.h>
 
 namespace megaman
 {
-class MegamanGame
-{
-public:
-    MegamanGame();
-    ~MegamanGame();
-
-    bool valid() const
+    class MegamanGame
     {
-        return _win != nullptr && _ren != nullptr;
-    }
-    void run();
+    public:
+        MegamanGame();
+        ~MegamanGame();
 
-private:
-    static constexpr int         HP = 3;
-    static constexpr int         WIN_W = 720;
-    static constexpr int         WIN_H = 540;
-    static constexpr int         FPS = 60;
-    static constexpr Uint64      GAME_FRAME = 1000 / FPS;
-    static constexpr const char* MAP_PATH = "res/map/map.tmx";
-    static constexpr const char* PLAYER_TEXTURE_PATH = "res/player.png";
+        bool valid() const
+        {
+            return _win != nullptr && _ren != nullptr;
+        }
+        void run();
 
-    void inputSystem();
-    void moveSystem();
-    void boxSystem();
-    void drawSystem();
-    void animationSystem();
+    private:
+        static constexpr int         HP = 3;
+        static constexpr int         WIN_W = 720;
+        static constexpr int         WIN_H = 540;
+        static constexpr int         FPS = 60;
+        static constexpr Uint64      GAME_FRAME = 1000 / FPS;
+        static constexpr const char* MAP_PATH = "res/map/map.tmx";
+        static constexpr const char* PLAYER_TEXTURE_PATH = "res/player.png";
 
-    SDL_Window*   _win = nullptr;
-    SDL_Renderer* _ren = nullptr;
-    SDL_Texture*  _tex = nullptr;
+        void inputSystem();
+        void moveSystem();
+        void shootingSystem();
+        void boxSystem();
+        void damageSystem();
+        void drawSystem();
+        void animationSystem();
+        void aiSystem();
+        void healthSystem();
+        void respawnSystem();
+        void explosionSystem();
 
-    b2WorldId _box = b2_nullWorldId;
-    Scene     _scene{MAP_PATH};
-};
+        SDL_Window   *_win = nullptr;
+        SDL_Renderer *_ren = nullptr;
+        SDL_Texture  *_tex = nullptr;
+        SDL_Texture  *_enemyTex = nullptr;
+        SDL_Texture  *_locksterTex = nullptr;
+        SDL_Texture  *_shotTex = nullptr;
+        SDL_Texture  *_explosionTex = nullptr;
+
+        b2WorldId _box = b2_nullWorldId;
+        Scene     _scene{MAP_PATH};
+    };
 } // namespace megaman

@@ -8,16 +8,21 @@
 
 namespace megaman
 { // forward declarations
-struct Animation;
-struct Movement;
-struct Collision;
-struct Drawable;
-struct Health;
-struct Input;
-struct Enemy;
-struct AI;
-struct Weapon;
-struct Sound;
+    struct Animation;
+    struct Movement;
+    struct Collision;
+    struct Drawable;
+    struct Health;
+    struct Input;
+    struct Intent;
+    struct DamageIntent;
+    struct Enemy;
+    struct AI;
+    struct Weapon;
+    struct Sound;
+    struct Projectile;
+    struct Respawn;
+    struct Explosion;
 } // namespace megaman
 
 // ============= STORAGE SPECIALIZATIONS =============
@@ -65,6 +70,18 @@ struct bagel::Storage<megaman::Input> final : bagel::NoInstance
 };
 
 template <>
+struct bagel::Storage<megaman::Intent> final : bagel::NoInstance
+{
+    using type = bagel::PackedStorage<megaman::Intent>;
+};
+
+template <>
+struct bagel::Storage<megaman::DamageIntent> final : bagel::NoInstance
+{
+    using type = bagel::PackedStorage<megaman::DamageIntent>;
+};
+
+template <>
 struct bagel::Storage<megaman::Enemy> final : bagel::NoInstance
 {
     using type = bagel::TaggedStorage<megaman::Enemy>;
@@ -88,170 +105,289 @@ struct bagel::Storage<megaman::Sound> final : bagel::NoInstance
     using type = bagel::StackStorage<megaman::Sound>;
 };
 
+template <>
+struct bagel::Storage<megaman::Projectile> final : bagel::NoInstance
+{
+    using type = bagel::StackStorage<megaman::Projectile>;
+};
+
+template <>
+struct bagel::Storage<megaman::Respawn> final : bagel::NoInstance
+{
+    using type = bagel::StackStorage<megaman::Respawn>;
+};
+
+template <>
+struct bagel::Storage<megaman::Explosion> final : bagel::NoInstance
+{
+    using type = bagel::StackStorage<megaman::Explosion>;
+};
+
 namespace megaman
 {
-using ent_type = bagel::ent_type;
+    using ent_type = bagel::ent_type;
 
-// ============= COMPONENTS =============
+    // ============= COMPONENTS =============
 
-struct Animation
-{
-    enum State
+    struct Animation
     {
-        IDLE,
-        RUN,
-        JUMP
+        enum State
+        {
+            IDLE,
+            RUN,
+            JUMP
+        };
+        State state{IDLE};
+        int currentFrame{};
+        int frameTimer{};
     };
-    State state{IDLE};
-    int   currentFrame{};
-    int   frameTimer{};
-};
 
-struct Movement
-{
-    // Preferred storage: Packed, per frame iteration even though entities
-    // with movement will be created and destroyed "frequently" so stack is an option too.
+    struct Movement
+    {
+        // Preferred storage: Packed, per frame iteration even though entities
+        // with movement will be created and destroyed "frequently" so stack is an option too.
 
-    float mass{};
-    float velX{};
-    float velY{};
-    float accX{}; // acceleration
-    float accY{};
-    // Box2D body. If non-null, body owns position (Movement integration skipped).
-    b2BodyId bodyId{};
-};
+        float mass{};
+        float velX{};
+        float velY{};
+        float accX{};
+        float accY{};
+        b2BodyId bodyId{};
+        bool facingLeft{};
+    };
 
-struct Collision
-{
-    // Preferred storage: Packed, same reason as Movement since its also physics related.
+    struct Collision
+    {
+        // Preferred storage: Packed, same reason as Movement since its also physics related.
 
-    // for now: collider box centered on entity position, so only width and height matter.
-    // note: possible different shapes of colliders in the future so shape member can be added.
-    float width{};
-    float height{};
-};
+        float width{};
+        float height{};
+    };
 
-struct Drawable
-{
-    // Preferred storage: Sparse, almost every entity can be drawn to the screen.
-    // Holes will be filled quickly with new objects so we can get away with one array.
+    struct Drawable
+    {
+        // Preferred storage: Sparse, almost every entity can be drawn to the screen.
 
-    SDL_Texture* texture{nullptr};
-};
+        SDL_Texture *texture{nullptr};
+        float spriteW{};
+        float spriteH{};
+        float drawScale{1.f};
+        int idleStart{};
+        int idleCount{};
+        int runStart{};
+        int runCount{};
+        int jumpStart{};
+        int jumpCount{};
+        bool defaultFacingLeft{true};
+    };
 
-struct Health
-{
-    // Preferred storage: Stack, relatively few entities will have health and
-    // they are created and destroyed a lot.
+    struct Health
+    {
+        // Preferred storage: Stack, relatively few entities will have health and
+        // they are created and destroyed a lot.
 
-    int  points{};
-    bool isInvulnerable{};
-    bool isDead{};
-};
+        float points{};
+        bool isInvulnerable{};
+        bool isContactInvulnerable{};
+        bool isDead{};
+        bool justHit{};
+        int invulnerableTimer{};
+    };
 
-struct Input
-{
-    // Preferred storage: Tagged, we only need to know if entity has it
-    // so it can react to input events.
-};
+    struct Input
+    {
+        // Preferred storage: Tagged, we only need to know if entity has it
+        // so it can react to input events.
+    };
 
-struct Enemy
-{
-    // Preferred storage: Tagged, only need to know if entity has it.
-};
+    struct Intent
+    {
+        // What the entity wants to do this frame.
+        // InputSystem writes this for the player; AISystem writes it for enemies.
+        // MovementSystem and ShootingSystem consume it.
+        bool moveLeft{};
+        bool moveRight{};
+        bool moveUp{};
+        bool moveDown{};
+        bool shoot{};
+        float speed{};
+    };
 
-struct AI
-{
-    // Preferred storage: Stack, relatively few entities will have AI
-    // and they are likely to be created and destroyed frequently.
+    struct DamageIntent
+    {
+        // Queued damage written by CollisionSystem, consumed by DamageSystem.
+        float amount{};
+        bool pending{};
+        bool fromContact{};
+    };
 
-    int state{-1}; // or some custom type later
-};
+    struct Enemy
+    {
+        // Preferred storage: Tagged, only need to know if entity has it.
+    };
 
-struct Weapon
-{
-    // Preferred storage: Stack, few entities will be able to shoot
-    // and be in the scene at the same time, we dont want to waste large array for their possibly large ids.
+    struct AI
+    {
+        enum class Type
+        {
+            Patroller,
+            Lockster
+        };
+        enum State
+        {
+            PATROL,
+            CHASE_SHOOT
+        };
 
-    int projectileType{-1}; // or some custom type later
-};
+        Type type{};
+        State state{};
+        float patrolMinX{};
+        float patrolMaxX{};
+        float detectionRange{};
+        float speed{};
+        int alertTimer{};
+        float chargeSpeed{};
+        float spawnX{};
+        float spawnY{};
+        int shootCooldown{};
+        int shotsFired{};
+        bool patrollingRight{true};
+        float targetX{};
+        int freezeFrames{};
+    };
 
-struct Sound
-{
-    // Preferred storage: Stack, a lot of entities can have sound effects tied to them
-    // and a lot of them die and get created frequently.
+    struct Weapon
+    {
+        // Preferred storage: Stack, few entities will be able to shoot
+        // and be in the scene at the same time.
 
-    int  sound{-1}; // or some way to hold sound data
-    bool isPlaying{false};
-};
+        int projectileType{-1};
+        int shootCooldown{};
+    };
 
-// ============= SYSTEMS    =============
+    struct Sound
+    {
+        // Preferred storage: Stack, a lot of entities can have sound effects tied to them
+        // and a lot of them die and get created frequently.
 
-class InputSystem final : bagel::NoInstance
-{
-public:
-    static void run();
-};
+        int sound{-1};
+        bool isPlaying{false};
+    };
 
-class MovementSystem final : bagel::NoInstance
-{
-public:
-    static void run();
-};
+    struct Projectile
+    {
+        bool fromEnemy{};
+    };
 
-class AnimationSystem final : bagel::NoInstance
-{
-public:
-    static void run();
-};
+    struct Respawn
+    {
+        float spawnX{};
+        float spawnY{};
+        float maxHp{};
+        int   flickerTimer{};
+        bool  isRespawning{};
+    };
 
-class DrawingSystem final : bagel::NoInstance
-{
-public:
-    static void run(SDL_Renderer* ren, SDL_Texture* tex);
-};
+    struct Explosion
+    {
+        // Preferred storage: Stack, short-lived entities created on enemy death.
+    };
 
-class CollisionSystem final : bagel::NoInstance
-{
-public:
-    static void run(b2WorldId box);
-};
+    // ============= SYSTEMS    =============
 
-class HealthSystem final : bagel::NoInstance
-{
-public:
-    static void run();
-};
+    class InputSystem final : bagel::NoInstance
+    {
+    public:
+        static void run();
+    };
 
-class AISystem final : bagel::NoInstance
-{
-public:
-    static void run();
-};
+    class MovementSystem final : bagel::NoInstance
+    {
+    public:
+        static void run();
+    };
 
-class SoundSystem final : bagel::NoInstance
-{
-public:
-    static void run();
-};
+    class AnimationSystem final : bagel::NoInstance
+    {
+    public:
+        static void run();
+    };
 
-// ============= ENTITIES   =============
+    class DrawingSystem final : bagel::NoInstance
+    {
+    public:
+        static void run(SDL_Renderer *ren);
+    };
 
-ent_type createPlayer(b2WorldId world, float x, float y, int hp);
+    class ShootingSystem final : bagel::NoInstance
+    {
+    public:
+        static void run();
+    };
 
-ent_type createEnemy(float x, float y, int hp);
+    class CollisionSystem final : bagel::NoInstance
+    {
+    public:
+        static void run(b2WorldId box);
+    };
 
-ent_type createBoss(float x, float y, int hp);
+    class DamageSystem final : bagel::NoInstance
+    {
+    public:
+        static void run();
+    };
 
-ent_type createPlatform(float x, float y, bool isMoving);
+    class HealthSystem final : bagel::NoInstance
+    {
+    public:
+        static void run();
+    };
 
-ent_type createProjectile(float x, float y, float velX, float velY);
+    class AISystem final : bagel::NoInstance
+    {
+    public:
+        static void run();
+    };
 
-ent_type createTrigger(float x, float y, float width, float height);
+    class SoundSystem final : bagel::NoInstance
+    {
+    public:
+        static void run();
+    };
 
-ent_type createItem(float x, float y);
+    class RespawnSystem final : bagel::NoInstance
+    {
+    public:
+        static void run();
+    };
 
-ent_type createText(float x, float y, const std::string& text);
+    class ExplosionSystem final : bagel::NoInstance
+    {
+    public:
+        static void run();
+    };
 
-ent_type createSoundSource(float x, float y, int sound);
+    // ============= ENTITIES   =============
+
+    ent_type createPlayer(b2WorldId world, float x, float y, int hp);
+
+    ent_type createPatroller(b2WorldId world, float x, float y, float hp, float patrolMinX, float patrolMaxX, float detectionRange, float speed);
+
+    ent_type createLockster(b2WorldId world, float x, float y, float hp, float detectionRange, float chargeSpeed);
+
+    ent_type createBoss(float x, float y, float hp);
+
+    ent_type createPlatform(float x, float y, bool isMoving);
+
+    ent_type createProjectile(float x, float y, float velX, float velY, bool fromEnemy);
+
+    ent_type createExplosion(float x, float y);
+
+    ent_type createTrigger(float x, float y, float width, float height);
+
+    ent_type createItem(float x, float y);
+
+    ent_type createText(float x, float y, const std::string &text);
+
+    ent_type createSoundSource(float x, float y, int sound);
 } // namespace megaman
