@@ -22,8 +22,8 @@ target_sources(
         WorldBoundsM.h
         megaman.cpp
         megaman.h
-        megamanGame.cpp
-        megamanGame.h
+        MegamanGame.cpp
+        MegamanGame.h
 )
 
 target_include_directories(

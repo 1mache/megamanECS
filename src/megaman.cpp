@@ -1,6 +1,6 @@
-#include "megaman.h"
 #include "GlobalData.h"
 #include "MTransform.h"
+#include "megaman.h"
 #include <cmath>
 #include <iostream>
 #include <vector>

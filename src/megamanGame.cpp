@@ -1,4 +1,4 @@
-#include "megamanGame.h"
+#include "MegamanGame.h"
 #include "GlobalData.h"
 #include "megaman.h"
 #include <SDL3_image/SDL_image.h>
