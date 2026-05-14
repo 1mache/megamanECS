@@ -2,6 +2,7 @@
 #include "CameraData.h"
 #include "MapCollisionLayer.h"
 #include "MapImageLayer.h"
+#include "MapObjectLayer.h"
 #include "MapTileLayer.h"
 #include "Texture.h"
 #include <SDL3/SDL.h>
@@ -14,7 +15,8 @@ namespace megaman
 class Scene
 {
 public:
-    constexpr static const char* SOLID_CLASS = "solid";
+    static constexpr const char* SOLID_CLASS  = "solid";
+    static constexpr const char* SPAWNS_CLASS = "spawns";
 
 public:
     explicit Scene(std::string filePath) : _filePath(std::move(filePath)) {};
@@ -33,6 +35,11 @@ public:
     // an axis, locks cam to map center on that axis.
     void clampCameraToBounds(CameraData& cam) const;
 
+    const MapObjectLayer* getObjectLayer(std::size_t i = 0) const
+    {
+        return i < _objectLayers.size() ? _objectLayers[i].get() : nullptr;
+    }
+
 private:
     void processTileLayer(const tmx::Layer::Ptr& layer,
                           unsigned int           idx,
@@ -44,6 +51,9 @@ private:
     void processCollisionLayer(const tmx::Layer::Ptr& layer,
                                unsigned int           idx,
                                const tmx::Map&        map);
+    void processObjectLayer(const tmx::Layer::Ptr& layer,
+                            unsigned int           idx,
+                            const tmx::Map&        map);
 
 
     std::string                                     _filePath;
@@ -52,5 +62,6 @@ private:
     std::vector<std::unique_ptr<MapTileLayer>>      _tileLayers;
     std::vector<std::unique_ptr<MapImageLayer>>     _imageLayers;
     std::vector<std::unique_ptr<MapCollisionLayer>> _collisionLayers;
+    std::vector<std::unique_ptr<MapObjectLayer>>    _objectLayers;
 };
 } // namespace megaman

@@ -37,6 +37,8 @@ void Scene::load(SDL_Renderer* renderer)
             {
                 if (mapLayers[i]->getClass() == SOLID_CLASS)
                     processCollisionLayer(mapLayers[i], i, map);
+                else if (mapLayers[i]->getClass() == SPAWNS_CLASS)
+                    processObjectLayer(mapLayers[i], i, map);
             }
             else if (mapLayers[i]->getType() == tmx::Layer::Type::Image)
             {
@@ -107,10 +109,18 @@ void Scene::clampCameraToBounds(CameraData& cam) const
     // otherwise clamp
     // maxCx - minCx = (b.maxX - halfW) - (b.minX + halfW)
     //               = mapWidth - viewWidth
-    cam.posX = (minCx > maxCx) ? (b.minX + b.maxX) * 0.5f
-                               : std::clamp(cam.posX, minCx, maxCx);
-    cam.posY = (minCy > maxCy) ? (b.minY + b.maxY) * 0.5f
-                               : std::clamp(cam.posY, minCy, maxCy);
+    const float clampedX = (minCx > maxCx) ? (b.minX + b.maxX) * 0.5f
+                                           : std::clamp(cam.posX, minCx, maxCx);
+    const float clampedY = (minCy > maxCy) ? (b.minY + b.maxY) * 0.5f
+                                           : std::clamp(cam.posY, minCy, maxCy);
+
+    // pixel snapping the camera
+    const float pixelW = 1.f / (GlobalData::PTM * GlobalData::SCALE_FACTOR);
+    const float pixelSnappedX = std::round(clampedX / pixelW) * pixelW;
+    const float pixelSnappedY = std::round(clampedY / pixelW) * pixelW;
+
+    cam.posX = pixelSnappedX;
+    cam.posY = pixelSnappedY;
 }
 
 void Scene::processTileLayer(const tmx::Layer::Ptr& layer,
@@ -152,5 +162,15 @@ void Scene::processCollisionLayer(const tmx::Layer::Ptr& layer,
     bool created = _collisionLayers.back()->create(map, idx);
     if (!created)
         std::cerr << "Failed to create collision layer. Id: " << idx << "\n";
+}
+
+void Scene::processObjectLayer(const tmx::Layer::Ptr& layer,
+                               unsigned int           idx,
+                               const tmx::Map&        map)
+{
+    _objectLayers.emplace_back(std::make_unique<MapObjectLayer>());
+    bool created = _objectLayers.back()->create(map, idx);
+    if (!created)
+        std::cerr << "Failed to create object layer. Id: " << idx << "\n";
 }
 } // namespace megaman
