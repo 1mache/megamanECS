@@ -95,13 +95,13 @@ MegamanGame::MegamanGame()
 
     b2WorldDef worldDef = b2DefaultWorldDef();
     worldDef.gravity = {0, -GlobalData::GRAVITY};
-    _box = b2CreateWorld(&worldDef);
+    _boxWorld = b2CreateWorld(&worldDef);
 
     _scene.load(_ren);
-    _scene.attachPhysics(_box);
+    _scene.attachPhysics(_boxWorld);
 
     // TODO: take position from _scene
-    ent_type player = createPlayer(_box, 14, 4.5f, MegamanGame::HP);
+    ent_type player = createPlayer(_boxWorld, 14, 4.5f, MegamanGame::HP);
     {
         auto& d = bagel::World::getComponent<Drawable>(player);
         d.texture = _tex;
@@ -117,7 +117,7 @@ MegamanGame::MegamanGame()
     }
 
     ent_type patrolingEnemy =
-        createPatroller(_box, 3.f, 4.5f, MegamanGame::HP, 1.f, 5.f, 6.f, 0.05f);
+        createPatroller(_boxWorld, 3.f, 4.5f, MegamanGame::HP, 1.f, 5.f, 6.f, 0.05f);
     {
         auto& d = bagel::World::getComponent<Drawable>(patrolingEnemy);
         d.texture = _enemyTex;
@@ -134,7 +134,7 @@ MegamanGame::MegamanGame()
     }
 
     ent_type lockster =
-        createLockster(_box, 40.f, 4.5f, MegamanGame::HP, 15.f, 0.18f);
+        createLockster(_boxWorld, 40.f, 4.5f, MegamanGame::HP, 15.f, 0.18f);
     {
         auto& d = bagel::World::getComponent<Drawable>(lockster);
         d.texture = _locksterTex;
@@ -153,8 +153,8 @@ MegamanGame::MegamanGame()
 
 MegamanGame::~MegamanGame()
 {
-    if (b2World_IsValid(_box))
-        b2DestroyWorld(_box);
+    if (b2World_IsValid(_boxWorld))
+        b2DestroyWorld(_boxWorld);
     if (_tex != nullptr)
         SDL_DestroyTexture(_tex);
     if (_enemyTex != nullptr)
@@ -173,51 +173,6 @@ MegamanGame::~MegamanGame()
     SDL_Quit();
 }
 
-void MegamanGame::inputSystem()
-{
-    InputSystem::run();
-}
-void MegamanGame::moveSystem()
-{
-    MovementSystem::run();
-}
-void MegamanGame::shootingSystem()
-{
-    ShootingSystem::run();
-}
-void MegamanGame::boxSystem()
-{
-    CollisionSystem::run(_box);
-}
-void MegamanGame::damageSystem()
-{
-    DamageSystem::run();
-}
-void MegamanGame::drawSystem()
-{
-    DrawingSystem::run(_ren);
-}
-void MegamanGame::animationSystem()
-{
-    AnimationSystem::run();
-}
-void MegamanGame::aiSystem()
-{
-    AISystem::run();
-}
-void MegamanGame::healthSystem()
-{
-    HealthSystem::run();
-}
-void MegamanGame::respawnSystem()
-{
-    RespawnSystem::run();
-}
-void MegamanGame::explosionSystem()
-{
-    ExplosionSystem::run();
-}
-
 void MegamanGame::run()
 {
     auto start = SDL_GetTicks();
@@ -227,9 +182,9 @@ void MegamanGame::run()
     {
         inputSystem();
         aiSystem();
-        moveSystem();
+        movementSystem();
         shootingSystem();
-        boxSystem();
+        collisionSystem(_boxWorld);
         damageSystem();
         healthSystem();
         explosionSystem();
@@ -247,7 +202,7 @@ void MegamanGame::run()
         if (_scene.isValid())
             _scene.draw(_ren, GlobalData::getCamData());
 
-        drawSystem();
+        drawSystem(_ren);
         SDL_RenderPresent(_ren);
 
         const auto end = SDL_GetTicks();

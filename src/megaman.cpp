@@ -283,7 +283,7 @@ ent_type createSoundSource(float x, float y, int sound)
 
 // ============= SYSTEMS =============
 
-void InputSystem::run()
+void inputSystem()
 {
     static const bagel::Mask mask =
         bagel::MaskBuilder().set<Input>().set<Intent>().build();
@@ -305,7 +305,7 @@ void InputSystem::run()
     }
 }
 
-void MovementSystem::run()
+void movementSystem()
 {
     static const bagel::Mask mask =
         bagel::MaskBuilder().set<MTransform>().set<Movement>().build();
@@ -348,7 +348,7 @@ void MovementSystem::run()
     }
 }
 
-void ShootingSystem::run()
+void shootingSystem()
 {
     static const bagel::Mask mask = bagel::MaskBuilder()
                                         .set<Intent>()
@@ -382,7 +382,7 @@ void ShootingSystem::run()
     }
 }
 
-void AnimationSystem::run()
+void animationSystem()
 {
     static const bagel::Mask mask =
         bagel::MaskBuilder().set<Animation>().set<Movement>().build();
@@ -424,7 +424,7 @@ void AnimationSystem::run()
     }
 }
 
-void DrawingSystem::run(SDL_Renderer* ren)
+void drawSystem(SDL_Renderer* ren)
 {
     static const bagel::Mask mask = bagel::MaskBuilder()
                                         .set<MTransform>()
@@ -487,7 +487,7 @@ void DrawingSystem::run(SDL_Renderer* ren)
     }
 }
 
-void CollisionSystem::run(b2WorldId world)
+void collisionSystem(b2WorldId world)
 {
     constexpr float dt = 1.f / static_cast<float>(GlobalData::FPS);
     constexpr int   subSteps = 4;
@@ -633,7 +633,7 @@ void CollisionSystem::run(b2WorldId world)
     }
 }
 
-void DamageSystem::run()
+void damageSystem()
 {
     static const bagel::Mask mask =
         bagel::MaskBuilder().set<DamageIntent>().set<Health>().build();
@@ -685,7 +685,7 @@ void DamageSystem::run()
     }
 }
 
-void HealthSystem::run()
+void healthSystem()
 {
     static const bagel::Mask mask = bagel::MaskBuilder().set<Health>().build();
 
@@ -837,7 +837,7 @@ void tickLockster(AI&               ai,
 }
 } // namespace
 
-void AISystem::run()
+void aiSystem()
 {
     static const bagel::Mask playerMask =
         bagel::MaskBuilder().set<Input>().set<MTransform>().build();
@@ -897,7 +897,7 @@ void AISystem::run()
     }
 }
 
-void RespawnSystem::run()
+void respawnSystem()
 {
     static const bagel::Mask mask = bagel::MaskBuilder()
                                         .set<Respawn>()
@@ -995,11 +995,11 @@ void RespawnSystem::run()
     }
 }
 
-void SoundSystem::run()
+void soundSystem()
 {
 }
 
-void ExplosionSystem::run()
+void explosionSystem()
 {
     static const bagel::Mask mask = bagel::MaskBuilder()
                                         .set<Explosion>()

@@ -81,35 +81,35 @@
 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
 </data>
  </layer>
- <objectgroup id="5" name="Objects">
-  <object id="1" name="Player Spawn" type="player-spawn" x="60.6667" y="210">
+ <objectgroup id="5" name="Objects" class="spawns">
+  <object id="1" name="Player Spawn" type="player" x="60.6667" y="210">
    <point/>
   </object>
-  <object id="3" type="ptr-spawn" x="582.667" y="138">
+  <object id="3" type="ptrol" x="582.667" y="138">
    <point/>
   </object>
-  <object id="4" type="ptr-dest" x="407.333" y="138">
+  <object id="4" type="ptrol-dest" x="407.333" y="138">
    <point/>
   </object>
-  <object id="6" type="lock-spawn" x="1072.67" y="176">
+  <object id="6" type="lockster" x="1072.67" y="176">
    <point/>
   </object>
-  <object id="7" type="lock-spawn" x="1240" y="176">
+  <object id="7" type="lockster" x="1240" y="176">
    <point/>
   </object>
-  <object id="8" type="lock-spawn" x="1462" y="176">
+  <object id="8" type="lockster" x="1462" y="176">
    <point/>
   </object>
-  <object id="9" type="ptr-spawn" x="1550" y="135">
+  <object id="9" type="ptrol" x="1550" y="135">
    <point/>
   </object>
-  <object id="10" type="ptr-dest" x="1759.33" y="135">
+  <object id="10" type="ptrol-dest" x="1759.33" y="135">
    <point/>
   </object>
-  <object id="12" type="ptr-spawn" x="2548.67" y="122">
+  <object id="12" type="ptrol" x="2548.67" y="122">
    <point/>
   </object>
-  <object id="13" type="ptr-dest" x="2375.33" y="122">
+  <object id="13" type="ptrol-dest" x="2375.33" y="122">
    <point/>
   </object>
   <object id="14" type="flask" x="863.333" y="154">

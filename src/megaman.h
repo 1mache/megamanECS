@@ -295,77 +295,18 @@ namespace megaman
 
     // ============= SYSTEMS    =============
 
-    class InputSystem final : bagel::NoInstance
-    {
-    public:
-        static void run();
-    };
-
-    class MovementSystem final : bagel::NoInstance
-    {
-    public:
-        static void run();
-    };
-
-    class AnimationSystem final : bagel::NoInstance
-    {
-    public:
-        static void run();
-    };
-
-    class DrawingSystem final : bagel::NoInstance
-    {
-    public:
-        static void run(SDL_Renderer *ren);
-    };
-
-    class ShootingSystem final : bagel::NoInstance
-    {
-    public:
-        static void run();
-    };
-
-    class CollisionSystem final : bagel::NoInstance
-    {
-    public:
-        static void run(b2WorldId box);
-    };
-
-    class DamageSystem final : bagel::NoInstance
-    {
-    public:
-        static void run();
-    };
-
-    class HealthSystem final : bagel::NoInstance
-    {
-    public:
-        static void run();
-    };
-
-    class AISystem final : bagel::NoInstance
-    {
-    public:
-        static void run();
-    };
-
-    class SoundSystem final : bagel::NoInstance
-    {
-    public:
-        static void run();
-    };
-
-    class RespawnSystem final : bagel::NoInstance
-    {
-    public:
-        static void run();
-    };
-
-    class ExplosionSystem final : bagel::NoInstance
-    {
-    public:
-        static void run();
-    };
+    void inputSystem();
+    void movementSystem();
+    void animationSystem();
+    void drawSystem(SDL_Renderer* ren);
+    void shootingSystem();
+    void collisionSystem(b2WorldId box);
+    void damageSystem();
+    void healthSystem();
+    void aiSystem();
+    void soundSystem();
+    void respawnSystem();
+    void explosionSystem();
 
     // ============= ENTITIES   =============
 
