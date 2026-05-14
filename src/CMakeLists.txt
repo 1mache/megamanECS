@@ -13,6 +13,9 @@ target_sources(
         MapTileLayer.cpp
         MapCollisionLayer.h
         MapCollisionLayer.cpp
+        MapObjectLayer.h
+        MapObjectLayer.cpp
+        SpawnPoint.h
         Texture.h
         Texture.cpp
         CameraData.h
