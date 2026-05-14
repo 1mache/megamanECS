@@ -2,11 +2,13 @@
 #include "CameraData.h"
 #include "MapCollisionLayer.h"
 #include "MapImageLayer.h"
-#include "MapObjectLayer.h"
+#include "MapSpawnLayer.h"
 #include "MapTileLayer.h"
+#include "SpawnPoint.h"
 #include "Texture.h"
 #include <SDL3/SDL.h>
 #include <memory>
+#include <optional>
 #include <string>
 #include <vector>
 
@@ -15,7 +17,7 @@ namespace megaman
 class Scene
 {
 public:
-    static constexpr const char* SOLID_CLASS  = "solid";
+    static constexpr const char* SOLID_CLASS = "solid";
     static constexpr const char* SPAWNS_CLASS = "spawns";
 
 public:
@@ -35,10 +37,9 @@ public:
     // an axis, locks cam to map center on that axis.
     void clampCameraToBounds(CameraData& cam) const;
 
-    const MapObjectLayer* getObjectLayer(std::size_t i = 0) const
-    {
-        return i < _objectLayers.size() ? _objectLayers[i].get() : nullptr;
-    }
+    const std::vector<SpawnPoint>& getPlayerSpawns() const;
+    const std::vector<SpawnPoint>& getEnemySpawns() const;
+    const std::vector<SpawnPoint>& getItemSpawns() const;
 
 private:
     void processTileLayer(const tmx::Layer::Ptr& layer,
@@ -62,6 +63,6 @@ private:
     std::vector<std::unique_ptr<MapTileLayer>>      _tileLayers;
     std::vector<std::unique_ptr<MapImageLayer>>     _imageLayers;
     std::vector<std::unique_ptr<MapCollisionLayer>> _collisionLayers;
-    std::vector<std::unique_ptr<MapObjectLayer>>    _objectLayers;
+    std::optional<MapSpawnLayer>                    _spawnLayer;
 };
 } // namespace megaman

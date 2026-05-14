@@ -123,6 +123,24 @@ void Scene::clampCameraToBounds(CameraData& cam) const
     cam.posY = pixelSnappedY;
 }
 
+const std::vector<SpawnPoint>& Scene::getPlayerSpawns() const
+{
+    static const std::vector<SpawnPoint> empty;
+    return _spawnLayer ? _spawnLayer->getPlayerCheckpoints() : empty;
+}
+
+const std::vector<SpawnPoint>& Scene::getEnemySpawns() const
+{
+    static const std::vector<SpawnPoint> empty;
+    return _spawnLayer ? _spawnLayer->getEnemiesSpawnPos() : empty;
+}
+
+const std::vector<SpawnPoint>& Scene::getItemSpawns() const
+{
+    static const std::vector<SpawnPoint> empty;
+    return _spawnLayer ? _spawnLayer->getItemsSpawnPos() : empty;
+}
+
 void Scene::processTileLayer(const tmx::Layer::Ptr& layer,
                              unsigned int           idx,
                              const tmx::Map&        map)
@@ -168,9 +186,9 @@ void Scene::processObjectLayer(const tmx::Layer::Ptr& layer,
                                unsigned int           idx,
                                const tmx::Map&        map)
 {
-    _objectLayers.emplace_back(std::make_unique<MapObjectLayer>());
-    bool created = _objectLayers.back()->create(map, idx);
-    if (!created)
-        std::cerr << "Failed to create object layer. Id: " << idx << "\n";
+    assert(!_spawnLayer && "Multiple spawn layers in map — only one supported");
+    _spawnLayer.emplace();
+    if (!_spawnLayer->create(map, idx))
+        std::cerr << "Failed to create spawn layer. Id: " << idx << "\n";
 }
 } // namespace megaman

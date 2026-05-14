@@ -9,15 +9,10 @@
 namespace megaman
 {
 
-class MapObjectLayer final
+class MapSpawnLayer final
 {
 public:
-    static constexpr const char* PLAYER_CLASS = "player";
-    static constexpr const char* ENEMY_CLASS = "enemy";
-    static constexpr const char* ITEM_CLASS = "item";
-
-public:
-    MapObjectLayer() = default;
+    MapSpawnLayer() = default;
 
     bool create(const tmx::Map& map, std::uint32_t layerIndex);
 

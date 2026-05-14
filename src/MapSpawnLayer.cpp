@@ -1,4 +1,4 @@
-#include "MapObjectLayer.h"
+#include "MapSpawnLayer.h"
 
 #include "GlobalData.h"
 
@@ -11,7 +11,7 @@
 namespace megaman
 {
 
-bool MapObjectLayer::create(const tmx::Map& map, std::uint32_t layerIndex)
+bool MapSpawnLayer::create(const tmx::Map& map, std::uint32_t layerIndex)
 {
     const auto& layers = map.getLayers();
     assert(layerIndex < layers.size());
@@ -43,22 +43,29 @@ bool MapObjectLayer::create(const tmx::Map& map, std::uint32_t layerIndex)
             continue;
         }
 
-        const SpawnPoint sp{.x = wx, .y = wy};
+        SpawnPoint sp{.x = wx, .y = wy};
 
-        if (objClass == PLAYER_CLASS)
+        if (objClass == spawnTypeToString(SpawnPoint::Type::Player))
         {
+            sp.type = SpawnPoint::Type::Player;
             _playerCheckpoints.push_back(sp);
         }
-        else if (objClass == ENEMY_CLASS)
+        else if (objClass == spawnTypeToString(SpawnPoint::Type::Ptrol))
         {
+            sp.type = SpawnPoint::Type::Ptrol;
             _enemySpawns.push_back(sp);
         }
-        else if (objClass == ITEM_CLASS)
+        else if (objClass == spawnTypeToString(SpawnPoint::Type::Lockster))
         {
+            sp.type = SpawnPoint::Type::Lockster;
+            _enemySpawns.push_back(sp);
+        }
+        else if (objClass == spawnTypeToString(SpawnPoint::Type::Flask))
+        {
+            sp.type = SpawnPoint::Type::Flask;
             _itemSpawns.push_back(sp);
         }
     }
-
     return isValid();
 }
 
