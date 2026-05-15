@@ -293,23 +293,25 @@ void explosionSystem();
 
 // ============= ENTITIES   =============
 
-ent_type createPlayer(b2WorldId world, float x, float y, int hp);
+ent_type createPlayer(b2WorldId world, float x, float y, int hp, SDL_Texture* tex);
 
-ent_type createPatroller(b2WorldId world,
-                         float     x,
-                         float     y,
-                         float     hp,
-                         float     patrolMinX,
-                         float     patrolMaxX,
-                         float     detectionRange,
-                         float     speed);
+ent_type createPatroller(b2WorldId    world,
+                         float        x,
+                         float        y,
+                         float        hp,
+                         float        patrolMinX,
+                         float        patrolMaxX,
+                         float        detectionRange,
+                         float        speed,
+                         SDL_Texture* tex);
 
-ent_type createLockster(b2WorldId world,
-                        float     x,
-                        float     y,
-                        float     hp,
-                        float     detectionRange,
-                        float     chargeSpeed);
+ent_type createLockster(b2WorldId    world,
+                        float        x,
+                        float        y,
+                        float        hp,
+                        float        detectionRange,
+                        float        chargeSpeed,
+                        SDL_Texture* tex);
 
 ent_type createBoss(float x, float y, float hp);
 

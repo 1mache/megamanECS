@@ -5,38 +5,6 @@
 #include <SDL3_image/SDL_image.h>
 #include <iostream>
 
-namespace
-{
-constexpr float PLAYER_SPRITE_W = 28.f;
-constexpr float PLAYER_SPRITE_H = 28.f;
-constexpr float PLAYER_SCALE = 3.f;
-constexpr int   PLAYER_IDLE_START = 8;
-constexpr int   PLAYER_IDLE_COUNT = 1;
-constexpr int   PLAYER_RUN_START = 0;
-constexpr int   PLAYER_RUN_COUNT = 4;
-constexpr int   PLAYER_JUMP_START = 10;
-constexpr int   PLAYER_JUMP_COUNT = 1;
-
-constexpr float ENEMY_SPRITE_W = 24.f;
-constexpr float ENEMY_SPRITE_H = 24.f;
-constexpr float ENEMY_SCALE = 2.f;
-constexpr int   ENEMY_IDLE_START = 0;
-constexpr int   ENEMY_IDLE_COUNT = 1;
-constexpr int   ENEMY_RUN_START = 0;
-constexpr int   ENEMY_RUN_COUNT = 2;
-constexpr int   ENEMY_JUMP_START = 0;
-constexpr int   ENEMY_JUMP_COUNT = 1;
-
-constexpr float LOCKSTER_SPRITE_W = 24.f;
-constexpr float LOCKSTER_SPRITE_H = 24.f;
-constexpr float LOCKSTER_SCALE = 2.f;
-constexpr int   LOCKSTER_IDLE_START = 0;
-constexpr int   LOCKSTER_IDLE_COUNT = 2;
-constexpr int   LOCKSTER_ALERT_START = 2;
-constexpr int   LOCKSTER_ALERT_COUNT = 4;
-constexpr int   LOCKSTER_CHARGE_START = 6;
-constexpr int   LOCKSTER_CHARGE_COUNT = 2;
-} // namespace
 
 namespace megaman
 {
@@ -102,69 +70,35 @@ MegamanGame::MegamanGame()
     _scene.attachPhysics(_boxWorld);
 
     const auto& playerSpawns = _scene.getPlayerSpawns();
-    ent_type    player = createPlayer(_boxWorld,
-                                      playerSpawns[0].x,
-                                      playerSpawns[0].y,
-                                      MegamanGame::HP);
-    {
-        auto& d = bagel::World::getComponent<Drawable>(player);
-        d.texture = _tex;
-        d.spriteW = PLAYER_SPRITE_W;
-        d.spriteH = PLAYER_SPRITE_H;
-        d.drawScale = PLAYER_SCALE;
-        d.idleStart = PLAYER_IDLE_START;
-        d.idleCount = PLAYER_IDLE_COUNT;
-        d.runStart = PLAYER_RUN_START;
-        d.runCount = PLAYER_RUN_COUNT;
-        d.jumpStart = PLAYER_JUMP_START;
-        d.jumpCount = PLAYER_JUMP_COUNT;
-    }
+    createPlayer(_boxWorld,
+                 playerSpawns[0].x,
+                 playerSpawns[0].y,
+                 MegamanGame::HP,
+                 _tex);
 
     for (const SpawnPoint& sp : _scene.getEnemySpawns())
     {
         if (sp.type == SpawnPoint::Type::Ptrol)
         {
-            ent_type patrolingEnemy = createPatroller(_boxWorld,
-                                                      sp.x,
-                                                      sp.y,
-                                                      MegamanGame::HP,
-                                                      1.f,
-                                                      5.f,
-                                                      6.f,
-                                                      0.05f);
-            {
-                auto& d = bagel::World::getComponent<Drawable>(patrolingEnemy);
-                d.texture = _enemyTex;
-                d.spriteW = ENEMY_SPRITE_W;
-                d.spriteH = ENEMY_SPRITE_H;
-                d.drawScale = ENEMY_SCALE;
-                d.idleStart = ENEMY_IDLE_START;
-                d.idleCount = ENEMY_IDLE_COUNT;
-                d.runStart = ENEMY_RUN_START;
-                d.runCount = ENEMY_RUN_COUNT;
-                d.jumpStart = ENEMY_JUMP_START;
-                d.jumpCount = 1;
-                d.defaultFacingLeft = false;
-            }
+            createPatroller(_boxWorld,
+                            sp.x,
+                            sp.y,
+                            MegamanGame::HP,
+                            1.f,
+                            5.f,
+                            6.f,
+                            0.05f,
+                            _enemyTex);
         }
         else if (sp.type == SpawnPoint::Type::Lockster)
         {
-            ent_type lockster =
-                createLockster(_boxWorld, sp.x, sp.y, MegamanGame::HP, 15.f, 0.18f);
-            {
-                auto& d = bagel::World::getComponent<Drawable>(lockster);
-                d.texture = _locksterTex;
-                d.spriteW = LOCKSTER_SPRITE_W;
-                d.spriteH = LOCKSTER_SPRITE_H;
-                d.drawScale = LOCKSTER_SCALE;
-                d.idleStart = LOCKSTER_IDLE_START;
-                d.idleCount = LOCKSTER_IDLE_COUNT;
-                d.jumpStart = LOCKSTER_ALERT_START;
-                d.jumpCount = LOCKSTER_ALERT_COUNT;
-                d.runStart = LOCKSTER_CHARGE_START;
-                d.runCount = LOCKSTER_CHARGE_COUNT;
-                d.defaultFacingLeft = false;
-            }
+            createLockster(_boxWorld,
+                           sp.x,
+                           sp.y,
+                           MegamanGame::HP,
+                           15.f,
+                           0.18f,
+                           _locksterTex);
         }
     }
 }

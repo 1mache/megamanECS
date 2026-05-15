@@ -7,32 +7,70 @@
 
 namespace
 {
-constexpr float SPRITE_W = 28.f;
-constexpr float SPRITE_H = 28.f;
-constexpr int   RUN_START = 0;
-constexpr int   RUN_COUNT = 4;
-constexpr int   IDLE_START = 8;
-constexpr int   IDLE_COUNT = 1;
-constexpr int   JUMP_START = 10;
-constexpr int   JUMP_COUNT = 1;
-constexpr int   ANIM_SPEED = 8;
-constexpr float BULLET_SPEED = 0.15f;
+// --- Player ---
+constexpr float PLAYER_SPRITE_W = 28.f;
+constexpr float PLAYER_SPRITE_H = 28.f;
+constexpr float PLAYER_SCALE = 3.f;
+constexpr int   PLAYER_IDLE_START = 8;
+constexpr int   PLAYER_IDLE_COUNT = 1;
+constexpr int   PLAYER_RUN_START = 0;
+constexpr int   PLAYER_RUN_COUNT = 4;
+constexpr int   PLAYER_JUMP_START = 10;
+constexpr int   PLAYER_JUMP_COUNT = 1;
+
+// --- Patroller enemy ---
+constexpr float PATROLLER_HALF_W = 0.733f / 2.f;
+constexpr float PATROLLER_HALF_H = 0.8f / 2.f;
+constexpr float PATROLLER_SPRITE_W = 24.f;
+constexpr float PATROLLER_SPRITE_H = 24.f;
+constexpr float PATROLLER_SCALE = 2.f;
+constexpr int   PATROLLER_IDLE_START = 0;
+constexpr int   PATROLLER_IDLE_COUNT = 1;
+constexpr int   PATROLLER_RUN_START = 0;
+constexpr int   PATROLLER_RUN_COUNT = 2;
+constexpr int   PATROLLER_JUMP_START = 0;
+constexpr int   PATROLLER_JUMP_COUNT = 1;
 constexpr float PATROLLER_Y_RANGE = 1.5f;
+
+// --- Lockster enemy ---
+constexpr float LOCKSTER_HALF_W = 0.7f / 2.f;
+constexpr float LOCKSTER_HALF_H = 0.7f / 2.f;
+constexpr float LOCKSTER_SPRITE_W = 24.f;
+constexpr float LOCKSTER_SPRITE_H = 24.f;
+constexpr float LOCKSTER_SCALE = 2.f;
+constexpr int   LOCKSTER_IDLE_START = 0;
+constexpr int   LOCKSTER_IDLE_COUNT = 2;
+constexpr int   LOCKSTER_ALERT_START = 2;
+constexpr int   LOCKSTER_ALERT_COUNT = 4;
+constexpr int   LOCKSTER_CHARGE_START = 6;
+constexpr int   LOCKSTER_CHARGE_COUNT = 2;
 constexpr bool  LOCKSTER_HAS_BULLETS = false;
-constexpr float DAMAGEFROMBULLET = 0.5f;
-constexpr float DAMAGEFROMENEMYCOLLISION = 1.f;
+
+// --- Projectile ---
+constexpr float BULLET_SPEED = 0.15f;
+constexpr float SHOT_SPRITE_W = 16.f;
+constexpr float SHOT_SPRITE_H = 8.f;
+
+// --- Explosion ---
 constexpr float EXPLOSION_SPRITE_W = 22.f;
 constexpr float EXPLOSION_SPRITE_H = 24.f;
 constexpr int   EXPLOSION_FRAMES = 3;
 constexpr float EXPLOSION_SCALE = 2.f;
+
+// --- Damage ---
+constexpr float BULLET_DAMAGE = 0.5f;
+constexpr float ENEMY_CONTACT_DAMAGE = 1.f;
+
+// --- Animation ---
+constexpr int ANIM_SPEED = 8;
 } // namespace
 
 namespace megaman
 {
-ent_type createPlayer(b2WorldId world, float x, float y, int hp)
+ent_type createPlayer(b2WorldId world, float x, float y, int hp, SDL_Texture* tex)
 {
-    constexpr float halfW = SPRITE_W / (2 * GlobalData::PTM);
-    constexpr float halfH = SPRITE_H / (2 * GlobalData::PTM);
+    constexpr float halfW = PLAYER_SPRITE_W / (2 * GlobalData::PTM);
+    constexpr float halfH = PLAYER_SPRITE_H / (2 * GlobalData::PTM);
 
     ent_type ent = bagel::World::createEntity();
 
@@ -40,18 +78,31 @@ ent_type createPlayer(b2WorldId world, float x, float y, int hp)
     bodyDef.type = b2_dynamicBody;
     bodyDef.position = {x, y};
     bodyDef.fixedRotation = true;
-    bodyDef.gravityScale = 0.f;
     bodyDef.userData = reinterpret_cast<void*>(static_cast<uintptr_t>(ent.id));
     b2BodyId body = b2CreateBody(world, &bodyDef);
 
     b2ShapeDef shapeDef = b2DefaultShapeDef();
     shapeDef.density = 1.f;
+    shapeDef.material.friction = 0.f;
+    shapeDef.material.restitution = 0.f;
+    shapeDef.material.rollingResistance = 0.f;
+    shapeDef.material.tangentSpeed = 0.f;
     shapeDef.enableContactEvents = true;
     b2Polygon boxShape = b2MakeBox(halfW, halfH);
     b2CreatePolygonShape(body, &shapeDef, &boxShape);
 
     bagel::World::addComponent<Animation>(ent, {});
-    bagel::World::addComponent<Drawable>(ent, {.texture = nullptr});
+    bagel::World::addComponent<Drawable>(ent,
+                                         {.texture = tex,
+                                          .spriteW = PLAYER_SPRITE_W,
+                                          .spriteH = PLAYER_SPRITE_H,
+                                          .drawScale = PLAYER_SCALE,
+                                          .idleStart = PLAYER_IDLE_START,
+                                          .idleCount = PLAYER_IDLE_COUNT,
+                                          .runStart = PLAYER_RUN_START,
+                                          .runCount = PLAYER_RUN_COUNT,
+                                          .jumpStart = PLAYER_JUMP_START,
+                                          .jumpCount = PLAYER_JUMP_COUNT});
     bagel::World::addComponent<MTransform>(ent,
                                            {.x = x, .y = y, .w = halfW, .h = halfH});
     bagel::World::addComponent<Movement>(ent, {.mass = 1.f, .bodyId = body});
@@ -68,18 +119,16 @@ ent_type createPlayer(b2WorldId world, float x, float y, int hp)
     return ent;
 }
 
-ent_type createPatroller(b2WorldId world,
-                         float     x,
-                         float     y,
-                         float     hp,
-                         float     patrolMinX,
-                         float     patrolMaxX,
-                         float     detectionRange,
-                         float     speed)
+ent_type createPatroller(b2WorldId    world,
+                         float        x,
+                         float        y,
+                         float        hp,
+                         float        patrolMinX,
+                         float        patrolMaxX,
+                         float        detectionRange,
+                         float        speed,
+                         SDL_Texture* tex)
 {
-    constexpr float halfW = 0.733f / 2.f;
-    constexpr float halfH = 0.8f / 2.f;
-
     ent_type ent = bagel::World::createEntity();
 
     b2BodyDef bodyDef = b2DefaultBodyDef();
@@ -93,12 +142,24 @@ ent_type createPatroller(b2WorldId world,
     b2ShapeDef shapeDef = b2DefaultShapeDef();
     shapeDef.density = 1.f;
     shapeDef.enableContactEvents = true;
-    b2Polygon boxShape = b2MakeBox(halfW, halfH);
+    b2Polygon boxShape = b2MakeBox(PATROLLER_HALF_W, PATROLLER_HALF_H);
     b2CreatePolygonShape(body, &shapeDef, &boxShape);
 
-    bagel::World::addComponent<Drawable>(ent, {.texture = nullptr});
-    bagel::World::addComponent<MTransform>(ent,
-                                           {.x = x, .y = y, .w = halfW, .h = halfH});
+    bagel::World::addComponent<Drawable>(ent,
+                                         {.texture = tex,
+                                          .spriteW = PATROLLER_SPRITE_W,
+                                          .spriteH = PATROLLER_SPRITE_H,
+                                          .drawScale = PATROLLER_SCALE,
+                                          .idleStart = PATROLLER_IDLE_START,
+                                          .idleCount = PATROLLER_IDLE_COUNT,
+                                          .runStart = PATROLLER_RUN_START,
+                                          .runCount = PATROLLER_RUN_COUNT,
+                                          .jumpStart = PATROLLER_JUMP_START,
+                                          .jumpCount = PATROLLER_JUMP_COUNT,
+                                          .defaultFacingLeft = false});
+    bagel::World::addComponent<MTransform>(
+        ent,
+        {.x = x, .y = y, .w = PATROLLER_HALF_W, .h = PATROLLER_HALF_H});
     bagel::World::addComponent<Movement>(ent, {.mass = 1, .bodyId = body});
     bagel::World::addComponent<Collision>(ent, {});
     bagel::World::addComponent<Health>(ent, {.points = hp});
@@ -119,16 +180,14 @@ ent_type createPatroller(b2WorldId world,
     return ent;
 }
 
-ent_type createLockster(b2WorldId world,
-                        float     x,
-                        float     y,
-                        float     hp,
-                        float     detectionRange,
-                        float     chargeSpeed)
+ent_type createLockster(b2WorldId    world,
+                        float        x,
+                        float        y,
+                        float        hp,
+                        float        detectionRange,
+                        float        chargeSpeed,
+                        SDL_Texture* tex)
 {
-    constexpr float halfW = 0.7f / 2.f;
-    constexpr float halfH = 0.7f / 2.f;
-
     ent_type ent = bagel::World::createEntity();
 
     b2BodyDef bodyDef = b2DefaultBodyDef();
@@ -142,12 +201,24 @@ ent_type createLockster(b2WorldId world,
     b2ShapeDef shapeDef = b2DefaultShapeDef();
     shapeDef.density = 1.f;
     shapeDef.enableContactEvents = true;
-    b2Polygon boxShape = b2MakeBox(halfW, halfH);
+    b2Polygon boxShape = b2MakeBox(LOCKSTER_HALF_W, LOCKSTER_HALF_H);
     b2CreatePolygonShape(body, &shapeDef, &boxShape);
 
-    bagel::World::addComponent<Drawable>(ent, {.texture = nullptr});
-    bagel::World::addComponent<MTransform>(ent,
-                                           {.x = x, .y = y, .w = halfW, .h = halfH});
+    bagel::World::addComponent<Drawable>(ent,
+                                         {.texture = tex,
+                                          .spriteW = LOCKSTER_SPRITE_W,
+                                          .spriteH = LOCKSTER_SPRITE_H,
+                                          .drawScale = LOCKSTER_SCALE,
+                                          .idleStart = LOCKSTER_IDLE_START,
+                                          .idleCount = LOCKSTER_IDLE_COUNT,
+                                          .jumpStart = LOCKSTER_ALERT_START,
+                                          .jumpCount = LOCKSTER_ALERT_COUNT,
+                                          .runStart = LOCKSTER_CHARGE_START,
+                                          .runCount = LOCKSTER_CHARGE_COUNT,
+                                          .defaultFacingLeft = false});
+    bagel::World::addComponent<MTransform>(
+        ent,
+        {.x = x, .y = y, .w = LOCKSTER_HALF_W, .h = LOCKSTER_HALF_H});
     bagel::World::addComponent<Movement>(ent, {.mass = 1, .bodyId = body});
     bagel::World::addComponent<Collision>(ent, {});
     bagel::World::addComponent<Health>(ent, {.points = hp});
@@ -200,8 +271,8 @@ ent_type createProjectile(float x, float y, float velX, float velY, bool fromEne
 
     bagel::World::addComponent<Drawable>(ent,
                                          {.texture = GlobalData::getShotTexture(),
-                                          .spriteW = 16.f,
-                                          .spriteH = 8.f,
+                                          .spriteW = SHOT_SPRITE_W,
+                                          .spriteH = SHOT_SPRITE_H,
                                           .drawScale = 1.f,
                                           .idleStart = 0,
                                           .idleCount = 1});
@@ -304,18 +375,18 @@ void movementSystem()
         if (e.has<Intent>())
         {
             const auto& intent = e.get<Intent>();
-            m.velX = intent.moveLeft    ? -intent.speed
-                     : intent.moveRight ? intent.speed
-                                        : 0.f;
-            m.velY = intent.moveUp ? velY : intent.moveDown ? -velY : 0.f;
-
             if (intent.moveLeft)
                 m.facingLeft = true;
             else if (intent.moveRight)
                 m.facingLeft = false;
 
+            m.velX = intent.moveLeft    ? -intent.speed
+                     : intent.moveRight ? intent.speed
+                                        : 0.f;
+            auto currentVel = b2Body_GetLinearVelocity(m.bodyId);
+
             if (b2Body_IsValid(m.bodyId))
-                b2Body_SetLinearVelocity(m.bodyId, {m.velX * fps, m.velY * fps});
+                b2Body_SetLinearVelocity(m.bodyId, {m.velX * fps, currentVel.y});
         }
 
         if (b2Body_IsValid(m.bodyId))
@@ -528,7 +599,7 @@ void collisionSystem(b2WorldId world)
                     const bool overlapY = std::abs(pt.y - bt.y) < (pt.h + bt.h);
                     if (overlapX && overlapY)
                     {
-                        p.get<DamageIntent>() = {.amount = DAMAGEFROMBULLET,
+                        p.get<DamageIntent>() = {.amount = BULLET_DAMAGE,
                                                  .pending = true,
                                                  .fromContact = false};
                         toDestroy.push_back(bullet.entity());
@@ -547,7 +618,7 @@ void collisionSystem(b2WorldId world)
                 const bool       overlapY = std::abs(et.y - bt.y) < (et.h + bt.h);
                 if (overlapX && overlapY)
                 {
-                    en.get<DamageIntent>() = {.amount = DAMAGEFROMBULLET,
+                    en.get<DamageIntent>() = {.amount = BULLET_DAMAGE,
                                               .pending = true,
                                               .fromContact = false};
                     toDestroy.push_back(bullet.entity());
@@ -587,7 +658,7 @@ void collisionSystem(b2WorldId world)
             pPlayer = &entB;
 
         if (pPlayer)
-            pPlayer->get<DamageIntent>() = {.amount = DAMAGEFROMENEMYCOLLISION,
+            pPlayer->get<DamageIntent>() = {.amount = ENEMY_CONTACT_DAMAGE,
                                             .pending = true,
                                             .fromContact = true};
     }
@@ -606,7 +677,7 @@ void collisionSystem(b2WorldId world)
             const bool       overlapX = std::abs(pt.x - et.x) < (pt.w + et.w);
             const bool       overlapY = std::abs(pt.y - et.y) < (pt.h + et.h);
             if (overlapX && overlapY)
-                player.get<DamageIntent>() = {.amount = DAMAGEFROMENEMYCOLLISION,
+                player.get<DamageIntent>() = {.amount = ENEMY_CONTACT_DAMAGE,
                                               .pending = true,
                                               .fromContact = true};
         }
