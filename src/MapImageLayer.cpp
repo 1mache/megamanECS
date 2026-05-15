@@ -106,12 +106,8 @@ void MapImageLayer::draw(SDL_Renderer* renderer, const CameraData& cam) const
         for (float tx = startX; tx < endX; tx += _transform.w)
         {
             // top-left world: (tx, ty + h) because Y-up, SDL draws from top-left
-            const auto screenTL =
-                worldToScreenPoint({tx, ty + _transform.h}, parallaxCam);
-            const SDL_FRect dst{.x = screenTL.x,
-                                .y = screenTL.y,
-                                .w = wPx,
-                                .h = hPx};
+            auto screenTL = worldToScreenPoint({tx, ty + _transform.h}, parallaxCam);
+            SDL_FRect dst{.x = screenTL.x, .y = screenTL.y, .w = wPx, .h = hPx};
             SDL_RenderTexture(renderer, _texture, nullptr, &dst);
         }
     }

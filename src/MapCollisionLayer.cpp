@@ -29,11 +29,11 @@ bool MapCollisionLayer::create(const tmx::Map& map, std::uint32_t layerIndex)
 
         const auto& aabb = obj.getAABB();
 
-        const float halfW = aabb.width * 0.5f * invPTM;
-        const float halfH = aabb.height * 0.5f * invPTM;
-        const float cx = (aabb.left + aabb.width * 0.5f) * invPTM;
+        float halfW = aabb.width * 0.5f * invPTM;
+        float halfH = aabb.height * 0.5f * invPTM;
+        float cx = (aabb.left + aabb.width * 0.5f) * invPTM;
         // tmxlite Y is down from map top; flip to world Y-up
-        const float cy = mapHM - (aabb.top + aabb.height * 0.5f) * invPTM;
+        float cy = mapHM - (aabb.top + aabb.height * 0.5f) * invPTM;
 
         _rects.push_back({.x = cx, .y = cy, .w = halfW, .h = halfH});
     }

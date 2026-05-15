@@ -60,7 +60,7 @@ bool MapTileLayer::create(const tmx::Map&                 map,
     {
         for (auto x = 0u; x < mapSize.x; ++x)
         {
-            const auto idx = y * mapSize.x + x;
+            auto idx = y * mapSize.x + x;
             // skip tiles whose GID doesnt belong to current tileset
             if (idx >= tileIDs.size() || tileIDs[idx].ID < ts.getFirstGID() ||
                 tileIDs[idx].ID >= ts.getFirstGID() + ts.getTileCount())
@@ -68,7 +68,7 @@ bool MapTileLayer::create(const tmx::Map&                 map,
                 continue;
             }
 
-            const auto localId = tileIDs[idx].ID - ts.getFirstGID();
+            auto localId = tileIDs[idx].ID - ts.getFirstGID();
             // calculate coordinates of tile in uv space
             float u = static_cast<float>(localId %
                                          static_cast<std::uint32_t>(tileCountX)) *
@@ -80,10 +80,10 @@ bool MapTileLayer::create(const tmx::Map&                 map,
                       static_cast<float>(texSize.y);
 
             // World-unit corner positions (Y-up).
-            const float wxL = static_cast<float>(x) * tileWM;
-            const float wxR = wxL + tileWM;
-            const float wyT = mapHM - static_cast<float>(y) * tileHM;
-            const float wyB = wyT - tileHM;
+            float wxL = static_cast<float>(x) * tileWM;
+            float wxR = wxL + tileWM;
+            float wyT = mapHM - static_cast<float>(y) * tileHM;
+            float wyB = wyT - tileHM;
 
             _minX = std::min(_minX, wxL);
             _minY = std::min(_minY, wyB);

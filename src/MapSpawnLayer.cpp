@@ -39,9 +39,7 @@ bool MapSpawnLayer::create(const tmx::Map& map, std::uint32_t layerIndex)
             wy = mapHM - pos.y * invPTM;
         }
         else // only support point objects here
-        {
             continue;
-        }
 
         SpawnPoint sp{.x = wx, .y = wy};
 
