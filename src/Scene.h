@@ -25,7 +25,8 @@ public:
 
     bool isValid() const
     {
-        return _loaded && !_tileLayers.empty();
+        return _loaded && !_tileLayers.empty() && !_collisionLayers.empty() &&
+               _spawnLayer.has_value();
     }
 
     void load(SDL_Renderer* renderer);

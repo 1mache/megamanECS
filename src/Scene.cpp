@@ -149,10 +149,6 @@ void Scene::processTileLayer(const tmx::Layer::Ptr& layer,
     bool created = _tileLayers.back()->create(map, idx, _textures[0]);
     if (!created)
         std::cerr << "Failed to create tile layer. Id: " << idx << "\n";
-
-    // TODO: physics here
-    if (_tileLayers.back()->getClassName() == SOLID_CLASS)
-        std::cout << "Loaded tile layer marked solid. Id: " << idx << "\n";
 }
 
 void Scene::processImageLayer(SDL_Renderer*          renderer,
