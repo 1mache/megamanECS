@@ -8,21 +8,20 @@
 
 namespace megaman
 { // forward declarations
-    struct Animation;
-    struct Movement;
-    struct Collision;
-    struct Drawable;
-    struct Health;
-    struct Input;
-    struct Intent;
-    struct DamageIntent;
-    struct Enemy;
-    struct AI;
-    struct Weapon;
-    struct Sound;
-    struct Projectile;
-    struct Respawn;
-    struct Explosion;
+struct Animation;
+struct Movement;
+struct Collision;
+struct Drawable;
+struct Health;
+struct Input;
+struct Intent;
+struct DamageIntent;
+struct Enemy;
+struct AI;
+struct Weapon;
+struct Projectile;
+struct Respawn;
+struct Explosion;
 } // namespace megaman
 
 // ============= STORAGE SPECIALIZATIONS =============
@@ -100,12 +99,6 @@ struct bagel::Storage<megaman::Weapon> final : bagel::NoInstance
 };
 
 template <>
-struct bagel::Storage<megaman::Sound> final : bagel::NoInstance
-{
-    using type = bagel::StackStorage<megaman::Sound>;
-};
-
-template <>
 struct bagel::Storage<megaman::Projectile> final : bagel::NoInstance
 {
     using type = bagel::StackStorage<megaman::Projectile>;
@@ -125,210 +118,209 @@ struct bagel::Storage<megaman::Explosion> final : bagel::NoInstance
 
 namespace megaman
 {
-    using ent_type = bagel::ent_type;
+using ent_type = bagel::ent_type;
 
-    // ============= COMPONENTS =============
+// ============= COMPONENTS =============
 
-    struct Animation
+struct Animation
+{
+    enum State
     {
-        enum State
-        {
-            IDLE,
-            RUN,
-            JUMP
-        };
-        State state{IDLE};
-        int currentFrame{};
-        int frameTimer{};
+        IDLE,
+        RUN,
+        JUMP
+    };
+    State state{IDLE};
+    int   currentFrame{};
+    int   frameTimer{};
+};
+
+struct Movement
+{
+    // Preferred storage: Packed, per frame iteration even though entities
+    // with movement will be created and destroyed "frequently" so stack is an option too.
+
+    float    mass{};
+    float    velX{};
+    float    velY{};
+    float    accX{};
+    float    accY{};
+    b2BodyId bodyId{};
+    bool     facingLeft{};
+};
+
+struct Collision
+{
+    // Preferred storage: Packed, same reason as Movement since its also physics related.
+
+    float width{};
+    float height{};
+};
+
+struct Drawable
+{
+    // Preferred storage: Sparse, almost every entity can be drawn to the screen.
+
+    SDL_Texture* texture{nullptr};
+    float        spriteW{};
+    float        spriteH{};
+    float        drawScale{1.f};
+    int          idleStart{};
+    int          idleCount{};
+    int          runStart{};
+    int          runCount{};
+    int          jumpStart{};
+    int          jumpCount{};
+    bool         defaultFacingLeft{true};
+};
+
+struct Health
+{
+    // Preferred storage: Stack, relatively few entities will have health and
+    // they are created and destroyed a lot.
+
+    float points{};
+    bool  isInvulnerable{};
+    bool  isContactInvulnerable{};
+    bool  isDead{};
+    bool  justHit{};
+    int   invulnerableTimer{};
+};
+
+struct Input
+{
+    // Preferred storage: Tagged, we only need to know if entity has it
+    // so it can react to input events.
+};
+
+struct Intent
+{
+    // What the entity wants to do this frame.
+    // InputSystem writes this for the player; AISystem writes it for enemies.
+    // MovementSystem and ShootingSystem consume it.
+    bool  moveLeft{};
+    bool  moveRight{};
+    bool  moveUp{};
+    bool  moveDown{};
+    bool  shoot{};
+    float speed{};
+};
+
+struct DamageIntent
+{
+    // Queued damage written by CollisionSystem, consumed by DamageSystem.
+    float amount{};
+    bool  pending{};
+    bool  fromContact{};
+};
+
+struct Enemy
+{
+    // Preferred storage: Tagged, only need to know if entity has it.
+};
+
+struct AI
+{
+    enum class Type
+    {
+        Patroller,
+        Lockster
+    };
+    enum State
+    {
+        PATROL,
+        CHASE_SHOOT
     };
 
-    struct Movement
-    {
-        // Preferred storage: Packed, per frame iteration even though entities
-        // with movement will be created and destroyed "frequently" so stack is an option too.
+    Type  type{};
+    State state{};
+    float patrolMinX{};
+    float patrolMaxX{};
+    float detectionRange{};
+    float speed{};
+    int   alertTimer{};
+    float chargeSpeed{};
+    float spawnX{};
+    float spawnY{};
+    int   shootCooldown{};
+    int   shotsFired{};
+    bool  patrollingRight{true};
+    float targetX{};
+    int   freezeFrames{};
+};
 
-        float mass{};
-        float velX{};
-        float velY{};
-        float accX{};
-        float accY{};
-        b2BodyId bodyId{};
-        bool facingLeft{};
-    };
+struct Weapon
+{
+    // Preferred storage: Stack, few entities will be able to shoot
+    // and be in the scene at the same time.
 
-    struct Collision
-    {
-        // Preferred storage: Packed, same reason as Movement since its also physics related.
+    int projectileType{-1};
+    int shootCooldown{};
+};
 
-        float width{};
-        float height{};
-    };
+struct Projectile
+{
+    bool fromEnemy{};
+};
 
-    struct Drawable
-    {
-        // Preferred storage: Sparse, almost every entity can be drawn to the screen.
+struct Respawn
+{
+    float spawnX{};
+    float spawnY{};
+    float maxHp{};
+    int   flickerTimer{};
+    bool  isRespawning{};
+};
 
-        SDL_Texture *texture{nullptr};
-        float spriteW{};
-        float spriteH{};
-        float drawScale{1.f};
-        int idleStart{};
-        int idleCount{};
-        int runStart{};
-        int runCount{};
-        int jumpStart{};
-        int jumpCount{};
-        bool defaultFacingLeft{true};
-    };
+struct Explosion
+{
+    // Preferred storage: Stack, short-lived entities created on enemy death.
+};
 
-    struct Health
-    {
-        // Preferred storage: Stack, relatively few entities will have health and
-        // they are created and destroyed a lot.
+// ============= SYSTEMS    =============
 
-        float points{};
-        bool isInvulnerable{};
-        bool isContactInvulnerable{};
-        bool isDead{};
-        bool justHit{};
-        int invulnerableTimer{};
-    };
+void inputSystem();
+void movementSystem();
+void animationSystem();
+void drawSystem(SDL_Renderer* ren);
+void shootingSystem();
+void collisionSystem(b2WorldId box);
+void damageSystem();
+void healthSystem();
+void aiSystem();
+void respawnSystem();
+void explosionSystem();
 
-    struct Input
-    {
-        // Preferred storage: Tagged, we only need to know if entity has it
-        // so it can react to input events.
-    };
+// ============= ENTITIES   =============
 
-    struct Intent
-    {
-        // What the entity wants to do this frame.
-        // InputSystem writes this for the player; AISystem writes it for enemies.
-        // MovementSystem and ShootingSystem consume it.
-        bool moveLeft{};
-        bool moveRight{};
-        bool moveUp{};
-        bool moveDown{};
-        bool shoot{};
-        float speed{};
-    };
+ent_type createPlayer(b2WorldId world, float x, float y, int hp);
 
-    struct DamageIntent
-    {
-        // Queued damage written by CollisionSystem, consumed by DamageSystem.
-        float amount{};
-        bool pending{};
-        bool fromContact{};
-    };
+ent_type createPatroller(b2WorldId world,
+                         float     x,
+                         float     y,
+                         float     hp,
+                         float     patrolMinX,
+                         float     patrolMaxX,
+                         float     detectionRange,
+                         float     speed);
 
-    struct Enemy
-    {
-        // Preferred storage: Tagged, only need to know if entity has it.
-    };
+ent_type createLockster(b2WorldId world,
+                        float     x,
+                        float     y,
+                        float     hp,
+                        float     detectionRange,
+                        float     chargeSpeed);
 
-    struct AI
-    {
-        enum class Type
-        {
-            Patroller,
-            Lockster
-        };
-        enum State
-        {
-            PATROL,
-            CHASE_SHOOT
-        };
+ent_type createBoss(float x, float y, float hp);
 
-        Type type{};
-        State state{};
-        float patrolMinX{};
-        float patrolMaxX{};
-        float detectionRange{};
-        float speed{};
-        int alertTimer{};
-        float chargeSpeed{};
-        float spawnX{};
-        float spawnY{};
-        int shootCooldown{};
-        int shotsFired{};
-        bool patrollingRight{true};
-        float targetX{};
-        int freezeFrames{};
-    };
+ent_type createPlatform(float x, float y, bool isMoving);
 
-    struct Weapon
-    {
-        // Preferred storage: Stack, few entities will be able to shoot
-        // and be in the scene at the same time.
+ent_type createProjectile(float x, float y, float velX, float velY, bool fromEnemy);
 
-        int projectileType{-1};
-        int shootCooldown{};
-    };
+ent_type createExplosion(float x, float y);
 
-    struct Sound
-    {
-        // Preferred storage: Stack, a lot of entities can have sound effects tied to them
-        // and a lot of them die and get created frequently.
+ent_type createTrigger(float x, float y, float width, float height);
 
-        int sound{-1};
-        bool isPlaying{false};
-    };
+ent_type createItem(float x, float y);
 
-    struct Projectile
-    {
-        bool fromEnemy{};
-    };
-
-    struct Respawn
-    {
-        float spawnX{};
-        float spawnY{};
-        float maxHp{};
-        int   flickerTimer{};
-        bool  isRespawning{};
-    };
-
-    struct Explosion
-    {
-        // Preferred storage: Stack, short-lived entities created on enemy death.
-    };
-
-    // ============= SYSTEMS    =============
-
-    void inputSystem();
-    void movementSystem();
-    void animationSystem();
-    void drawSystem(SDL_Renderer* ren);
-    void shootingSystem();
-    void collisionSystem(b2WorldId box);
-    void damageSystem();
-    void healthSystem();
-    void aiSystem();
-    void soundSystem();
-    void respawnSystem();
-    void explosionSystem();
-
-    // ============= ENTITIES   =============
-
-    ent_type createPlayer(b2WorldId world, float x, float y, int hp);
-
-    ent_type createPatroller(b2WorldId world, float x, float y, float hp, float patrolMinX, float patrolMaxX, float detectionRange, float speed);
-
-    ent_type createLockster(b2WorldId world, float x, float y, float hp, float detectionRange, float chargeSpeed);
-
-    ent_type createBoss(float x, float y, float hp);
-
-    ent_type createPlatform(float x, float y, bool isMoving);
-
-    ent_type createProjectile(float x, float y, float velX, float velY, bool fromEnemy);
-
-    ent_type createExplosion(float x, float y);
-
-    ent_type createTrigger(float x, float y, float width, float height);
-
-    ent_type createItem(float x, float y);
-
-    ent_type createText(float x, float y, const std::string &text);
-
-    ent_type createSoundSource(float x, float y, int sound);
 } // namespace megaman

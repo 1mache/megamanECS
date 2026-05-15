@@ -1,6 +1,6 @@
+#include "megaman.h"
 #include "GlobalData.h"
 #include "MTransform.h"
-#include "megaman.h"
 #include <cmath>
 #include <iostream>
 #include <vector>
@@ -257,26 +257,6 @@ ent_type createItem(float x, float y)
     bagel::World::addComponent<Drawable>(ent, {.texture = nullptr});
     bagel::World::addComponent<MTransform>(ent, {.x = x, .y = y});
     bagel::World::addComponent<Collision>(ent, {});
-
-    return ent;
-}
-
-ent_type createText(float x, float y, const std::string& text)
-{
-    ent_type ent = bagel::World::createEntity();
-
-    bagel::World::addComponent<Drawable>(ent, {.texture = nullptr});
-    bagel::World::addComponent<MTransform>(ent, {.x = x, .y = y});
-
-    return ent;
-}
-
-ent_type createSoundSource(float x, float y, int sound)
-{
-    ent_type ent = bagel::World::createEntity();
-
-    bagel::World::addComponent<MTransform>(ent, {.x = x, .y = y});
-    bagel::World::addComponent<Sound>(ent, {.sound = sound});
 
     return ent;
 }
@@ -993,10 +973,6 @@ void respawnSystem()
             }
         }
     }
-}
-
-void soundSystem()
-{
 }
 
 void explosionSystem()
