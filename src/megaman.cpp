@@ -2,6 +2,7 @@
 #include "GlobalData.h"
 #include "MTransform.h"
 #include <cmath>
+#include <cstdint>
 #include <iostream>
 #include <vector>
 
@@ -47,9 +48,12 @@ constexpr int   LOCKSTER_CHARGE_COUNT = 2;
 constexpr bool  LOCKSTER_HAS_BULLETS = false;
 
 // --- Projectile ---
-constexpr float BULLET_SPEED = 0.15f;
-constexpr float SHOT_SPRITE_W = 16.f;
-constexpr float SHOT_SPRITE_H = 8.f;
+constexpr float    BULLET_SPEED     = 0.15f;
+constexpr float    SHOT_SPRITE_W    = 16.f;
+constexpr float    SHOT_SPRITE_H    = 8.f;
+constexpr float    BULLET_HALF_W    = 0.2f;
+constexpr float    BULLET_HALF_H    = 0.1f;
+
 
 // --- Explosion ---
 constexpr float EXPLOSION_SPRITE_W = 22.f;
@@ -88,6 +92,8 @@ ent_type createPlayer(b2WorldId world, float x, float y, int hp, SDL_Texture* te
     shapeDef.material.rollingResistance = 0.f;
     shapeDef.material.tangentSpeed = 0.f;
     shapeDef.enableContactEvents = true;
+    shapeDef.filter.categoryBits = CAT_PLAYER;
+    shapeDef.filter.maskBits     = CAT_WORLD | CAT_ENEMY | CAT_ENEMY_BULLET;
     b2Polygon boxShape = b2MakeBox(halfW, halfH);
     b2CreatePolygonShape(body, &shapeDef, &boxShape);
 
@@ -142,6 +148,8 @@ ent_type createPatroller(b2WorldId    world,
     b2ShapeDef shapeDef = b2DefaultShapeDef();
     shapeDef.density = 1.f;
     shapeDef.enableContactEvents = true;
+    shapeDef.filter.categoryBits = CAT_ENEMY;
+    shapeDef.filter.maskBits     = CAT_WORLD | CAT_PLAYER | CAT_PLAYER_BULLET;
     b2Polygon boxShape = b2MakeBox(PATROLLER_HALF_W, PATROLLER_HALF_H);
     b2CreatePolygonShape(body, &shapeDef, &boxShape);
 
@@ -201,6 +209,8 @@ ent_type createLockster(b2WorldId    world,
     b2ShapeDef shapeDef = b2DefaultShapeDef();
     shapeDef.density = 1.f;
     shapeDef.enableContactEvents = true;
+    shapeDef.filter.categoryBits = CAT_ENEMY;
+    shapeDef.filter.maskBits     = CAT_WORLD | CAT_PLAYER | CAT_PLAYER_BULLET;
     b2Polygon boxShape = b2MakeBox(LOCKSTER_HALF_W, LOCKSTER_HALF_H);
     b2CreatePolygonShape(body, &shapeDef, &boxShape);
 
@@ -265,9 +275,30 @@ ent_type createPlatform(float x, float y, bool isMoving)
     return ent;
 }
 
-ent_type createProjectile(float x, float y, float velX, float velY, bool fromEnemy)
+ent_type createProjectile(b2WorldId world, float x, float y, float velX, float velY, bool fromEnemy)
 {
+    constexpr float fps = static_cast<float>(GlobalData::FPS);
+
     ent_type ent = bagel::World::createEntity();
+
+    b2BodyDef bodyDef = b2DefaultBodyDef();
+    bodyDef.type          = b2_dynamicBody;
+    bodyDef.position      = {x, y};
+    bodyDef.fixedRotation = true;
+    bodyDef.gravityScale  = 0.f;
+    bodyDef.isBullet      = true;
+    bodyDef.userData      = reinterpret_cast<void*>(static_cast<uintptr_t>(ent.id));
+    b2BodyId body = b2CreateBody(world, &bodyDef);
+    b2Body_SetLinearVelocity(body, {velX * fps, velY * fps});
+
+    b2ShapeDef shapeDef = b2DefaultShapeDef();
+    shapeDef.density             = 1.f;
+    shapeDef.enableContactEvents = true;
+    shapeDef.filter.categoryBits = fromEnemy ? CAT_ENEMY_BULLET : CAT_PLAYER_BULLET;
+    shapeDef.filter.maskBits     = fromEnemy ? (CAT_WORLD | CAT_PLAYER)
+                                             : (CAT_WORLD | CAT_ENEMY);
+    b2Polygon boxShape = b2MakeBox(BULLET_HALF_W, BULLET_HALF_H);
+    b2CreatePolygonShape(body, &shapeDef, &boxShape);
 
     bagel::World::addComponent<Drawable>(ent,
                                          {.texture = GlobalData::getShotTexture(),
@@ -278,10 +309,8 @@ ent_type createProjectile(float x, float y, float velX, float velY, bool fromEne
                                           .idleCount = 1});
     bagel::World::addComponent<Animation>(ent, {});
     bagel::World::addComponent<MTransform>(ent,
-                                           {.x = x, .y = y, .w = 0.2f, .h = 0.2f});
-    bagel::World::addComponent<Movement>(ent,
-                                         {.mass = 1, .velX = velX, .velY = velY});
-    bagel::World::addComponent<Collision>(ent, {});
+                                           {.x = x, .y = y, .w = BULLET_HALF_W, .h = BULLET_HALF_H});
+    bagel::World::addComponent<Movement>(ent, {.mass = 1, .velX = velX, .velY = velY, .bodyId = body});
     bagel::World::addComponent<Projectile>(ent, {.fromEnemy = fromEnemy});
 
     return ent;
@@ -395,11 +424,6 @@ void movementSystem()
 
         if (b2Body_IsValid(m.bodyId))
             transformUpdateWithB2Pos(t, b2Body_GetPosition(m.bodyId));
-        else
-        {
-            t.x += m.velX;
-            t.y += m.velY;
-        }
     }
 }
 
@@ -428,7 +452,7 @@ void shootingSystem()
             const bool  fromEnemy = !e.has<Input>();
             const float bVelX =
                 e.get<Movement>().facingLeft ? -BULLET_SPEED : BULLET_SPEED;
-            ent_type bullet = createProjectile(t.x, t.y, bVelX, 0.f, fromEnemy);
+            ent_type bullet = createProjectile(GlobalData::getBoxWorld(), t.x, t.y, bVelX, 0.f, fromEnemy);
             if (!fromEnemy)
                 std::cout << "bullet created id=" << bullet.id
                           << " tex=" << GlobalData::getShotTexture() << "\n";
@@ -542,115 +566,110 @@ void drawSystem(SDL_Renderer* ren)
     }
 }
 
+static void destroyProjectile(bagel::Entity ent)
+{
+    if (ent.has<Movement>())
+    {
+        b2BodyId bodyId = ent.get<Movement>().bodyId;
+        if (b2Body_IsValid(bodyId))
+            b2DestroyBody(bodyId);
+    }
+    ent.destroy();
+}
+
 void collisionSystem(b2WorldId world)
 {
-    constexpr float dt = 1.f / static_cast<float>(GlobalData::FPS);
+    constexpr float dt       = 1.f / static_cast<float>(GlobalData::FPS);
     constexpr int   subSteps = 4;
     b2World_Step(world, dt, subSteps);
 
-    static const bagel::Mask playerMask = bagel::MaskBuilder()
-                                              .set<Input>()
-                                              .set<MTransform>()
-                                              .set<Health>()
-                                              .set<DamageIntent>()
-                                              .build();
-    static const bagel::Mask enemyMask = bagel::MaskBuilder()
-                                             .set<Enemy>()
-                                             .set<MTransform>()
-                                             .set<Health>()
-                                             .set<DamageIntent>()
-                                             .build();
-    static const bagel::Mask bulletMask = bagel::MaskBuilder()
-                                              .set<Projectile>()
-                                              .set<MTransform>()
-                                              .set<Movement>()
-                                              .build();
+    static const bagel::Mask playerMask =
+        bagel::MaskBuilder().set<Input>().set<MTransform>().set<Health>().set<DamageIntent>().build();
 
-    ent_type playerEnt{};
-    bool     playerFound = false;
     for (bagel::Entity p = bagel::Entity::first(); !p.eof(); p.next())
     {
         if (p.test(playerMask))
         {
-            playerEnt = p.entity();
-            playerFound = true;
-
-            const auto& t = p.get<MTransform>();
-            GlobalData::updateCamPosition(t.x, t.y);
+            GlobalData::updateCamPosition(p.get<MTransform>().x, p.get<MTransform>().y);
             break;
         }
     }
 
-    std::vector<ent_type> toDestroy;
-
-    for (bagel::Entity bullet = bagel::Entity::first(); !bullet.eof(); bullet.next())
-    {
-        if (!bullet.test(bulletMask))
-            continue;
-
-        const MTransform bt = bullet.get<MTransform>();
-
-        if (bullet.get<Projectile>().fromEnemy)
-        {
-            if (playerFound)
-            {
-                bagel::Entity p{playerEnt};
-                const auto&   ph = p.get<Health>();
-                if (!ph.isInvulnerable)
-                {
-                    const MTransform pt = p.get<MTransform>();
-                    const bool overlapX = std::abs(pt.x - bt.x) < (pt.w + bt.w);
-                    const bool overlapY = std::abs(pt.y - bt.y) < (pt.h + bt.h);
-                    if (overlapX && overlapY)
-                    {
-                        p.get<DamageIntent>() = {.amount = BULLET_DAMAGE,
-                                                 .pending = true,
-                                                 .fromContact = false};
-                        toDestroy.push_back(bullet.entity());
-                    }
-                }
-            }
-        }
-        else
-        {
-            for (bagel::Entity en = bagel::Entity::first(); !en.eof(); en.next())
-            {
-                if (!en.test(enemyMask))
-                    continue;
-                const MTransform et = en.get<MTransform>();
-                const bool       overlapX = std::abs(et.x - bt.x) < (et.w + bt.w);
-                const bool       overlapY = std::abs(et.y - bt.y) < (et.h + bt.h);
-                if (overlapX && overlapY)
-                {
-                    en.get<DamageIntent>() = {.amount = BULLET_DAMAGE,
-                                              .pending = true,
-                                              .fromContact = false};
-                    toDestroy.push_back(bullet.entity());
-                    break;
-                }
-            }
-        }
-    }
-
-    for (ent_type e : toDestroy)
-        bagel::Entity{e}.destroy();
-
+    static const bagel::Mask bulletMask =
+        bagel::MaskBuilder().set<Projectile>().set<Movement>().build();
     static const bagel::Mask inputMask =
         bagel::MaskBuilder().set<Input>().set<DamageIntent>().build();
     static const bagel::Mask enemyTagMask =
         bagel::MaskBuilder().set<Enemy>().build();
+    static const bagel::Mask enemyDamageMask =
+        bagel::MaskBuilder().set<Enemy>().set<DamageIntent>().build();
+
+    std::vector<ent_type> toDestroy;
+
+    auto lookupId = [](b2BodyId body) -> int
+    {
+        return static_cast<int>(reinterpret_cast<uintptr_t>(b2Body_GetUserData(body)));
+    };
+
+    auto alreadyQueued = [&toDestroy](ent_type e) -> bool
+    {
+        for (const ent_type& x : toDestroy)
+            if (x.id == e.id)
+                return true;
+        return false;
+    };
 
     b2ContactEvents contacts = b2World_GetContactEvents(world);
     for (int i = 0; i < contacts.beginCount; ++i)
     {
-        const b2ContactBeginTouchEvent& ev = contacts.beginEvents[i];
-        b2BodyId                        bodyA = b2Shape_GetBody(ev.shapeIdA);
-        b2BodyId                        bodyB = b2Shape_GetBody(ev.shapeIdB);
+        const b2ContactBeginTouchEvent& ev  = contacts.beginEvents[i];
+        const int                       idA = lookupId(b2Shape_GetBody(ev.shapeIdA));
+        const int                       idB = lookupId(b2Shape_GetBody(ev.shapeIdB));
 
-        const int idA =
-            static_cast<int>(reinterpret_cast<uintptr_t>(b2Body_GetUserData(bodyA)));
-        const int idB =
-            static_cast<int>(reinterpret_cast<uintptr_t>(b2Body_GetUserData(bodyB)));
+        if (idA < 0 && idB < 0)
+            continue;
+
+        // Identify which side (if any) is a bullet
+        int bulletId = -1;
+        int otherId  = -1;
+        if (idA >= 0)
+        {
+            bagel::Entity tmp{ent_type{idA}};
+            if (tmp.test(bulletMask)) { bulletId = idA; otherId = idB; }
+        }
+        if (bulletId < 0 && idB >= 0)
+        {
+            bagel::Entity tmp{ent_type{idB}};
+            if (tmp.test(bulletMask)) { bulletId = idB; otherId = idA; }
+        }
+
+        if (bulletId >= 0)
+        {
+            bagel::Entity bullet{ent_type{bulletId}};
+
+            if (!alreadyQueued(bullet.entity()))
+                toDestroy.push_back(bullet.entity());
+
+            if (otherId < 0)
+                continue; // hit world geometry — destroy bullet, no damage
+
+            bagel::Entity other{ent_type{otherId}};
+            const bool    fromEnemy = bullet.get<Projectile>().fromEnemy;
+
+            if (!fromEnemy && other.test(enemyDamageMask))
+                other.get<DamageIntent>() = {.amount      = BULLET_DAMAGE,
+                                             .pending     = true,
+                                             .fromContact = false};
+            else if (fromEnemy && other.test(inputMask))
+                other.get<DamageIntent>() = {.amount      = BULLET_DAMAGE,
+                                             .pending     = true,
+                                             .fromContact = false};
+            continue;
+        }
+
+        // No bullet — check for player-enemy body contact
+        if (idA < 0 || idB < 0)
+            continue;
 
         bagel::Entity entA{ent_type{idA}};
         bagel::Entity entB{ent_type{idB}};
@@ -662,30 +681,13 @@ void collisionSystem(b2WorldId world)
             pPlayer = &entB;
 
         if (pPlayer)
-            pPlayer->get<DamageIntent>() = {.amount = ENEMY_CONTACT_DAMAGE,
-                                            .pending = true,
+            pPlayer->get<DamageIntent>() = {.amount      = ENEMY_CONTACT_DAMAGE,
+                                            .pending     = true,
                                             .fromContact = true};
     }
 
-    if (playerFound)
-    {
-        bagel::Entity    player{playerEnt};
-        const MTransform pt = player.get<MTransform>();
-        for (bagel::Entity enemy = bagel::Entity::first(); !enemy.eof();
-             enemy.next())
-        {
-            if (!enemy.test(enemyMask))
-                continue;
-
-            const MTransform et = enemy.get<MTransform>();
-            const bool       overlapX = std::abs(pt.x - et.x) < (pt.w + et.w);
-            const bool       overlapY = std::abs(pt.y - et.y) < (pt.h + et.h);
-            if (overlapX && overlapY)
-                player.get<DamageIntent>() = {.amount = ENEMY_CONTACT_DAMAGE,
-                                              .pending = true,
-                                              .fromContact = true};
-        }
-    }
+    for (ent_type e : toDestroy)
+        destroyProjectile(bagel::Entity{e});
 }
 
 void damageSystem()
@@ -868,7 +870,7 @@ void tickLockster(AI&               ai,
             if (ai.shotsFired < 3 && ai.alertTimer % 10 == 0)
             {
                 const float velX = t.x < playerX ? 0.15f : -0.15f;
-                createProjectile(t.x, t.y, velX, 0.f, true);
+                createProjectile(GlobalData::getBoxWorld(), t.x, t.y, velX, 0.f, true);
                 ++ai.shotsFired;
             }
         }
@@ -995,7 +997,7 @@ void respawnSystem()
             for (bagel::Entity b = bagel::Entity::first(); !b.eof(); b.next())
             {
                 if (b.test(bulletMask))
-                    b.destroy();
+                    destroyProjectile(b);
             }
         }
         else if (r.isRespawning)

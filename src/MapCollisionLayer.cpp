@@ -1,6 +1,7 @@
 #include "MapCollisionLayer.h"
 
 #include "GlobalData.h"
+#include "megaman.h"
 
 #include <tmxlite/ObjectGroup.hpp>
 
@@ -50,10 +51,13 @@ void MapCollisionLayer::createBodies(b2WorldId worldId)
         b2BodyDef bodyDef = b2DefaultBodyDef();
         bodyDef.type = b2_staticBody;
         bodyDef.position = {rect.x, rect.y};
+        bodyDef.userData = reinterpret_cast<void*>(static_cast<uintptr_t>(-1));
         b2BodyId bodyId = b2CreateBody(worldId, &bodyDef);
 
         b2Polygon  groundBox = b2MakeBox(rect.w, rect.h);
         b2ShapeDef groundShapeDef = b2DefaultShapeDef();
+        groundShapeDef.filter.categoryBits = CAT_WORLD;
+        groundShapeDef.filter.maskBits     = CAT_PLAYER | CAT_ENEMY | CAT_PLAYER_BULLET | CAT_ENEMY_BULLET;
         b2CreatePolygonShape(bodyId, &groundShapeDef, &groundBox);
     }
 }

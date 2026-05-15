@@ -2,6 +2,7 @@
 #include "CameraData.h"
 #include "Utils.h"
 #include <SDL3/SDL.h>
+#include <box2d/box2d.h>
 
 namespace megaman
 {
@@ -54,6 +55,16 @@ public:
         return _explosionTex;
     }
 
+    static void setBoxWorld(b2WorldId worldId)
+    {
+        _boxWorld = worldId;
+    }
+
+    static b2WorldId getBoxWorld()
+    {
+        return _boxWorld;
+    }
+
     static SDL_Window* getWindow()
     {
         massert(_window != nullptr, "getWindow: window was not created");
@@ -101,6 +112,7 @@ private:
     static inline SDL_Renderer* _renderer{};
     static inline SDL_Texture*  _shotTex{};
     static inline SDL_Texture*  _explosionTex{};
+    static inline b2WorldId     _boxWorld{};
     static inline CameraData    _camData{START_CAM_X, START_CAM_Y};
 };
 } // namespace megaman

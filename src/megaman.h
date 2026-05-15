@@ -4,6 +4,7 @@
 #include "SDL3/SDL.h"
 #include "bagel.h"
 #include <box2d/box2d.h>
+#include <cstdint>
 #include <string>
 
 namespace megaman
@@ -119,6 +120,13 @@ struct bagel::Storage<megaman::Explosion> final : bagel::NoInstance
 namespace megaman
 {
 using ent_type = bagel::ent_type;
+
+// Collision filter categories — used by all entity create functions and map bodies
+inline constexpr uint64_t CAT_WORLD         = 0x0001;
+inline constexpr uint64_t CAT_PLAYER        = 0x0002;
+inline constexpr uint64_t CAT_ENEMY         = 0x0004;
+inline constexpr uint64_t CAT_PLAYER_BULLET = 0x0008;
+inline constexpr uint64_t CAT_ENEMY_BULLET  = 0x0010;
 
 // ============= COMPONENTS =============
 
@@ -317,7 +325,7 @@ ent_type createBoss(float x, float y, float hp);
 
 ent_type createPlatform(float x, float y, bool isMoving);
 
-ent_type createProjectile(float x, float y, float velX, float velY, bool fromEnemy);
+ent_type createProjectile(b2WorldId world, float x, float y, float velX, float velY, bool fromEnemy);
 
 ent_type createExplosion(float x, float y);
 

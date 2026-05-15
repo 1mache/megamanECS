@@ -1,4 +1,4 @@
-#include "MegamanGame.h"
+#include "megamanGame.h"
 #include "GlobalData.h"
 #include "Utils.h"
 #include "megaman.h"
@@ -65,6 +65,7 @@ MegamanGame::MegamanGame()
     b2WorldDef worldDef = b2DefaultWorldDef();
     worldDef.gravity = {0, -GlobalData::GRAVITY};
     _boxWorld = b2CreateWorld(&worldDef);
+    GlobalData::setBoxWorld(_boxWorld);
 
     _scene.load(_ren);
     _scene.attachPhysics(_boxWorld);
