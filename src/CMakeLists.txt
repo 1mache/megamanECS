@@ -25,6 +25,7 @@ target_sources(
         megaman.h
         MegamanGame.cpp
         MegamanGame.h
+        Utils.h
 )
 
 target_include_directories(
