@@ -1,8 +1,8 @@
 #include "Texture.h"
+#include "Utils.h"
 
 #include <SDL3_image/SDL_image.h>
 
-#include <cassert>
 #include <iostream>
 
 namespace megaman
@@ -19,14 +19,14 @@ Texture::~Texture()
 
 bool Texture::loadFromFile(const std::string& path, SDL_Renderer* renderer)
 {
-    assert(renderer != nullptr);
-    assert(!path.empty());
+    massert(renderer, "Renderer is null");
+    massert(!path.empty(), "Texture path is empty");
 
     _texture = IMG_LoadTexture(renderer, path.c_str());
     if (!_texture)
     {
-        std::cerr << "IMG_LoadTexture failed for " << path << ": "
-                  << SDL_GetError() << "\n";
+        std::cerr << "IMG_LoadTexture failed for " << path << ": " << SDL_GetError()
+                  << "\n";
         return false;
     }
 

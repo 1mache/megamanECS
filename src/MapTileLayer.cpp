@@ -5,7 +5,7 @@
 
 #include <tmxlite/TileLayer.hpp>
 
-#include <cassert>
+#include "Utils.h"
 namespace megaman
 {
 bool MapTileLayer::create(const tmx::Map&                 map,
@@ -14,9 +14,9 @@ bool MapTileLayer::create(const tmx::Map&                 map,
 {
     _texture = *texture;
     const auto& layers = map.getLayers();
-    // we are loading a tile layer. not object or image
-    assert(layers[layerIndex]->getType() == tmx::Layer::Type::Tile &&
-           "Layer index does not point to a tile layer");
+    massert(layerIndex < layers.size(), "Layer index out of bounds");
+    massert(layers[layerIndex]->getType() == tmx::Layer::Type::Tile &&
+            "Layer index does not point to a tile layer");
 
     const auto& layer = layers[layerIndex]->getLayerAs<tmx::TileLayer>();
     _className = layer.getClass();
@@ -29,7 +29,6 @@ bool MapTileLayer::create(const tmx::Map&                 map,
                                    tint.g / 255.f,
                                    tint.b / 255.f,
                                    tint.a / 255.f};
-
 
     // Map pixel space is Y-down, with (0,0) at the top-left of the map.
     // Convert to world units (meters, Y-up) so verts share a coord system with
@@ -116,12 +115,13 @@ bool MapTileLayer::create(const tmx::Map&                 map,
     _maxY =
         _minY + static_cast<float>(map.getTileCount().y * mapTileSize.y) * invPTM;
 
-    return !(_vertexData.empty());
+    return isValid();
 }
 
 void MapTileLayer::draw(SDL_Renderer* renderer, const CameraData& cam) const
 {
-    assert(renderer);
+    massert(renderer);
+    massert(isValid(), "create must be called successfully before draw");
 
     std::vector<SDL_Vertex> screenVerts{};
     screenVerts.reserve(_vertexData.size());

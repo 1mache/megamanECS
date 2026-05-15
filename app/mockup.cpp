@@ -1,7 +1,7 @@
 #include <SDL3/SDL.h>
 #include <SDL3_image/SDL_image.h>
 
-#include <cassert>
+#include "Utils.h"
 #include <iostream>
 #include <vector>
 
@@ -141,9 +141,7 @@ bool createWindowAndRenderer(const char*    title,
         return false;
     }
 
-    SDL_SetWindowPosition(window,
-                          SDL_WINDOWPOS_CENTERED,
-                          SDL_WINDOWPOS_CENTERED);
+    SDL_SetWindowPosition(window, SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED);
 
     return true;
 }
@@ -167,8 +165,7 @@ void destroyResourcesAndQuit(SDL_Window* window, SDL_Renderer* renderer)
 }
 
 // ============== INIT FUNCTIONS ==================
-SpriteSheet createBackgroundSpriteSheet(SDL_Window*   window,
-                                        SDL_Renderer* renderer)
+SpriteSheet createBackgroundSpriteSheet(SDL_Window* window, SDL_Renderer* renderer)
 {
     SpriteSheet bg{};
     bg.texture = createTexture("res/area.png", renderer);
@@ -213,8 +210,7 @@ SpriteSheet createEnemySpriteSheet(SDL_Window* window, SDL_Renderer* renderer)
     return enemy;
 }
 
-SpriteSheet createExplosionSpriteSheet(SDL_Window*   window,
-                                       SDL_Renderer* renderer)
+SpriteSheet createExplosionSpriteSheet(SDL_Window* window, SDL_Renderer* renderer)
 {
     SpriteSheet explosion{};
     explosion.texture = createTexture("res/explosion.png", renderer);
@@ -255,9 +251,9 @@ void renderBackground(const SpriteSheet& bg, SDL_Renderer* renderer)
 SDL_FRect getNextAnimationFrame(const Animation& anim, int frameIndex)
 {
     // start of the animation on x axis
-    float x = static_cast<float>(anim.startFrameId + frameIndex) *
-              anim.spriteSheet->sw;
-    assert(x + anim.spriteSheet->sw <= anim.spriteSheet->w);
+    float x =
+        static_cast<float>(anim.startFrameId + frameIndex) * anim.spriteSheet->sw;
+    massert(x + anim.spriteSheet->sw <= anim.spriteSheet->w);
 
     SDL_FRect srcRect{x, 0, anim.spriteSheet->sw, anim.spriteSheet->sh};
     return srcRect;
@@ -304,8 +300,7 @@ void setMegamanState(MegamanRuntime& megaman, MegamanState nextState)
     megaman.animFrame = 0;
 }
 
-void advanceMegamanAnimation(MegamanRuntime&  megaman,
-                             const Animation& currentAnim)
+void advanceMegamanAnimation(MegamanRuntime& megaman, const Animation& currentAnim)
 {
     megaman.animFrame = (megaman.animFrame + 1) % currentAnim.frameCount;
 }
@@ -403,8 +398,7 @@ void handleMegamanJump(MegamanRuntime&          megaman,
                                           megaman.worldWidth);
     }
 
-    const float t =
-        static_cast<float>(megaman.jumpFrame) / JUMP_DURATION_FRAMES;
+    const float t = static_cast<float>(megaman.jumpFrame) / JUMP_DURATION_FRAMES;
     const float supportY = getMegamanSupportY(megaman.dstRect);
     megaman.dstRect.y = supportY - JUMP_PEAK_OFFSET * SDL_sinf(SDL_PI_F * t);
     ++megaman.jumpFrame;
@@ -431,16 +425,14 @@ void handleMegamanShoot(MegamanRuntime&    megaman,
 
     megaman.shootAnimTimer = 4;
     shotActive = true;
-    shotVelocityX =
-        megaman.flip == SDL_FLIP_HORIZONTAL ? -SHOT_SPEED : SHOT_SPEED;
+    shotVelocityX = megaman.flip == SDL_FLIP_HORIZONTAL ? -SHOT_SPEED : SHOT_SPEED;
 
     if (shotVelocityX > 0.f)
         shotDstRect.x = megaman.dstRect.x + megaman.dstRect.w;
     else
         shotDstRect.x = megaman.dstRect.x - shot.sw;
 
-    shotDstRect.y =
-        megaman.dstRect.y + megaman.dstRect.h * 0.5f - shot.sh * 0.5f;
+    shotDstRect.y = megaman.dstRect.y + megaman.dstRect.h * 0.5f - shot.sh * 0.5f;
 }
 
 int main()
@@ -593,9 +585,7 @@ int main()
         }
         else
         {
-            handleMegamanIdle(megamanRuntime,
-                              megamanAnimations,
-                              megamanCurrentAnim);
+            handleMegamanIdle(megamanRuntime, megamanAnimations, megamanCurrentAnim);
         }
 
         megamanInput.jumpPressed = false;
@@ -653,8 +643,7 @@ int main()
                         enemyDstRect.y + enemy.sh * 0.5f - explosion.sh * 0.5f;
                 }
             }
-            else if (shotDstRect.x > bg.w ||
-                     shotDstRect.x + shotDstRect.w < 0.f)
+            else if (shotDstRect.x > bg.w || shotDstRect.x + shotDstRect.w < 0.f)
             {
                 shotActive = false;
             }

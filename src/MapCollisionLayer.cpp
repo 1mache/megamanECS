@@ -4,7 +4,7 @@
 
 #include <tmxlite/ObjectGroup.hpp>
 
-#include <cassert>
+#include "Utils.h"
 
 namespace megaman
 {
@@ -12,9 +12,9 @@ namespace megaman
 bool MapCollisionLayer::create(const tmx::Map& map, std::uint32_t layerIndex)
 {
     const auto& layers = map.getLayers();
-    assert(layerIndex < layers.size());
-    assert(layers[layerIndex]->getType() == tmx::Layer::Type::Object &&
-           "Layer index does not point to an object layer");
+    massert(layerIndex < layers.size(), "Incorrect layer index, out of bounds");
+    massert(layers[layerIndex]->getType() == tmx::Layer::Type::Object,
+            "Layer index does not point to an object layer");
 
     const auto& group = layers[layerIndex]->getLayerAs<tmx::ObjectGroup>();
 
@@ -38,12 +38,12 @@ bool MapCollisionLayer::create(const tmx::Map& map, std::uint32_t layerIndex)
         _rects.push_back({.x = cx, .y = cy, .w = halfW, .h = halfH});
     }
 
-    return !_rects.empty();
+    return isValid();
 }
 
 void MapCollisionLayer::createBodies(b2WorldId worldId)
 {
-    assert(isValid() && "Must call create() successfully before createBodies()");
+    massert(isValid(), "Must call create() successfully before createBodies()");
     for (const auto& rect : _rects)
     {
         // TODO: put this into a helper function somewhere

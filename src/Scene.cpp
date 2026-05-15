@@ -2,12 +2,12 @@
 
 #include "GlobalData.h"
 #include "MTransform.h"
+#include "Utils.h"
 
 #include <tmxlite/ImageLayer.hpp>
 #include <tmxlite/Map.hpp>
 
 #include <algorithm>
-#include <cassert>
 #include <iostream>
 
 namespace megaman
@@ -18,13 +18,13 @@ void Scene::load(SDL_Renderer* renderer)
     if (map.load(_filePath))
     {
         const auto& tileSets = map.getTilesets();
-        assert(tileSets.size() == 1 &&
-               "Multiple or no tilesets provided. Not supported");
+        massert(tileSets.size() == 1,
+                "Multiple or no tilesets provided. Not supported");
 
         _textures.emplace_back(std::make_unique<Texture>());
-        if (!_textures.back()->loadFromFile(tileSets[0].getImagePath(), renderer))
-            std::cerr << "Failed to load tileset: " << tileSets[0].getImagePath()
-                      << "\n";
+        bool texLoaded =
+            _textures.back()->loadFromFile(tileSets[0].getImagePath(), renderer);
+        massert(texLoaded, "Failed to load tileset texture");
 
         const auto& mapLayers = map.getLayers();
         for (auto i = 0u; i < mapLayers.size(); ++i)
@@ -48,9 +48,7 @@ void Scene::load(SDL_Renderer* renderer)
         _loaded = true;
     }
     else
-    {
-        std::cerr << "Failed to load map\n";
-    }
+        fatalError("Failed to load map");
 }
 
 void Scene::attachPhysics(b2WorldId worldId)
@@ -63,7 +61,7 @@ void Scene::attachPhysics(b2WorldId worldId)
 
 void Scene::draw(SDL_Renderer* renderer, const CameraData& cam) const
 {
-    assert(isValid());
+    massert(isValid(), "Attempted to draw invalid scene");
     for (const auto& l : _imageLayers)
         l->draw(renderer, cam);
     for (const auto& l : _tileLayers)
@@ -182,7 +180,7 @@ void Scene::processObjectLayer(const tmx::Layer::Ptr& layer,
                                unsigned int           idx,
                                const tmx::Map&        map)
 {
-    assert(!_spawnLayer && "Multiple spawn layers in map — only one supported");
+    massert(!_spawnLayer && "Multiple spawn layers in map — only one supported");
     _spawnLayer.emplace();
     if (!_spawnLayer->create(map, idx))
         std::cerr << "Failed to create spawn layer. Id: " << idx << "\n";

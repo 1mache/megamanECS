@@ -1,8 +1,8 @@
 #include "MegamanGame.h"
 #include "GlobalData.h"
+#include "Utils.h"
 #include "megaman.h"
 #include <SDL3_image/SDL_image.h>
-#include <cassert>
 #include <iostream>
 
 namespace
@@ -102,8 +102,10 @@ MegamanGame::MegamanGame()
     _scene.attachPhysics(_boxWorld);
 
     const auto& playerSpawns = _scene.getPlayerSpawns();
-    assert(!playerSpawns.empty() && "No player spawn in map");
-    ent_type player = createPlayer(_boxWorld, playerSpawns[0].x, playerSpawns[0].y, MegamanGame::HP);
+    ent_type    player = createPlayer(_boxWorld,
+                                      playerSpawns[0].x,
+                                      playerSpawns[0].y,
+                                      MegamanGame::HP);
     {
         auto& d = bagel::World::getComponent<Drawable>(player);
         d.texture = _tex;
@@ -122,8 +124,14 @@ MegamanGame::MegamanGame()
     {
         if (sp.type == SpawnPoint::Type::Ptrol)
         {
-            ent_type patrolingEnemy =
-                createPatroller(_boxWorld, sp.x, sp.y, MegamanGame::HP, 1.f, 5.f, 6.f, 0.05f);
+            ent_type patrolingEnemy = createPatroller(_boxWorld,
+                                                      sp.x,
+                                                      sp.y,
+                                                      MegamanGame::HP,
+                                                      1.f,
+                                                      5.f,
+                                                      6.f,
+                                                      0.05f);
             {
                 auto& d = bagel::World::getComponent<Drawable>(patrolingEnemy);
                 d.texture = _enemyTex;

@@ -5,7 +5,7 @@
 
 #include <tmxlite/ImageLayer.hpp>
 
-#include <cassert>
+#include "Utils.h"
 
 namespace megaman
 {
@@ -13,9 +13,11 @@ bool MapImageLayer::create(const tmx::Map& map,
                            std::uint32_t   layerIndex,
                            Texture*        texture)
 {
-    assert(texture);
+    massert(texture, "Passed nullptr texture to MapImageLayer::create");
     const auto& layers = map.getLayers();
-    assert(layers[layerIndex]->getType() == tmx::Layer::Type::Image);
+    massert(layerIndex < layers.size(), "Layer index out of bounds");
+    massert(layers[layerIndex]->getType() == tmx::Layer::Type::Image,
+            "Layer at index is not an image layer");
 
     const auto& layer = layers[layerIndex]->getLayerAs<tmx::ImageLayer>();
 
@@ -31,9 +33,9 @@ bool MapImageLayer::create(const tmx::Map& map,
     // _transform stores bottom-left (x,y) and full size (w,h) — not MTransform center semantics.
     // Map pixel (0,0) is top-left; world (0,0) is map bottom-left.
     _transform.x = static_cast<float>(offset.x) * invPTM;
-    _transform.y = _mapHM - (static_cast<float>(offset.y) +
-                             static_cast<float>(imageSize.y)) *
-                                invPTM;
+    _transform.y =
+        _mapHM -
+        (static_cast<float>(offset.y) + static_cast<float>(imageSize.y)) * invPTM;
     _transform.w = static_cast<float>(imageSize.x) * invPTM;
     _transform.h = static_cast<float>(imageSize.y) * invPTM;
 
@@ -51,13 +53,14 @@ bool MapImageLayer::create(const tmx::Map& map,
     _tint = {tint.r / 255.f, tint.g / 255.f, tint.b / 255.f, tint.a / 255.f};
 
     _texture = *texture;
-    return _texture != nullptr;
+    return isValid();
 }
 
 void MapImageLayer::draw(SDL_Renderer* renderer, const CameraData& cam) const
 {
-    assert(renderer);
-    assert(_texture);
+    massert(renderer);
+    massert(isValid(),
+            "Must call create() successfully before drawing MapImageLayer");
 
     // Parallax reference: camera position where viewport top-left aligns with map top-left
     // (matches Tiled's parallax model — offsets are relative to this origin, not world (0,0)).
@@ -81,19 +84,17 @@ void MapImageLayer::draw(SDL_Renderer* renderer, const CameraData& cam) const
     if (_repeatX)
     {
         // Find first tile position to left of parallax viewport
-        startX =
-            floor((parallaxCam.posX - halfW - _transform.x) / _transform.w) *
-                _transform.w +
-            _transform.x;
+        startX = floor((parallaxCam.posX - halfW - _transform.x) / _transform.w) *
+                     _transform.w +
+                 _transform.x;
         endX = parallaxCam.posX + halfW + _transform.w;
     }
 
     if (_repeatY)
     {
-        startY =
-            floor((parallaxCam.posY - halfH - _transform.y) / _transform.h) *
-                _transform.h +
-            _transform.y;
+        startY = floor((parallaxCam.posY - halfH - _transform.y) / _transform.h) *
+                     _transform.h +
+                 _transform.y;
         endY = parallaxCam.posY + halfH + _transform.h;
     }
 

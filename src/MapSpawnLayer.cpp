@@ -4,7 +4,7 @@
 
 #include <tmxlite/ObjectGroup.hpp>
 
-#include <cassert>
+#include "Utils.h"
 #include <iostream>
 #include <string_view>
 
@@ -14,9 +14,9 @@ namespace megaman
 bool MapSpawnLayer::create(const tmx::Map& map, std::uint32_t layerIndex)
 {
     const auto& layers = map.getLayers();
-    assert(layerIndex < layers.size());
-    assert(layers[layerIndex]->getType() == tmx::Layer::Type::Object &&
-           "Layer index does not point to an object layer");
+    massert(layerIndex < layers.size(), "Layer index out of bounds");
+    massert(layers[layerIndex]->getType() == tmx::Layer::Type::Object,
+            "Layer index does not point to an object layer");
 
     const auto& group = layers[layerIndex]->getLayerAs<tmx::ObjectGroup>();
 

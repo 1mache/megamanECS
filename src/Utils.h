@@ -13,7 +13,7 @@ namespace megaman
     std::exit(1);
 }
 
-inline void massert(bool condition, const char* message)
+inline void massert(bool condition, const char* message = "Assertion failed")
 {
 #ifndef NDEBUG
     assert(condition && message);
