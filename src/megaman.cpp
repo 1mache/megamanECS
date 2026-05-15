@@ -211,10 +211,10 @@ ent_type createLockster(b2WorldId    world,
                                           .drawScale = LOCKSTER_SCALE,
                                           .idleStart = LOCKSTER_IDLE_START,
                                           .idleCount = LOCKSTER_IDLE_COUNT,
-                                          .jumpStart = LOCKSTER_ALERT_START,
-                                          .jumpCount = LOCKSTER_ALERT_COUNT,
                                           .runStart = LOCKSTER_CHARGE_START,
                                           .runCount = LOCKSTER_CHARGE_COUNT,
+                                          .jumpStart = LOCKSTER_ALERT_START,
+                                          .jumpCount = LOCKSTER_ALERT_COUNT,
                                           .defaultFacingLeft = false});
     bagel::World::addComponent<MTransform>(
         ent,
@@ -383,7 +383,11 @@ void movementSystem()
             m.velX = intent.moveLeft    ? -intent.speed
                      : intent.moveRight ? intent.speed
                                         : 0.f;
+
+            if (intent.moveUp)
+                b2Body_ApplyLinearImpulse(m.bodyId, {0.f, 10.f}, {t.x, t.y}, true);
             auto currentVel = b2Body_GetLinearVelocity(m.bodyId);
+
 
             if (b2Body_IsValid(m.bodyId))
                 b2Body_SetLinearVelocity(m.bodyId, {m.velX * fps, currentVel.y});
