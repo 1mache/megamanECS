@@ -9,60 +9,52 @@
 namespace
 {
 // --- Player ---
-constexpr float PLAYER_SPRITE_W = 28.f;
-constexpr float PLAYER_SPRITE_H = 28.f;
-constexpr float PLAYER_SCALE = 3.f;
+constexpr float PLAYER_SPRITE_W   = 28.f;
+constexpr float PLAYER_SPRITE_H   = 28.f;
 constexpr int   PLAYER_IDLE_START = 8;
 constexpr int   PLAYER_IDLE_COUNT = 1;
-constexpr int   PLAYER_RUN_START = 0;
-constexpr int   PLAYER_RUN_COUNT = 4;
+constexpr int   PLAYER_RUN_START  = 0;
+constexpr int   PLAYER_RUN_COUNT  = 4;
 constexpr int   PLAYER_JUMP_START = 10;
 constexpr int   PLAYER_JUMP_COUNT = 1;
 
 // --- Patroller enemy ---
-constexpr float PATROLLER_HALF_W = 0.733f / 2.f;
-constexpr float PATROLLER_HALF_H = 0.8f / 2.f;
-constexpr float PATROLLER_SPRITE_W = 24.f;
-constexpr float PATROLLER_SPRITE_H = 24.f;
-constexpr float PATROLLER_SCALE = 2.f;
+constexpr float PATROLLER_SPRITE_W   = 24.f;
+constexpr float PATROLLER_SPRITE_H   = 24.f;
 constexpr int   PATROLLER_IDLE_START = 0;
 constexpr int   PATROLLER_IDLE_COUNT = 1;
-constexpr int   PATROLLER_RUN_START = 0;
-constexpr int   PATROLLER_RUN_COUNT = 2;
+constexpr int   PATROLLER_RUN_START  = 0;
+constexpr int   PATROLLER_RUN_COUNT  = 2;
 constexpr int   PATROLLER_JUMP_START = 0;
 constexpr int   PATROLLER_JUMP_COUNT = 1;
-constexpr float PATROLLER_Y_RANGE = 1.5f;
+constexpr float PATROLLER_Y_RANGE    = 1.5f;
 
 // --- Lockster enemy ---
-constexpr float LOCKSTER_HALF_W = 0.7f / 2.f;
-constexpr float LOCKSTER_HALF_H = 0.7f / 2.f;
-constexpr float LOCKSTER_SPRITE_W = 24.f;
-constexpr float LOCKSTER_SPRITE_H = 24.f;
-constexpr float LOCKSTER_SCALE = 2.f;
-constexpr int   LOCKSTER_IDLE_START = 0;
-constexpr int   LOCKSTER_IDLE_COUNT = 2;
-constexpr int   LOCKSTER_ALERT_START = 2;
-constexpr int   LOCKSTER_ALERT_COUNT = 4;
+constexpr float LOCKSTER_SPRITE_W     = 24.f;
+constexpr float LOCKSTER_SPRITE_H     = 24.f;
+constexpr int   LOCKSTER_IDLE_START   = 0;
+constexpr int   LOCKSTER_IDLE_COUNT   = 2;
+constexpr int   LOCKSTER_ALERT_START  = 2;
+constexpr int   LOCKSTER_ALERT_COUNT  = 4;
 constexpr int   LOCKSTER_CHARGE_START = 6;
 constexpr int   LOCKSTER_CHARGE_COUNT = 2;
-constexpr bool  LOCKSTER_HAS_BULLETS = false;
+constexpr bool  LOCKSTER_HAS_BULLETS  = false;
 
 // --- Projectile ---
-constexpr float    BULLET_SPEED     = 0.15f;
-constexpr float    SHOT_SPRITE_W    = 16.f;
-constexpr float    SHOT_SPRITE_H    = 8.f;
-constexpr float    BULLET_HALF_W    = 0.2f;
-constexpr float    BULLET_HALF_H    = 0.1f;
+constexpr float BULLET_SPEED  = 0.15f;
+constexpr float SHOT_SPRITE_W = 16.f;
+constexpr float SHOT_SPRITE_H = 8.f;
+constexpr float BULLET_HALF_W = 0.2f;
+constexpr float BULLET_HALF_H = 0.1f;
 
 
 // --- Explosion ---
 constexpr float EXPLOSION_SPRITE_W = 22.f;
 constexpr float EXPLOSION_SPRITE_H = 24.f;
-constexpr int   EXPLOSION_FRAMES = 3;
-constexpr float EXPLOSION_SCALE = 2.f;
+constexpr int   EXPLOSION_FRAMES   = 3;
 
 // --- Damage ---
-constexpr float BULLET_DAMAGE = 0.5f;
+constexpr float BULLET_DAMAGE        = 0.5f;
 constexpr float ENEMY_CONTACT_DAMAGE = 1.f;
 
 template <typename AnimT>
@@ -92,7 +84,7 @@ void tickAnim(AnimT& anim, megaman::RenderFrame& rf)
                     anim.frame = 0;
                 else
                 {
-                    anim.frame = clip.frameCount - 1;
+                    anim.frame          = clip.frameCount - 1;
                     rf.finishedThisTick = true;
                 }
             }
@@ -112,34 +104,33 @@ ent_type createPlayer(b2WorldId world, float x, float y, int hp, SDL_Texture* te
 
     ent_type ent = bagel::World::createEntity();
 
-    b2BodyDef bodyDef = b2DefaultBodyDef();
-    bodyDef.type = b2_dynamicBody;
-    bodyDef.position = {x, y};
+    b2BodyDef bodyDef     = b2DefaultBodyDef();
+    bodyDef.type          = b2_dynamicBody;
+    bodyDef.position      = {x, y};
     bodyDef.fixedRotation = true;
-    bodyDef.userData = reinterpret_cast<void*>(static_cast<uintptr_t>(ent.id));
-    b2BodyId body = b2CreateBody(world, &bodyDef);
+    bodyDef.userData      = reinterpret_cast<void*>(static_cast<uintptr_t>(ent.id));
+    b2BodyId body         = b2CreateBody(world, &bodyDef);
 
-    b2ShapeDef shapeDef = b2DefaultShapeDef();
-    shapeDef.density = 1.f;
-    shapeDef.material.friction = 0.f;
-    shapeDef.material.restitution = 0.f;
+    b2ShapeDef shapeDef                 = b2DefaultShapeDef();
+    shapeDef.density                    = 1.f;
+    shapeDef.material.friction          = 0.f;
+    shapeDef.material.restitution       = 0.f;
     shapeDef.material.rollingResistance = 0.f;
-    shapeDef.material.tangentSpeed = 0.f;
-    shapeDef.enableContactEvents = true;
-    shapeDef.filter.categoryBits = CAT_PLAYER;
-    shapeDef.filter.maskBits     = CAT_WORLD | CAT_ENEMY | CAT_ENEMY_BULLET;
-    b2Polygon boxShape = b2MakeBox(halfW, halfH);
+    shapeDef.material.tangentSpeed      = 0.f;
+    shapeDef.enableContactEvents        = true;
+    shapeDef.filter.categoryBits        = CAT_PLAYER;
+    shapeDef.filter.maskBits            = CAT_WORLD | CAT_ENEMY | CAT_ENEMY_BULLET;
+    b2Polygon boxShape                  = b2MakeBox(halfW, halfH);
     b2CreatePolygonShape(body, &shapeDef, &boxShape);
 
-    bagel::World::addComponent<PlayerAnimation>(ent,
+    bagel::World::addComponent<PlayerAnimation>(
+        ent,
         {.clips = {AnimationClip{PLAYER_IDLE_START, PLAYER_IDLE_COUNT},  // [0] Idle
-                   AnimationClip{PLAYER_RUN_START,  PLAYER_RUN_COUNT}}});// [1] Run
+                   AnimationClip{PLAYER_RUN_START, PLAYER_RUN_COUNT}}}); // [1] Run
     bagel::World::addComponent<RenderFrame>(ent, {});
-    bagel::World::addComponent<Drawable>(ent,
-                                         {.texture = tex,
-                                          .spriteW = PLAYER_SPRITE_W,
-                                          .spriteH = PLAYER_SPRITE_H,
-                                          .drawScale = PLAYER_SCALE});
+    bagel::World::addComponent<Drawable>(
+        ent,
+        {.texture = tex, .spriteW = PLAYER_SPRITE_W, .spriteH = PLAYER_SPRITE_H});
     bagel::World::addComponent<MTransform>(ent,
                                            {.x = x, .y = y, .w = halfW, .h = halfH});
     bagel::World::addComponent<Movement>(ent, {.mass = 1.f, .bodyId = body});
@@ -166,36 +157,39 @@ ent_type createPatroller(b2WorldId    world,
                          float        speed,
                          SDL_Texture* tex)
 {
+    constexpr float halfW = PATROLLER_SPRITE_W / (2 * GlobalData::PTM);
+    constexpr float halfH = PATROLLER_SPRITE_H / (2 * GlobalData::PTM);
+
     ent_type ent = bagel::World::createEntity();
 
-    b2BodyDef bodyDef = b2DefaultBodyDef();
-    bodyDef.type = b2_dynamicBody;
-    bodyDef.position = {x, y};
+    b2BodyDef bodyDef     = b2DefaultBodyDef();
+    bodyDef.type          = b2_dynamicBody;
+    bodyDef.position      = {x, y};
     bodyDef.fixedRotation = true;
-    bodyDef.gravityScale = 0.f;
-    bodyDef.userData = reinterpret_cast<void*>(static_cast<uintptr_t>(ent.id));
-    b2BodyId body = b2CreateBody(world, &bodyDef);
+    bodyDef.gravityScale  = 0.f;
+    bodyDef.userData      = reinterpret_cast<void*>(static_cast<uintptr_t>(ent.id));
+    b2BodyId body         = b2CreateBody(world, &bodyDef);
 
-    b2ShapeDef shapeDef = b2DefaultShapeDef();
-    shapeDef.density = 1.f;
+    b2ShapeDef shapeDef          = b2DefaultShapeDef();
+    shapeDef.density             = 1.f;
     shapeDef.enableContactEvents = true;
     shapeDef.filter.categoryBits = CAT_ENEMY;
     shapeDef.filter.maskBits     = CAT_WORLD | CAT_PLAYER | CAT_PLAYER_BULLET;
-    b2Polygon boxShape = b2MakeBox(PATROLLER_HALF_W, PATROLLER_HALF_H);
+    b2Polygon boxShape           = b2MakeBox(halfW, halfH);
     b2CreatePolygonShape(body, &shapeDef, &boxShape);
 
-    bagel::World::addComponent<PatrollerAnimation>(ent,
-        {.clips = {AnimationClip{PATROLLER_RUN_START, PATROLLER_RUN_COUNT}}});  // [0] Run
+    bagel::World::addComponent<PatrollerAnimation>(
+        ent,
+        {.clips = {
+             AnimationClip{PATROLLER_RUN_START, PATROLLER_RUN_COUNT}}}); // [0] Run
     bagel::World::addComponent<RenderFrame>(ent, {});
     bagel::World::addComponent<Drawable>(ent,
-                                         {.texture = tex,
-                                          .spriteW = PATROLLER_SPRITE_W,
-                                          .spriteH = PATROLLER_SPRITE_H,
-                                          .drawScale = PATROLLER_SCALE,
+                                         {.texture           = tex,
+                                          .spriteW           = PATROLLER_SPRITE_W,
+                                          .spriteH           = PATROLLER_SPRITE_H,
                                           .defaultFacingLeft = false});
-    bagel::World::addComponent<MTransform>(
-        ent,
-        {.x = x, .y = y, .w = PATROLLER_HALF_W, .h = PATROLLER_HALF_H});
+    bagel::World::addComponent<MTransform>(ent,
+                                           {.x = x, .y = y, .w = halfW, .h = halfH});
     bagel::World::addComponent<Movement>(ent, {.mass = 1, .bodyId = body});
     bagel::World::addComponent<Collision>(ent, {});
     bagel::World::addComponent<Health>(ent, {.points = hp});
@@ -203,13 +197,13 @@ ent_type createPatroller(b2WorldId    world,
     bagel::World::addComponent<Intent>(ent, {});
     bagel::World::addComponent<Enemy>(ent, {});
     bagel::World::addComponent<AI>(ent,
-                                   {.type = AI::Type::Patroller,
-                                    .patrolMinX = patrolMinX,
-                                    .patrolMaxX = patrolMaxX,
+                                   {.type           = AI::Type::Patroller,
+                                    .patrolMinX     = patrolMinX,
+                                    .patrolMaxX     = patrolMaxX,
                                     .detectionRange = detectionRange,
-                                    .speed = speed,
-                                    .spawnX = x,
-                                    .spawnY = y});
+                                    .speed          = speed,
+                                    .spawnX         = x,
+                                    .spawnY         = y});
     bagel::World::addComponent<Weapon>(ent, {});
 
     return ent;
@@ -223,38 +217,42 @@ ent_type createLockster(b2WorldId    world,
                         float        chargeSpeed,
                         SDL_Texture* tex)
 {
+    constexpr float halfW = LOCKSTER_SPRITE_W / (2 * GlobalData::PTM);
+    constexpr float halfH = LOCKSTER_SPRITE_H / (2 * GlobalData::PTM);
+
     ent_type ent = bagel::World::createEntity();
 
-    b2BodyDef bodyDef = b2DefaultBodyDef();
-    bodyDef.type = b2_dynamicBody;
-    bodyDef.position = {x, y};
+    b2BodyDef bodyDef     = b2DefaultBodyDef();
+    bodyDef.type          = b2_dynamicBody;
+    bodyDef.position      = {x, y};
     bodyDef.fixedRotation = true;
-    bodyDef.gravityScale = 0.f;
-    bodyDef.userData = reinterpret_cast<void*>(static_cast<uintptr_t>(ent.id));
-    b2BodyId body = b2CreateBody(world, &bodyDef);
+    bodyDef.gravityScale  = 0.f;
+    bodyDef.userData      = reinterpret_cast<void*>(static_cast<uintptr_t>(ent.id));
+    b2BodyId body         = b2CreateBody(world, &bodyDef);
 
-    b2ShapeDef shapeDef = b2DefaultShapeDef();
-    shapeDef.density = 1.f;
+    b2ShapeDef shapeDef          = b2DefaultShapeDef();
+    shapeDef.density             = 1.f;
     shapeDef.enableContactEvents = true;
     shapeDef.filter.categoryBits = CAT_ENEMY;
     shapeDef.filter.maskBits     = CAT_WORLD | CAT_PLAYER | CAT_PLAYER_BULLET;
-    b2Polygon boxShape = b2MakeBox(LOCKSTER_HALF_W, LOCKSTER_HALF_H);
+    b2Polygon boxShape           = b2MakeBox(halfW, halfH);
     b2CreatePolygonShape(body, &shapeDef, &boxShape);
 
-    bagel::World::addComponent<LocksterAnimation>(ent,
-        {.clips = {AnimationClip{LOCKSTER_IDLE_START,   1},                      // [0] Idle — frozen
-                   AnimationClip{LOCKSTER_CHARGE_START, LOCKSTER_CHARGE_COUNT},  // [1] Charge
-                   AnimationClip{LOCKSTER_ALERT_START,  LOCKSTER_ALERT_COUNT}}}); // [2] Alert
+    bagel::World::addComponent<LocksterAnimation>(
+        ent,
+        {.clips = {AnimationClip{LOCKSTER_IDLE_START, 1}, // [0] Idle — frozen
+                   AnimationClip{LOCKSTER_CHARGE_START,
+                                 LOCKSTER_CHARGE_COUNT}, // [1] Charge
+                   AnimationClip{LOCKSTER_ALERT_START,
+                                 LOCKSTER_ALERT_COUNT}}}); // [2] Alert
     bagel::World::addComponent<RenderFrame>(ent, {});
     bagel::World::addComponent<Drawable>(ent,
-                                         {.texture = tex,
-                                          .spriteW = LOCKSTER_SPRITE_W,
-                                          .spriteH = LOCKSTER_SPRITE_H,
-                                          .drawScale = LOCKSTER_SCALE,
+                                         {.texture           = tex,
+                                          .spriteW           = LOCKSTER_SPRITE_W,
+                                          .spriteH           = LOCKSTER_SPRITE_H,
                                           .defaultFacingLeft = false});
-    bagel::World::addComponent<MTransform>(
-        ent,
-        {.x = x, .y = y, .w = LOCKSTER_HALF_W, .h = LOCKSTER_HALF_H});
+    bagel::World::addComponent<MTransform>(ent,
+                                           {.x = x, .y = y, .w = halfW, .h = halfH});
     bagel::World::addComponent<Movement>(ent, {.mass = 1, .bodyId = body});
     bagel::World::addComponent<Collision>(ent, {});
     bagel::World::addComponent<Health>(ent, {.points = hp});
@@ -262,11 +260,11 @@ ent_type createLockster(b2WorldId    world,
     bagel::World::addComponent<Intent>(ent, {});
     bagel::World::addComponent<Enemy>(ent, {});
     bagel::World::addComponent<AI>(ent,
-                                   {.type = AI::Type::Lockster,
+                                   {.type           = AI::Type::Lockster,
                                     .detectionRange = detectionRange,
-                                    .chargeSpeed = chargeSpeed,
-                                    .spawnX = x,
-                                    .spawnY = y});
+                                    .chargeSpeed    = chargeSpeed,
+                                    .spawnX         = x,
+                                    .spawnY         = y});
     bagel::World::addComponent<Weapon>(ent, {});
 
     return ent;
@@ -300,40 +298,47 @@ ent_type createPlatform(float x, float y, bool isMoving)
     return ent;
 }
 
-ent_type createProjectile(b2WorldId world, float x, float y, float velX, float velY, bool fromEnemy)
+ent_type createProjectile(b2WorldId world,
+                          float     x,
+                          float     y,
+                          float     velX,
+                          float     velY,
+                          bool      fromEnemy)
 {
     constexpr float fps = static_cast<float>(GlobalData::FPS);
 
     ent_type ent = bagel::World::createEntity();
 
-    b2BodyDef bodyDef = b2DefaultBodyDef();
+    b2BodyDef bodyDef     = b2DefaultBodyDef();
     bodyDef.type          = b2_dynamicBody;
     bodyDef.position      = {x, y};
     bodyDef.fixedRotation = true;
     bodyDef.gravityScale  = 0.f;
     bodyDef.isBullet      = true;
     bodyDef.userData      = reinterpret_cast<void*>(static_cast<uintptr_t>(ent.id));
-    b2BodyId body = b2CreateBody(world, &bodyDef);
+    b2BodyId body         = b2CreateBody(world, &bodyDef);
     b2Body_SetLinearVelocity(body, {velX * fps, velY * fps});
 
-    b2ShapeDef shapeDef = b2DefaultShapeDef();
+    b2ShapeDef shapeDef          = b2DefaultShapeDef();
     shapeDef.density             = 1.f;
     shapeDef.enableContactEvents = true;
     shapeDef.filter.categoryBits = fromEnemy ? CAT_ENEMY_BULLET : CAT_PLAYER_BULLET;
-    shapeDef.filter.maskBits     = fromEnemy ? (CAT_WORLD | CAT_PLAYER)
-                                             : (CAT_WORLD | CAT_ENEMY);
+    shapeDef.filter.maskBits =
+        fromEnemy ? (CAT_WORLD | CAT_PLAYER) : (CAT_WORLD | CAT_ENEMY);
     b2Polygon boxShape = b2MakeBox(BULLET_HALF_W, BULLET_HALF_H);
     b2CreatePolygonShape(body, &shapeDef, &boxShape);
 
     bagel::World::addComponent<Drawable>(ent,
                                          {.texture = GlobalData::getShotTexture(),
                                           .spriteW = SHOT_SPRITE_W,
-                                          .spriteH = SHOT_SPRITE_H,
-                                          .drawScale = 1.f});
+                                          .spriteH = SHOT_SPRITE_H});
     bagel::World::addComponent<RenderFrame>(ent, {});
-    bagel::World::addComponent<MTransform>(ent,
-                                           {.x = x, .y = y, .w = BULLET_HALF_W, .h = BULLET_HALF_H});
-    bagel::World::addComponent<Movement>(ent, {.mass = 1, .velX = velX, .velY = velY, .bodyId = body});
+    bagel::World::addComponent<MTransform>(
+        ent,
+        {.x = x, .y = y, .w = BULLET_HALF_W, .h = BULLET_HALF_H});
+    bagel::World::addComponent<Movement>(
+        ent,
+        {.mass = 1, .velX = velX, .velY = velY, .bodyId = body});
     bagel::World::addComponent<Projectile>(ent, {.fromEnemy = fromEnemy});
 
     return ent;
@@ -348,13 +353,17 @@ ent_type createExplosion(float x, float y)
 
     bagel::World::addComponent<MTransform>(ent,
                                            {.x = x, .y = y, .w = halfW, .h = halfH});
-    bagel::World::addComponent<Drawable>(ent,
-                                         {.texture = GlobalData::getExplosionTexture(),
-                                          .spriteW = EXPLOSION_SPRITE_W,
-                                          .spriteH = EXPLOSION_SPRITE_H,
-                                          .drawScale = EXPLOSION_SCALE});
-    bagel::World::addComponent<ExplosionAnimation>(ent,
-        {.clips = {AnimationClip{0, EXPLOSION_FRAMES, ANIM_SPEED, false}}});  // [0] Playing, one-shot
+    bagel::World::addComponent<Drawable>(
+        ent,
+        {.texture = GlobalData::getExplosionTexture(),
+         .spriteW = EXPLOSION_SPRITE_W,
+         .spriteH = EXPLOSION_SPRITE_H});
+    bagel::World::addComponent<ExplosionAnimation>(
+        ent,
+        {.clips = {AnimationClip{0,
+                                 EXPLOSION_FRAMES,
+                                 ANIM_SPEED,
+                                 false}}}); // [0] Playing, one-shot
     bagel::World::addComponent<RenderFrame>(ent, {});
     bagel::World::addComponent<Movement>(ent, {});
 
@@ -396,12 +405,12 @@ void inputSystem()
     {
         if (e.test(mask))
         {
-            auto& intent = e.get<Intent>();
-            intent.moveLeft = keys[SDL_SCANCODE_LEFT];
+            auto& intent     = e.get<Intent>();
+            intent.moveLeft  = keys[SDL_SCANCODE_LEFT];
             intent.moveRight = keys[SDL_SCANCODE_RIGHT];
-            intent.moveUp = keys[SDL_SCANCODE_UP];
-            intent.moveDown = keys[SDL_SCANCODE_DOWN];
-            intent.shoot = keys[SDL_SCANCODE_SPACE];
+            intent.moveUp    = keys[SDL_SCANCODE_UP];
+            intent.moveDown  = keys[SDL_SCANCODE_DOWN];
+            intent.shoot     = keys[SDL_SCANCODE_SPACE];
         }
     }
 }
@@ -411,7 +420,7 @@ void movementSystem()
     static const bagel::Mask mask =
         bagel::MaskBuilder().set<MTransform>().set<Movement>().build();
 
-    constexpr float fps = static_cast<float>(GlobalData::FPS);
+    constexpr float fps  = static_cast<float>(GlobalData::FPS);
     constexpr float velY = 0.083f;
 
     for (bagel::Entity e = bagel::Entity::first(); !e.eof(); e.next())
@@ -469,11 +478,16 @@ void shootingSystem()
         const auto& intent = e.get<Intent>();
         if (intent.shoot && w.shootCooldown <= 0)
         {
-            const auto& t = e.get<MTransform>();
+            const auto& t         = e.get<MTransform>();
             const bool  fromEnemy = !e.has<Input>();
             const float bVelX =
                 e.get<Movement>().facingLeft ? -BULLET_SPEED : BULLET_SPEED;
-            ent_type bullet = createProjectile(GlobalData::getBoxWorld(), t.x, t.y, bVelX, 0.f, fromEnemy);
+            ent_type bullet = createProjectile(GlobalData::getBoxWorld(),
+                                               t.x,
+                                               t.y,
+                                               bVelX,
+                                               0.f,
+                                               fromEnemy);
             if (!fromEnemy)
                 std::cout << "bullet created id=" << bullet.id
                           << " tex=" << GlobalData::getShotTexture() << "\n";
@@ -484,8 +498,11 @@ void shootingSystem()
 
 void playerAnimSystem()
 {
-    static const bagel::Mask mask =
-        bagel::MaskBuilder().set<PlayerAnimation>().set<Movement>().set<RenderFrame>().build();
+    static const bagel::Mask mask = bagel::MaskBuilder()
+                                        .set<PlayerAnimation>()
+                                        .set<Movement>()
+                                        .set<RenderFrame>()
+                                        .build();
 
     for (bagel::Entity e = bagel::Entity::first(); !e.eof(); e.next())
     {
@@ -496,7 +513,8 @@ void playerAnimSystem()
         const auto& m  = e.get<Movement>();
         auto&       rf = e.get<RenderFrame>();
 
-        a.state = m.velX != 0.f ? PlayerAnimation::State::Run : PlayerAnimation::State::Idle;
+        a.state = m.velX != 0.f ? PlayerAnimation::State::Run
+                                : PlayerAnimation::State::Idle;
         tickAnim(a, rf);
     }
 }
@@ -516,8 +534,12 @@ void patrollerAnimSystem()
 
 void locksterAnimSystem()
 {
-    static const bagel::Mask locksterMask =
-        bagel::MaskBuilder().set<LocksterAnimation>().set<AI>().set<MTransform>().set<RenderFrame>().build();
+    static const bagel::Mask locksterMask = bagel::MaskBuilder()
+                                                .set<LocksterAnimation>()
+                                                .set<AI>()
+                                                .set<MTransform>()
+                                                .set<RenderFrame>()
+                                                .build();
     static const bagel::Mask playerMask =
         bagel::MaskBuilder().set<Input>().set<MTransform>().build();
 
@@ -615,7 +637,7 @@ void drawSystem(SDL_Renderer* ren)
         SDL_FRect dest = transformToFrect(t);
 
         const bool         shouldFlip = m.facingLeft == d.defaultFacingLeft;
-        const SDL_FlipMode flip       = shouldFlip ? SDL_FLIP_HORIZONTAL : SDL_FLIP_NONE;
+        const SDL_FlipMode flip = shouldFlip ? SDL_FLIP_HORIZONTAL : SDL_FLIP_NONE;
         SDL_RenderTextureRotated(ren, d.texture, &src, &dest, 0.0, nullptr, flip);
     }
 }
@@ -637,14 +659,19 @@ void collisionSystem(b2WorldId world)
     constexpr int   subSteps = 4;
     b2World_Step(world, dt, subSteps);
 
-    static const bagel::Mask playerMask =
-        bagel::MaskBuilder().set<Input>().set<MTransform>().set<Health>().set<DamageIntent>().build();
+    static const bagel::Mask playerMask = bagel::MaskBuilder()
+                                              .set<Input>()
+                                              .set<MTransform>()
+                                              .set<Health>()
+                                              .set<DamageIntent>()
+                                              .build();
 
     for (bagel::Entity p = bagel::Entity::first(); !p.eof(); p.next())
     {
         if (p.test(playerMask))
         {
-            GlobalData::updateCamPosition(p.get<MTransform>().x, p.get<MTransform>().y);
+            GlobalData::updateCamPosition(p.get<MTransform>().x,
+                                          p.get<MTransform>().y);
             break;
         }
     }
@@ -660,13 +687,12 @@ void collisionSystem(b2WorldId world)
 
     std::vector<ent_type> toDestroy;
 
-    auto lookupId = [](b2BodyId body) -> int
-    {
-        return static_cast<int>(reinterpret_cast<uintptr_t>(b2Body_GetUserData(body)));
+    auto lookupId = [](b2BodyId body) -> int {
+        return static_cast<int>(
+            reinterpret_cast<uintptr_t>(b2Body_GetUserData(body)));
     };
 
-    auto alreadyQueued = [&toDestroy](ent_type e) -> bool
-    {
+    auto alreadyQueued = [&toDestroy](ent_type e) -> bool {
         for (const ent_type& x : toDestroy)
             if (x.id == e.id)
                 return true;
@@ -689,12 +715,20 @@ void collisionSystem(b2WorldId world)
         if (idA >= 0)
         {
             bagel::Entity tmp{ent_type{idA}};
-            if (tmp.test(bulletMask)) { bulletId = idA; otherId = idB; }
+            if (tmp.test(bulletMask))
+            {
+                bulletId = idA;
+                otherId  = idB;
+            }
         }
         if (bulletId < 0 && idB >= 0)
         {
             bagel::Entity tmp{ent_type{idB}};
-            if (tmp.test(bulletMask)) { bulletId = idB; otherId = idA; }
+            if (tmp.test(bulletMask))
+            {
+                bulletId = idB;
+                otherId  = idA;
+            }
         }
 
         if (bulletId >= 0)
@@ -771,9 +805,9 @@ void damageSystem()
         if (!h.isInvulnerable)
         {
             h.points -= di.amount;
-            h.isInvulnerable = true;
+            h.isInvulnerable    = true;
             h.invulnerableTimer = 90;
-            h.justHit = true;
+            h.justHit           = true;
             if (di.fromContact)
                 std::cout << "player hit by enemy, hp=" << h.points << "\n";
             else
@@ -810,7 +844,7 @@ void healthSystem()
         auto& h = e.get<Health>();
         if (h.isInvulnerable && --h.invulnerableTimer <= 0)
         {
-            h.isInvulnerable = false;
+            h.isInvulnerable        = false;
             h.isContactInvulnerable = false;
         }
         if (h.points <= 0)
@@ -850,7 +884,7 @@ void tickPatroller(AI&               ai,
     const float distX = std::abs(t.x - playerX);
     const float distY = std::abs(t.y - playerY);
 
-    intent = {};
+    intent       = {};
     intent.speed = ai.speed;
 
     if (distX < ai.detectionRange && distY < PATROLLER_Y_RANGE)
@@ -883,9 +917,9 @@ void tickLockster(AI&               ai,
                   float             playerX,
                   float             playerY)
 {
-    constexpr float Y_MARGIN  = 1.5f;
-    const float     distX     = std::abs(t.x - playerX);
-    const float     distY     = std::abs(t.y - playerY);
+    constexpr float Y_MARGIN = 1.5f;
+    const float     distX    = std::abs(t.x - playerX);
+    const float     distY    = std::abs(t.y - playerY);
 
     intent = {};
 
@@ -921,7 +955,12 @@ void tickLockster(AI&               ai,
             if (ai.shotsFired < 3 && ai.alertTimer % 10 == 0)
             {
                 const float velX = t.x < playerX ? 0.15f : -0.15f;
-                createProjectile(GlobalData::getBoxWorld(), t.x, t.y, velX, 0.f, true);
+                createProjectile(GlobalData::getBoxWorld(),
+                                 t.x,
+                                 t.y,
+                                 velX,
+                                 0.f,
+                                 true);
                 ++ai.shotsFired;
             }
         }
@@ -971,15 +1010,15 @@ void aiSystem()
     {
         if (e.test(enemyMask))
         {
-            auto& ai = e.get<AI>();
+            auto& ai     = e.get<AI>();
             auto& intent = e.get<Intent>();
 
             if (ai.freezeFrames > 0)
             {
                 --ai.freezeFrames;
                 const float spd = intent.speed;
-                intent = {};
-                intent.speed = spd;
+                intent          = {};
+                intent.speed    = spd;
                 continue;
             }
 
@@ -1022,15 +1061,15 @@ void respawnSystem()
             if (e.has<Intent>())
             {
                 auto&       intent = e.get<Intent>();
-                const float spd = intent.speed;
-                intent = {};
-                intent.speed = spd;
+                const float spd    = intent.speed;
+                intent             = {};
+                intent.speed       = spd;
             }
         };
 
         if (!r.isRespawning && h.justHit)
         {
-            h.justHit = false;
+            h.justHit      = false;
             r.isRespawning = true;
             r.flickerTimer = 60;
             if (b2Body_IsValid(m.bodyId))
@@ -1057,9 +1096,9 @@ void respawnSystem()
                     transformUpdateWithB2Pos(t, b2Body_GetPosition(m.bodyId));
                     b2Body_SetLinearVelocity(m.bodyId, {0.f, 0.f});
                 }
-                h.isInvulnerable = true;
+                h.isInvulnerable    = true;
                 h.invulnerableTimer = 60;
-                r.isRespawning = false;
+                r.isRespawning      = false;
 
                 static const bagel::Mask aiMask = bagel::MaskBuilder()
                                                       .set<AI>()
@@ -1071,8 +1110,8 @@ void respawnSystem()
                     if (!en.test(aiMask))
                         continue;
                     auto& eai = en.get<AI>();
-                    auto& em = en.get<Movement>();
-                    auto& et = en.get<MTransform>();
+                    auto& em  = en.get<Movement>();
+                    auto& et  = en.get<MTransform>();
                     if (b2Body_IsValid(em.bodyId))
                     {
                         b2Body_SetTransform(em.bodyId,
@@ -1081,9 +1120,9 @@ void respawnSystem()
                         transformUpdateWithB2Pos(et, b2Body_GetPosition(em.bodyId));
                         b2Body_SetLinearVelocity(em.bodyId, {0.f, 0.f});
                     }
-                    eai.alertTimer = 0;
-                    eai.shotsFired = 0;
-                    eai.freezeFrames = 0;
+                    eai.alertTimer      = 0;
+                    eai.shotsFired      = 0;
+                    eai.freezeFrames    = 0;
                     eai.patrollingRight = true;
                 }
             }

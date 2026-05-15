@@ -1,4 +1,4 @@
-#include "megamanGame.h"
+#include "MegamanGame.h"
 #include "GlobalData.h"
 #include "Utils.h"
 #include "megaman.h"
@@ -63,8 +63,8 @@ MegamanGame::MegamanGame()
     GlobalData::setExplosionTexture(_explosionTex);
 
     b2WorldDef worldDef = b2DefaultWorldDef();
-    worldDef.gravity = {0, -GlobalData::GRAVITY};
-    _boxWorld = b2CreateWorld(&worldDef);
+    worldDef.gravity    = {0, -GlobalData::GRAVITY};
+    _boxWorld           = b2CreateWorld(&worldDef);
     GlobalData::setBoxWorld(_boxWorld);
 
     _scene.load(_ren);
@@ -129,7 +129,7 @@ MegamanGame::~MegamanGame()
 void MegamanGame::run()
 {
     auto start = SDL_GetTicks();
-    bool quit = false;
+    bool quit  = false;
 
     while (!quit)
     {

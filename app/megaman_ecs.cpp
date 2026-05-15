@@ -1,4 +1,4 @@
-#include "megamanGame.h"
+#include "MegamanGame.h"
 
 int main()
 {

@@ -164,7 +164,7 @@ struct AnimationClip
     int  startFrame{};              // first column in the sprite sheet
     int  frameCount{1};             // number of columns this clip spans
     int  framesPerStep{ANIM_SPEED}; // game ticks between frame advances
-    bool loop{true};                // wraps to startFrame when done; false = clamp + signal finish
+    bool loop{true}; // wraps to startFrame when done; false = clamp + signal finish
 };
 
 // Output of the animation systems, consumed by drawSystem.
@@ -174,13 +174,18 @@ struct AnimationClip
 // (used by explosionAnimSystem to know when to destroy the entity).
 struct RenderFrame
 {
-    int  spriteIndex{};       // absolute column in the sprite sheet to render this tick
-    bool finishedThisTick{};  // true for exactly one tick when a non-looping clip ends
+    int spriteIndex{}; // absolute column in the sprite sheet to render this tick
+    bool
+        finishedThisTick{}; // true for exactly one tick when a non-looping clip ends
 };
 
 struct PlayerAnimation
 {
-    enum class State { Idle, Run };
+    enum class State
+    {
+        Idle,
+        Run
+    };
     State                        state{State::Idle};
     State                        prev{State::Idle};
     int                          frame{};
@@ -190,7 +195,10 @@ struct PlayerAnimation
 
 struct PatrollerAnimation
 {
-    enum class State { Run };
+    enum class State
+    {
+        Run
+    };
     State                        state{State::Run};
     State                        prev{State::Run};
     int                          frame{};
@@ -200,7 +208,12 @@ struct PatrollerAnimation
 
 struct LocksterAnimation
 {
-    enum class State { Idle, Charge, Alert };
+    enum class State
+    {
+        Idle,
+        Charge,
+        Alert
+    };
     State                        state{State::Idle};
     State                        prev{State::Idle};
     int                          frame{};
@@ -210,7 +223,10 @@ struct LocksterAnimation
 
 struct ExplosionAnimation
 {
-    enum class State { Playing };
+    enum class State
+    {
+        Playing
+    };
     State                        state{State::Playing};
     State                        prev{State::Playing};
     int                          frame{};
@@ -247,7 +263,6 @@ struct Drawable
     SDL_Texture* texture{nullptr};
     float        spriteW{};
     float        spriteH{};
-    float        drawScale{1.f};
     bool         defaultFacingLeft{true};
 };
 
@@ -391,7 +406,12 @@ ent_type createBoss(float x, float y, float hp);
 
 ent_type createPlatform(float x, float y, bool isMoving);
 
-ent_type createProjectile(b2WorldId world, float x, float y, float velX, float velY, bool fromEnemy);
+ent_type createProjectile(b2WorldId world,
+                          float     x,
+                          float     y,
+                          float     velX,
+                          float     velY,
+                          bool      fromEnemy);
 
 ent_type createExplosion(float x, float y);
 
