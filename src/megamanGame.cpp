@@ -140,9 +140,11 @@ void MegamanGame::run()
         collisionSystem(_boxWorld);
         damageSystem();
         healthSystem();
-        explosionSystem();
         respawnSystem();
-        animationSystem();
+        playerAnimSystem();
+        patrollerAnimSystem();
+        locksterAnimSystem();
+        explosionAnimSystem();
 
         if (_scene.isValid())
         {

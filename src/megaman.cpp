@@ -65,8 +65,42 @@ constexpr float EXPLOSION_SCALE = 2.f;
 constexpr float BULLET_DAMAGE = 0.5f;
 constexpr float ENEMY_CONTACT_DAMAGE = 1.f;
 
-// --- Animation ---
-constexpr int ANIM_SPEED = 8;
+template <typename AnimT>
+void tickAnim(AnimT& anim, megaman::RenderFrame& rf)
+{
+    const std::size_t             clipIdx = static_cast<std::size_t>(anim.state);
+    const megaman::AnimationClip& clip    = anim.clips[clipIdx];
+
+    if (anim.state != anim.prev)
+    {
+        anim.frame = 0;
+        anim.timer = 0;
+        anim.prev  = anim.state;
+    }
+
+    rf.finishedThisTick = false;
+
+    if (clip.frameCount > 1)
+    {
+        if (++anim.timer >= clip.framesPerStep)
+        {
+            anim.timer = 0;
+            ++anim.frame;
+            if (anim.frame >= clip.frameCount)
+            {
+                if (clip.loop)
+                    anim.frame = 0;
+                else
+                {
+                    anim.frame = clip.frameCount - 1;
+                    rf.finishedThisTick = true;
+                }
+            }
+        }
+    }
+
+    rf.spriteIndex = clip.startFrame + anim.frame;
+}
 } // namespace
 
 namespace megaman
@@ -97,18 +131,15 @@ ent_type createPlayer(b2WorldId world, float x, float y, int hp, SDL_Texture* te
     b2Polygon boxShape = b2MakeBox(halfW, halfH);
     b2CreatePolygonShape(body, &shapeDef, &boxShape);
 
-    bagel::World::addComponent<Animation>(ent, {});
+    bagel::World::addComponent<PlayerAnimation>(ent,
+        {.clips = {AnimationClip{PLAYER_IDLE_START, PLAYER_IDLE_COUNT},  // [0] Idle
+                   AnimationClip{PLAYER_RUN_START,  PLAYER_RUN_COUNT}}});// [1] Run
+    bagel::World::addComponent<RenderFrame>(ent, {});
     bagel::World::addComponent<Drawable>(ent,
                                          {.texture = tex,
                                           .spriteW = PLAYER_SPRITE_W,
                                           .spriteH = PLAYER_SPRITE_H,
-                                          .drawScale = PLAYER_SCALE,
-                                          .idleStart = PLAYER_IDLE_START,
-                                          .idleCount = PLAYER_IDLE_COUNT,
-                                          .runStart = PLAYER_RUN_START,
-                                          .runCount = PLAYER_RUN_COUNT,
-                                          .jumpStart = PLAYER_JUMP_START,
-                                          .jumpCount = PLAYER_JUMP_COUNT});
+                                          .drawScale = PLAYER_SCALE});
     bagel::World::addComponent<MTransform>(ent,
                                            {.x = x, .y = y, .w = halfW, .h = halfH});
     bagel::World::addComponent<Movement>(ent, {.mass = 1.f, .bodyId = body});
@@ -153,17 +184,14 @@ ent_type createPatroller(b2WorldId    world,
     b2Polygon boxShape = b2MakeBox(PATROLLER_HALF_W, PATROLLER_HALF_H);
     b2CreatePolygonShape(body, &shapeDef, &boxShape);
 
+    bagel::World::addComponent<PatrollerAnimation>(ent,
+        {.clips = {AnimationClip{PATROLLER_RUN_START, PATROLLER_RUN_COUNT}}});  // [0] Run
+    bagel::World::addComponent<RenderFrame>(ent, {});
     bagel::World::addComponent<Drawable>(ent,
                                          {.texture = tex,
                                           .spriteW = PATROLLER_SPRITE_W,
                                           .spriteH = PATROLLER_SPRITE_H,
                                           .drawScale = PATROLLER_SCALE,
-                                          .idleStart = PATROLLER_IDLE_START,
-                                          .idleCount = PATROLLER_IDLE_COUNT,
-                                          .runStart = PATROLLER_RUN_START,
-                                          .runCount = PATROLLER_RUN_COUNT,
-                                          .jumpStart = PATROLLER_JUMP_START,
-                                          .jumpCount = PATROLLER_JUMP_COUNT,
                                           .defaultFacingLeft = false});
     bagel::World::addComponent<MTransform>(
         ent,
@@ -183,7 +211,6 @@ ent_type createPatroller(b2WorldId    world,
                                     .spawnX = x,
                                     .spawnY = y});
     bagel::World::addComponent<Weapon>(ent, {});
-    bagel::World::addComponent<Animation>(ent, {});
 
     return ent;
 }
@@ -214,17 +241,16 @@ ent_type createLockster(b2WorldId    world,
     b2Polygon boxShape = b2MakeBox(LOCKSTER_HALF_W, LOCKSTER_HALF_H);
     b2CreatePolygonShape(body, &shapeDef, &boxShape);
 
+    bagel::World::addComponent<LocksterAnimation>(ent,
+        {.clips = {AnimationClip{LOCKSTER_IDLE_START,   1},                      // [0] Idle — frozen
+                   AnimationClip{LOCKSTER_CHARGE_START, LOCKSTER_CHARGE_COUNT},  // [1] Charge
+                   AnimationClip{LOCKSTER_ALERT_START,  LOCKSTER_ALERT_COUNT}}}); // [2] Alert
+    bagel::World::addComponent<RenderFrame>(ent, {});
     bagel::World::addComponent<Drawable>(ent,
                                          {.texture = tex,
                                           .spriteW = LOCKSTER_SPRITE_W,
                                           .spriteH = LOCKSTER_SPRITE_H,
                                           .drawScale = LOCKSTER_SCALE,
-                                          .idleStart = LOCKSTER_IDLE_START,
-                                          .idleCount = LOCKSTER_IDLE_COUNT,
-                                          .runStart = LOCKSTER_CHARGE_START,
-                                          .runCount = LOCKSTER_CHARGE_COUNT,
-                                          .jumpStart = LOCKSTER_ALERT_START,
-                                          .jumpCount = LOCKSTER_ALERT_COUNT,
                                           .defaultFacingLeft = false});
     bagel::World::addComponent<MTransform>(
         ent,
@@ -242,7 +268,6 @@ ent_type createLockster(b2WorldId    world,
                                     .spawnX = x,
                                     .spawnY = y});
     bagel::World::addComponent<Weapon>(ent, {});
-    bagel::World::addComponent<Animation>(ent, {});
 
     return ent;
 }
@@ -304,10 +329,8 @@ ent_type createProjectile(b2WorldId world, float x, float y, float velX, float v
                                          {.texture = GlobalData::getShotTexture(),
                                           .spriteW = SHOT_SPRITE_W,
                                           .spriteH = SHOT_SPRITE_H,
-                                          .drawScale = 1.f,
-                                          .idleStart = 0,
-                                          .idleCount = 1});
-    bagel::World::addComponent<Animation>(ent, {});
+                                          .drawScale = 1.f});
+    bagel::World::addComponent<RenderFrame>(ent, {});
     bagel::World::addComponent<MTransform>(ent,
                                            {.x = x, .y = y, .w = BULLET_HALF_W, .h = BULLET_HALF_H});
     bagel::World::addComponent<Movement>(ent, {.mass = 1, .velX = velX, .velY = velY, .bodyId = body});
@@ -325,17 +348,15 @@ ent_type createExplosion(float x, float y)
 
     bagel::World::addComponent<MTransform>(ent,
                                            {.x = x, .y = y, .w = halfW, .h = halfH});
-    bagel::World::addComponent<Drawable>(
-        ent,
-        {.texture = GlobalData::getExplosionTexture(),
-         .spriteW = EXPLOSION_SPRITE_W,
-         .spriteH = EXPLOSION_SPRITE_H,
-         .drawScale = EXPLOSION_SCALE,
-         .idleStart = 0,
-         .idleCount = EXPLOSION_FRAMES});
-    bagel::World::addComponent<Animation>(ent, {});
+    bagel::World::addComponent<Drawable>(ent,
+                                         {.texture = GlobalData::getExplosionTexture(),
+                                          .spriteW = EXPLOSION_SPRITE_W,
+                                          .spriteH = EXPLOSION_SPRITE_H,
+                                          .drawScale = EXPLOSION_SCALE});
+    bagel::World::addComponent<ExplosionAnimation>(ent,
+        {.clips = {AnimationClip{0, EXPLOSION_FRAMES, ANIM_SPEED, false}}});  // [0] Playing, one-shot
+    bagel::World::addComponent<RenderFrame>(ent, {});
     bagel::World::addComponent<Movement>(ent, {});
-    bagel::World::addComponent<Explosion>(ent, {});
 
     return ent;
 }
@@ -461,46 +482,104 @@ void shootingSystem()
     }
 }
 
-void animationSystem()
+void playerAnimSystem()
 {
     static const bagel::Mask mask =
-        bagel::MaskBuilder().set<Animation>().set<Movement>().build();
+        bagel::MaskBuilder().set<PlayerAnimation>().set<Movement>().set<RenderFrame>().build();
 
     for (bagel::Entity e = bagel::Entity::first(); !e.eof(); e.next())
     {
-        if (e.test(mask))
+        if (!e.test(mask))
+            continue;
+
+        auto&       a  = e.get<PlayerAnimation>();
+        const auto& m  = e.get<Movement>();
+        auto&       rf = e.get<RenderFrame>();
+
+        a.state = m.velX != 0.f ? PlayerAnimation::State::Run : PlayerAnimation::State::Idle;
+        tickAnim(a, rf);
+    }
+}
+
+void patrollerAnimSystem()
+{
+    static const bagel::Mask mask =
+        bagel::MaskBuilder().set<PatrollerAnimation>().set<RenderFrame>().build();
+
+    for (bagel::Entity e = bagel::Entity::first(); !e.eof(); e.next())
+    {
+        if (!e.test(mask))
+            continue;
+        tickAnim(e.get<PatrollerAnimation>(), e.get<RenderFrame>());
+    }
+}
+
+void locksterAnimSystem()
+{
+    static const bagel::Mask locksterMask =
+        bagel::MaskBuilder().set<LocksterAnimation>().set<AI>().set<MTransform>().set<RenderFrame>().build();
+    static const bagel::Mask playerMask =
+        bagel::MaskBuilder().set<Input>().set<MTransform>().build();
+
+    float playerX = 0.f;
+    float playerY = 0.f;
+    for (bagel::Entity e = bagel::Entity::first(); !e.eof(); e.next())
+    {
+        if (e.test(playerMask))
         {
-            if (e.has<Explosion>())
-                continue;
-
-            auto&       a = e.get<Animation>();
-            const auto& m = e.get<Movement>();
-
-            if (!e.has<AI>() && !e.has<Projectile>())
-            {
-                const Animation::State newState =
-                    m.velX != 0.f ? Animation::RUN : Animation::IDLE;
-
-                if (newState != a.state)
-                {
-                    a.state = newState;
-                    a.currentFrame = 0;
-                    a.frameTimer = 0;
-                }
-            }
-
-            if (a.state == Animation::IDLE)
-            {
-                a.currentFrame = 0;
-                a.frameTimer = 0;
-            }
-            else if (++a.frameTimer >= ANIM_SPEED)
-            {
-                a.frameTimer = 0;
-                ++a.currentFrame;
-            }
+            playerX = e.get<MTransform>().x;
+            playerY = e.get<MTransform>().y;
+            break;
         }
     }
+
+    constexpr float Y_MARGIN = 1.5f;
+
+    for (bagel::Entity e = bagel::Entity::first(); !e.eof(); e.next())
+    {
+        if (!e.test(locksterMask))
+            continue;
+
+        auto&       a  = e.get<LocksterAnimation>();
+        const auto& ai = e.get<AI>();
+        const auto& t  = e.get<MTransform>();
+        auto&       rf = e.get<RenderFrame>();
+
+        const float distX      = std::abs(t.x - playerX);
+        const float distY      = std::abs(t.y - playerY);
+        const bool  inRange    = distX < ai.detectionRange && distY < Y_MARGIN;
+        const bool  isCharging = ai.alertTimer >= 30;
+
+        if (isCharging)
+            a.state = LocksterAnimation::State::Charge;
+        else if (inRange)
+            a.state = LocksterAnimation::State::Alert;
+        else
+            a.state = LocksterAnimation::State::Idle;
+
+        tickAnim(a, rf);
+    }
+}
+
+void explosionAnimSystem()
+{
+    static const bagel::Mask mask =
+        bagel::MaskBuilder().set<ExplosionAnimation>().set<RenderFrame>().build();
+
+    std::vector<ent_type> toDestroy;
+
+    for (bagel::Entity e = bagel::Entity::first(); !e.eof(); e.next())
+    {
+        if (!e.test(mask))
+            continue;
+
+        tickAnim(e.get<ExplosionAnimation>(), e.get<RenderFrame>());
+        if (e.get<RenderFrame>().finishedThisTick)
+            toDestroy.push_back(e.entity());
+    }
+
+    for (ent_type e : toDestroy)
+        bagel::Entity{e}.destroy();
 }
 
 void drawSystem(SDL_Renderer* ren)
@@ -508,61 +587,36 @@ void drawSystem(SDL_Renderer* ren)
     static const bagel::Mask mask = bagel::MaskBuilder()
                                         .set<MTransform>()
                                         .set<Drawable>()
-                                        .set<Animation>()
+                                        .set<RenderFrame>()
                                         .set<Movement>()
                                         .build();
 
     for (bagel::Entity e = bagel::Entity::first(); !e.eof(); e.next())
     {
-        if (e.test(mask))
+        if (!e.test(mask))
+            continue;
+
+        const auto& t  = e.get<MTransform>();
+        const auto& rf = e.get<RenderFrame>();
+        const auto& d  = e.get<Drawable>();
+        const auto& m  = e.get<Movement>();
+
+        if (d.texture == nullptr)
+            continue;
+
+        if (e.has<Health>())
         {
-            const auto& t = e.get<MTransform>();
-            const auto& a = e.get<Animation>();
-            const auto& d = e.get<Drawable>();
-            const auto& m = e.get<Movement>();
-
-            int startFrame, frameCount;
-            switch (a.state)
-            {
-            case Animation::RUN:
-                startFrame = d.runStart;
-                frameCount = d.runCount;
-                break;
-            case Animation::JUMP:
-                startFrame = d.jumpStart;
-                frameCount = d.jumpCount;
-                break;
-            default:
-                startFrame = d.idleStart;
-                frameCount = d.idleCount;
-                break;
-            }
-
-            if (d.texture == nullptr || frameCount <= 0)
+            const auto& h = e.get<Health>();
+            if (h.isInvulnerable && (h.invulnerableTimer / 4) % 2 == 0)
                 continue;
-
-            if (e.has<Health>())
-            {
-                const auto& h = e.get<Health>();
-                if (h.isInvulnerable && (h.invulnerableTimer / 4) % 2 == 0)
-                    continue;
-            }
-
-            const int frame = startFrame + (a.currentFrame % frameCount);
-            SDL_FRect src = {frame * d.spriteW, 0.f, d.spriteW, d.spriteH};
-            SDL_FRect dest = transformToFrect(t);
-
-            const bool         shouldFlip = m.facingLeft == d.defaultFacingLeft;
-            const SDL_FlipMode flip =
-                shouldFlip ? SDL_FLIP_HORIZONTAL : SDL_FLIP_NONE;
-            SDL_RenderTextureRotated(ren,
-                                     d.texture,
-                                     &src,
-                                     &dest,
-                                     0.0,
-                                     nullptr,
-                                     flip);
         }
+
+        SDL_FRect src  = {rf.spriteIndex * d.spriteW, 0.f, d.spriteW, d.spriteH};
+        SDL_FRect dest = transformToFrect(t);
+
+        const bool         shouldFlip = m.facingLeft == d.defaultFacingLeft;
+        const SDL_FlipMode flip       = shouldFlip ? SDL_FLIP_HORIZONTAL : SDL_FLIP_NONE;
+        SDL_RenderTextureRotated(ren, d.texture, &src, &dest, 0.0, nullptr, flip);
     }
 }
 
@@ -826,17 +880,16 @@ void tickLockster(AI&               ai,
                   const MTransform& t,
                   Movement&         m,
                   Intent&           intent,
-                  Animation&        a,
                   float             playerX,
                   float             playerY)
 {
-    constexpr float Y_MARGIN = 1.5f;
-    const float     distX = std::abs(t.x - playerX);
-    const float     distY = std::abs(t.y - playerY);
+    constexpr float Y_MARGIN  = 1.5f;
+    const float     distX     = std::abs(t.x - playerX);
+    const float     distY     = std::abs(t.y - playerY);
 
     intent = {};
 
-    const bool inRange = distX < ai.detectionRange && distY < Y_MARGIN;
+    const bool inRange    = distX < ai.detectionRange && distY < Y_MARGIN;
     const bool isCharging = ai.alertTimer >= 30;
 
     if (isCharging)
@@ -854,13 +907,11 @@ void tickLockster(AI&               ai,
                 intent.moveRight = true;
             else
                 intent.moveLeft = true;
-            a.state = Animation::RUN;
         }
     }
     else if (inRange)
     {
         ++ai.alertTimer;
-        a.state = Animation::JUMP;
 
         if (ai.alertTimer == 30)
             ai.targetX = playerX;
@@ -879,9 +930,6 @@ void tickLockster(AI&               ai,
     {
         ai.alertTimer = 0;
         ai.shotsFired = 0;
-        a.state = Animation::IDLE;
-        a.currentFrame = 0;
-        a.frameTimer = 0;
     }
 
     if (b2Body_IsValid(m.bodyId))
@@ -904,7 +952,6 @@ void aiSystem()
                                              .set<Movement>()
                                              .set<Intent>()
                                              .set<MTransform>()
-                                             .set<Animation>()
                                              .build();
 
     float playerX = 0.f;
@@ -938,16 +985,14 @@ void aiSystem()
 
             const auto& t = e.get<MTransform>();
             auto&       m = e.get<Movement>();
-            auto&       a = e.get<Animation>();
 
             switch (ai.type)
             {
             case AI::Type::Patroller:
                 tickPatroller(ai, t, intent, playerX, playerY);
-                a.state = Animation::RUN;
                 break;
             case AI::Type::Lockster:
-                tickLockster(ai, t, m, intent, a, playerX, playerY);
+                tickLockster(ai, t, m, intent, playerX, playerY);
                 break;
             }
         }
@@ -1052,34 +1097,4 @@ void respawnSystem()
     }
 }
 
-void explosionSystem()
-{
-    static const bagel::Mask mask = bagel::MaskBuilder()
-                                        .set<Explosion>()
-                                        .set<Animation>()
-                                        .set<Drawable>()
-                                        .build();
-
-    std::vector<ent_type> toDestroy;
-
-    for (bagel::Entity e = bagel::Entity::first(); !e.eof(); e.next())
-    {
-        if (!e.test(mask))
-            continue;
-
-        auto&       a = e.get<Animation>();
-        const auto& d = e.get<Drawable>();
-
-        if (++a.frameTimer >= ANIM_SPEED)
-        {
-            a.frameTimer = 0;
-            ++a.currentFrame;
-            if (a.currentFrame >= d.idleCount)
-                toDestroy.push_back(e.entity());
-        }
-    }
-
-    for (ent_type e : toDestroy)
-        bagel::Entity{e}.destroy();
-}
 } // namespace megaman

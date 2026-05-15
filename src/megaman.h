@@ -3,13 +3,19 @@
 #include "MTransform.h"
 #include "SDL3/SDL.h"
 #include "bagel.h"
+#include <array>
 #include <box2d/box2d.h>
 #include <cstdint>
 #include <string>
 
 namespace megaman
 { // forward declarations
-struct Animation;
+struct AnimationClip;
+struct RenderFrame;
+struct PlayerAnimation;
+struct PatrollerAnimation;
+struct LocksterAnimation;
+struct ExplosionAnimation;
 struct Movement;
 struct Collision;
 struct Drawable;
@@ -22,15 +28,38 @@ struct AI;
 struct Weapon;
 struct Projectile;
 struct Respawn;
-struct Explosion;
 } // namespace megaman
 
 // ============= STORAGE SPECIALIZATIONS =============
 
 template <>
-struct bagel::Storage<megaman::Animation> final : bagel::NoInstance
+struct bagel::Storage<megaman::PlayerAnimation> final : bagel::NoInstance
 {
-    using type = bagel::PackedStorage<megaman::Animation>;
+    using type = bagel::PackedStorage<megaman::PlayerAnimation>;
+};
+
+template <>
+struct bagel::Storage<megaman::PatrollerAnimation> final : bagel::NoInstance
+{
+    using type = bagel::PackedStorage<megaman::PatrollerAnimation>;
+};
+
+template <>
+struct bagel::Storage<megaman::LocksterAnimation> final : bagel::NoInstance
+{
+    using type = bagel::PackedStorage<megaman::LocksterAnimation>;
+};
+
+template <>
+struct bagel::Storage<megaman::ExplosionAnimation> final : bagel::NoInstance
+{
+    using type = bagel::PackedStorage<megaman::ExplosionAnimation>;
+};
+
+template <>
+struct bagel::Storage<megaman::RenderFrame> final : bagel::NoInstance
+{
+    using type = bagel::PackedStorage<megaman::RenderFrame>;
 };
 
 template <>
@@ -111,12 +140,6 @@ struct bagel::Storage<megaman::Respawn> final : bagel::NoInstance
     using type = bagel::StackStorage<megaman::Respawn>;
 };
 
-template <>
-struct bagel::Storage<megaman::Explosion> final : bagel::NoInstance
-{
-    using type = bagel::StackStorage<megaman::Explosion>;
-};
-
 namespace megaman
 {
 using ent_type = bagel::ent_type;
@@ -130,17 +153,69 @@ inline constexpr uint64_t CAT_ENEMY_BULLET  = 0x0010;
 
 // ============= COMPONENTS =============
 
-struct Animation
+inline constexpr int ANIM_SPEED = 8;
+
+// One entry in a per-entity clip table. Describes a slice of the sprite sheet
+// for a single animation state. Stored in the per-entity animation component
+// (PlayerAnimation, LocksterAnimation, etc.) indexed by that entity's State enum.
+// frameCount=1 → frozen single frame (no advance). loop=false → one-shot (e.g. explosion).
+struct AnimationClip
 {
-    enum State
-    {
-        IDLE,
-        RUN,
-        JUMP
-    };
-    State state{IDLE};
-    int   currentFrame{};
-    int   frameTimer{};
+    int  startFrame{};              // first column in the sprite sheet
+    int  frameCount{1};             // number of columns this clip spans
+    int  framesPerStep{ANIM_SPEED}; // game ticks between frame advances
+    bool loop{true};                // wraps to startFrame when done; false = clamp + signal finish
+};
+
+// Output of the animation systems, consumed by drawSystem.
+// Each animation system writes the resolved sprite-sheet index here so drawSystem
+// needs no knowledge of states, clips, or timers — it only reads spriteIndex.
+// finishedThisTick is raised for one tick when a non-looping clip plays its last frame
+// (used by explosionAnimSystem to know when to destroy the entity).
+struct RenderFrame
+{
+    int  spriteIndex{};       // absolute column in the sprite sheet to render this tick
+    bool finishedThisTick{};  // true for exactly one tick when a non-looping clip ends
+};
+
+struct PlayerAnimation
+{
+    enum class State { Idle, Run };
+    State                        state{State::Idle};
+    State                        prev{State::Idle};
+    int                          frame{};
+    int                          timer{};
+    std::array<AnimationClip, 2> clips{};
+};
+
+struct PatrollerAnimation
+{
+    enum class State { Run };
+    State                        state{State::Run};
+    State                        prev{State::Run};
+    int                          frame{};
+    int                          timer{};
+    std::array<AnimationClip, 1> clips{};
+};
+
+struct LocksterAnimation
+{
+    enum class State { Idle, Charge, Alert };
+    State                        state{State::Idle};
+    State                        prev{State::Idle};
+    int                          frame{};
+    int                          timer{};
+    std::array<AnimationClip, 3> clips{};
+};
+
+struct ExplosionAnimation
+{
+    enum class State { Playing };
+    State                        state{State::Playing};
+    State                        prev{State::Playing};
+    int                          frame{};
+    int                          timer{};
+    std::array<AnimationClip, 1> clips{};
 };
 
 struct Movement
@@ -173,12 +248,6 @@ struct Drawable
     float        spriteW{};
     float        spriteH{};
     float        drawScale{1.f};
-    int          idleStart{};
-    int          idleCount{};
-    int          runStart{};
-    int          runCount{};
-    int          jumpStart{};
-    int          jumpCount{};
     bool         defaultFacingLeft{true};
 };
 
@@ -280,16 +349,14 @@ struct Respawn
     bool  isRespawning{};
 };
 
-struct Explosion
-{
-    // Preferred storage: Stack, short-lived entities created on enemy death.
-};
-
 // ============= SYSTEMS    =============
 
 void inputSystem();
 void movementSystem();
-void animationSystem();
+void playerAnimSystem();
+void patrollerAnimSystem();
+void locksterAnimSystem();
+void explosionAnimSystem();
 void drawSystem(SDL_Renderer* ren);
 void shootingSystem();
 void collisionSystem(b2WorldId box);
@@ -297,7 +364,6 @@ void damageSystem();
 void healthSystem();
 void aiSystem();
 void respawnSystem();
-void explosionSystem();
 
 // ============= ENTITIES   =============
 
