@@ -5,9 +5,10 @@ set(APP_SOURCES
 
 add_executable(${EXECUTABLE_NAME} ${APP_SOURCES})
 
+# SYSTEM so bagel.h warnings don't trip -Werror / warnings-as-errors.
 target_include_directories(
     ${EXECUTABLE_NAME}
-    PUBLIC
+    SYSTEM PUBLIC
     "${CMAKE_SOURCE_DIR}/dependencies/bagel"
 )
 
