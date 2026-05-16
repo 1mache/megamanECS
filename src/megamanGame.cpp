@@ -21,6 +21,8 @@ MegamanGame::MegamanGame()
         std::cout << SDL_GetError() << std::endl;
         return;
     }
+    // good for pixel art scaling
+    SDL_SetDefaultTextureScaleMode(_ren, SDL_SCALEMODE_NEAREST);
 
     GlobalData::setWindow(_win);
     GlobalData::setRenderer(_ren);
