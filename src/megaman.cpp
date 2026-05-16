@@ -21,7 +21,7 @@ constexpr float PLAYER_RUN_SPEED        = 10.f;
 constexpr float PLAYER_JUMP_IMPULSE     = 40.f;
 constexpr float PLAYER_JUMP_COYOTE_TIME = 50.f;
 constexpr float PLAYER_JUMP_BUFFER_TIME = 17.f;
-constexpr float PLAYER_JUMP_FALL_FACTOR = 2.f;
+constexpr float PLAYER_JUMP_FALL_FACTOR = 2.5f;
 constexpr float PLAYER_HP               = 3.f;
 
 // --- Patroller enemy ---
@@ -44,9 +44,9 @@ constexpr float LOCKSTER_SPRITE_H        = 24.f;
 constexpr int   LOCKSTER_IDLE_START      = 0;
 constexpr int   LOCKSTER_IDLE_COUNT      = 2;
 constexpr int   LOCKSTER_ALERT_START     = 2;
-constexpr int   LOCKSTER_ALERT_COUNT     = 4;
-constexpr int   LOCKSTER_CHARGE_START    = 6;
-constexpr int   LOCKSTER_CHARGE_COUNT    = 2;
+constexpr int   LOCKSTER_ALERT_COUNT     = 3;
+constexpr int   LOCKSTER_CHARGE_START    = 5;
+constexpr int   LOCKSTER_CHARGE_COUNT    = 4;
 constexpr float LOCKSTER_DETECTION_RANGE = 15.f;
 constexpr float LOCKSTER_CHARGE_SPEED    = 8.f;
 constexpr bool  LOCKSTER_HAS_BULLETS     = false;
@@ -248,12 +248,16 @@ ent_type createLockster(b2WorldId world, float x, float y, SDL_Texture* tex)
     bodyDef.userData      = reinterpret_cast<void*>(static_cast<uintptr_t>(ent.id));
     b2BodyId body         = b2CreateBody(world, &bodyDef);
 
-    b2ShapeDef shapeDef          = b2DefaultShapeDef();
-    shapeDef.density             = 1.f;
-    shapeDef.enableContactEvents = true;
-    shapeDef.filter.categoryBits = CAT_ENEMY;
-    shapeDef.filter.maskBits     = CAT_WORLD | CAT_PLAYER | CAT_PLAYER_BULLET;
-    b2Polygon boxShape           = b2MakeBox(halfW, halfH);
+    b2ShapeDef shapeDef                 = b2DefaultShapeDef();
+    shapeDef.density                    = 1.f;
+    shapeDef.material.friction          = 0.f;
+    shapeDef.material.restitution       = 1.f;
+    shapeDef.material.rollingResistance = 0.f;
+    shapeDef.material.tangentSpeed      = 0.f;
+    shapeDef.enableContactEvents        = true;
+    shapeDef.filter.categoryBits        = CAT_ENEMY;
+    shapeDef.filter.maskBits            = CAT_WORLD | CAT_PLAYER | CAT_PLAYER_BULLET;
+    b2Polygon boxShape                  = b2MakeBox(halfW, halfH);
     b2CreatePolygonShape(body, &shapeDef, &boxShape);
 
     bagel::World::addComponent<LocksterAnimation>(
@@ -638,6 +642,7 @@ void playerAnimSystem()
                                         .set<PlayerAnimation>()
                                         .set<Movement>()
                                         .set<RenderFrame>()
+                                        .set<Jump>()
                                         .build();
 
     for (bagel::Entity e = bagel::Entity::first(); !e.eof(); e.next())
@@ -645,13 +650,14 @@ void playerAnimSystem()
         if (!e.test(mask))
             continue;
 
-        auto&       a  = e.get<PlayerAnimation>();
-        const auto& m  = e.get<Movement>();
-        auto&       rf = e.get<RenderFrame>();
+        auto&       a    = e.get<PlayerAnimation>();
+        const auto& m    = e.get<Movement>();
+        auto&       rf   = e.get<RenderFrame>();
+        auto&       jump = e.get<Jump>();
 
-        constexpr float JUMP_VEL_EPSILON = 0.1f;
-        const auto      vel              = b2Body_GetLinearVelocity(m.bodyId);
-        if (std::fabs(vel.y) > JUMP_VEL_EPSILON)
+        const auto vel = b2Body_GetLinearVelocity(m.bodyId);
+
+        if (jump.isJumping)
             a.state = PlayerAnimation::State::Jump;
         else if (m.velX != 0.f)
             a.state = PlayerAnimation::State::Run;
