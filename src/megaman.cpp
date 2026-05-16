@@ -22,32 +22,35 @@ constexpr float PLAYER_JUMP_IMPULSE     = 40.f;
 constexpr float PLAYER_JUMP_COYOTE_TIME = 50.f;
 constexpr float PLAYER_JUMP_BUFFER_TIME = 17.f;
 constexpr float PLAYER_JUMP_FALL_FACTOR = 1.5f;
+constexpr float PLAYER_HP               = 3.f;
 
 // --- Patroller enemy ---
-constexpr float PATROLLER_SPRITE_W   = 24.f;
-constexpr float PATROLLER_SPRITE_H   = 24.f;
-constexpr int   PATROLLER_IDLE_START = 0;
-constexpr int   PATROLLER_IDLE_COUNT = 1;
-constexpr int   PATROLLER_RUN_START  = 0;
-constexpr int   PATROLLER_RUN_COUNT  = 2;
-constexpr int   PATROLLER_JUMP_START = 0;
-constexpr int   PATROLLER_JUMP_COUNT = 1;
-constexpr float PATROLLER_Y_RANGE    = 1.5f;
-constexpr float PATROLLER_SPEED      = 5.f;
-constexpr int   PATROLLER_HP         = 2.f;
+constexpr float PATROLLER_SPRITE_W        = 24.f;
+constexpr float PATROLLER_SPRITE_H        = 24.f;
+constexpr int   PATROLLER_IDLE_START      = 0;
+constexpr int   PATROLLER_IDLE_COUNT      = 1;
+constexpr int   PATROLLER_RUN_START       = 0;
+constexpr int   PATROLLER_RUN_COUNT       = 2;
+constexpr int   PATROLLER_JUMP_START      = 0;
+constexpr int   PATROLLER_JUMP_COUNT      = 1;
+constexpr float PATROLLER_DETECTION_RANGE = 15.f;
+constexpr float PATROLLER_Y_RANGE         = 1.5f;
+constexpr float PATROLLER_SPEED           = 5.f;
+constexpr int   PATROLLER_HP              = 2.f;
 
 // --- Lockster enemy ---
-constexpr float LOCKSTER_SPRITE_W     = 24.f;
-constexpr float LOCKSTER_SPRITE_H     = 24.f;
-constexpr int   LOCKSTER_IDLE_START   = 0;
-constexpr int   LOCKSTER_IDLE_COUNT   = 2;
-constexpr int   LOCKSTER_ALERT_START  = 2;
-constexpr int   LOCKSTER_ALERT_COUNT  = 4;
-constexpr int   LOCKSTER_CHARGE_START = 6;
-constexpr int   LOCKSTER_CHARGE_COUNT = 2;
-constexpr bool  LOCKSTER_HAS_BULLETS  = false;
-constexpr float LOCKSTER_SPEED        = 8.f;
-constexpr int   LOCKSTER_HP           = 1.f;
+constexpr float LOCKSTER_SPRITE_W        = 24.f;
+constexpr float LOCKSTER_SPRITE_H        = 24.f;
+constexpr int   LOCKSTER_IDLE_START      = 0;
+constexpr int   LOCKSTER_IDLE_COUNT      = 2;
+constexpr int   LOCKSTER_ALERT_START     = 2;
+constexpr int   LOCKSTER_ALERT_COUNT     = 4;
+constexpr int   LOCKSTER_CHARGE_START    = 6;
+constexpr int   LOCKSTER_CHARGE_COUNT    = 2;
+constexpr float LOCKSTER_DETECTION_RANGE = 15.f;
+constexpr float LOCKSTER_CHARGE_SPEED    = 8.f;
+constexpr bool  LOCKSTER_HAS_BULLETS     = false;
+constexpr int   LOCKSTER_HP              = 1.f;
 
 // --- Projectile ---
 constexpr float BULLET_SPEED        = 0.5f;
@@ -56,7 +59,6 @@ constexpr float SHOT_SPRITE_W       = 8.f;
 constexpr float SHOT_SPRITE_H       = 8.f;
 constexpr float BULLET_HALF_W       = 0.2f;
 constexpr float BULLET_HALF_H       = 0.1f;
-
 
 // --- Explosion ---
 constexpr float EXPLOSION_SPRITE_W = 22.f;
@@ -107,7 +109,7 @@ void tickAnim(AnimT& anim, megaman::RenderFrame& rf)
 
 namespace megaman
 {
-ent_type createPlayer(b2WorldId world, float x, float y, int hp, SDL_Texture* tex)
+ent_type createPlayer(b2WorldId world, float x, float y, SDL_Texture* tex)
 {
     constexpr float halfW = PLAYER_SPRITE_W / (2 * GlobalData::PTM);
     constexpr float halfH = PLAYER_SPRITE_H / (2 * GlobalData::PTM);
@@ -155,7 +157,7 @@ ent_type createPlayer(b2WorldId world, float x, float y, int hp, SDL_Texture* te
                                          .coyoteTimer = PLAYER_JUMP_COYOTE_TIME,
                                      });
     bagel::World::addComponent<Collision>(ent, {});
-    bagel::World::addComponent<Health>(ent, {.points = static_cast<float>(hp)});
+    bagel::World::addComponent<Health>(ent, {.points = PLAYER_HP});
     bagel::World::addComponent<DamageIntent>(ent, {});
     bagel::World::addComponent<Input>(ent, {});
     bagel::World::addComponent<Intent>(ent, {});
@@ -165,7 +167,7 @@ ent_type createPlayer(b2WorldId world, float x, float y, int hp, SDL_Texture* te
                                          .spawnY          = y,
                                          .lastCheckpointX = x,
                                          .lastCheckpointY = y,
-                                         .maxHp           = static_cast<float>(hp)});
+                                         .maxHp           = PLAYER_HP});
 
     return ent;
 }
@@ -173,11 +175,8 @@ ent_type createPlayer(b2WorldId world, float x, float y, int hp, SDL_Texture* te
 ent_type createPatroller(b2WorldId    world,
                          float        x,
                          float        y,
-                         float        hp,
                          float        patrolMinX,
                          float        patrolMaxX,
-                         float        detectionRange,
-                         float        speed,
                          SDL_Texture* tex)
 {
     constexpr float halfW = PATROLLER_SPRITE_W / (2 * GlobalData::PTM);
@@ -215,9 +214,9 @@ ent_type createPatroller(b2WorldId    world,
                                            {.x = x, .y = y, .w = halfW, .h = halfH});
     bagel::World::addComponent<Movement>(
         ent,
-        {.speed = speed, .mass = 1, .bodyId = body});
+        {.speed = PATROLLER_SPEED, .mass = 1, .bodyId = body});
     bagel::World::addComponent<Collision>(ent, {});
-    bagel::World::addComponent<Health>(ent, {.points = hp});
+    bagel::World::addComponent<Health>(ent, {.points = PATROLLER_HP});
     bagel::World::addComponent<DamageIntent>(ent, {});
     bagel::World::addComponent<Intent>(ent, {});
     bagel::World::addComponent<Enemy>(ent, {});
@@ -225,7 +224,7 @@ ent_type createPatroller(b2WorldId    world,
                                    {.type           = AI::Type::Patroller,
                                     .patrolMinX     = patrolMinX,
                                     .patrolMaxX     = patrolMaxX,
-                                    .detectionRange = detectionRange,
+                                    .detectionRange = PATROLLER_DETECTION_RANGE,
                                     .spawnX         = x,
                                     .spawnY         = y});
     bagel::World::addComponent<Weapon>(ent, {});
@@ -233,13 +232,7 @@ ent_type createPatroller(b2WorldId    world,
     return ent;
 }
 
-ent_type createLockster(b2WorldId    world,
-                        float        x,
-                        float        y,
-                        float        hp,
-                        float        detectionRange,
-                        float        chargeSpeed,
-                        SDL_Texture* tex)
+ent_type createLockster(b2WorldId world, float x, float y, SDL_Texture* tex)
 {
     constexpr float halfW = LOCKSTER_SPRITE_W / (2 * GlobalData::PTM);
     constexpr float halfH = LOCKSTER_SPRITE_H / (2 * GlobalData::PTM);
@@ -280,14 +273,13 @@ ent_type createLockster(b2WorldId    world,
                                            {.x = x, .y = y, .w = halfW, .h = halfH});
     bagel::World::addComponent<Movement>(ent, {.mass = 1, .bodyId = body});
     bagel::World::addComponent<Collision>(ent, {});
-    bagel::World::addComponent<Health>(ent, {.points = hp});
+    bagel::World::addComponent<Health>(ent, {.points = PATROLLER_HP});
     bagel::World::addComponent<DamageIntent>(ent, {});
     bagel::World::addComponent<Intent>(ent, {});
     bagel::World::addComponent<Enemy>(ent, {});
     bagel::World::addComponent<AI>(ent,
                                    {.type           = AI::Type::Lockster,
-                                    .detectionRange = detectionRange,
-                                    .chargeSpeed    = chargeSpeed,
+                                    .detectionRange = LOCKSTER_DETECTION_RANGE,
                                     .spawnX         = x,
                                     .spawnY         = y});
     bagel::World::addComponent<Weapon>(ent, {});
@@ -295,7 +287,7 @@ ent_type createLockster(b2WorldId    world,
     return ent;
 }
 
-ent_type createBoss(float x, float y, float hp)
+ent_type createBoss(float x, float y)
 {
     ent_type ent = bagel::World::createEntity();
 
@@ -303,7 +295,7 @@ ent_type createBoss(float x, float y, float hp)
     bagel::World::addComponent<MTransform>(ent, {.x = x, .y = y});
     bagel::World::addComponent<Movement>(ent, {.mass = 1});
     bagel::World::addComponent<Collision>(ent, {});
-    bagel::World::addComponent<Health>(ent, {.points = hp});
+    bagel::World::addComponent<Health>(ent, {.points = 0.f});
     bagel::World::addComponent<Enemy>(ent, {});
     bagel::World::addComponent<AI>(ent, {});
     bagel::World::addComponent<Weapon>(ent, {.projectileType = -1});
@@ -1142,7 +1134,7 @@ void tickLockster(AI&               ai,
         }
         else
         {
-            m.speed = ai.chargeSpeed;
+            m.speed = LOCKSTER_CHARGE_SPEED;
             if (t.x < ai.targetX)
                 intent.moveRight = true;
             else
@@ -1258,9 +1250,6 @@ void checkpointSystem(const std::vector<SpawnPoint>& checkpoints)
     }
 }
 
-constexpr float LOCKSTER_DETECTION_RANGE = 15.f;
-constexpr float LOCKSTER_CHARGE_SPEED    = 0.18f;
-
 void respawnSystem(b2WorldId                      world,
                    const std::vector<SpawnPoint>& enemySpawns,
                    SDL_Texture*                   locksterTex)
@@ -1370,13 +1359,7 @@ void respawnSystem(b2WorldId                      world,
                         }
                     }
                     if (!found)
-                        createLockster(world,
-                                       sp.x,
-                                       sp.y,
-                                       r.maxHp,
-                                       LOCKSTER_DETECTION_RANGE,
-                                       LOCKSTER_CHARGE_SPEED,
-                                       locksterTex);
+                        createLockster(world, sp.x, sp.y, locksterTex);
                 }
             }
             else

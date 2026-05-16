@@ -78,11 +78,7 @@ MegamanGame::MegamanGame()
     _scene.attachPhysics(_boxWorld);
 
     const auto& playerSpawns = _scene.getPlayerSpawns();
-    createPlayer(_boxWorld,
-                 playerSpawns[0].x,
-                 playerSpawns[0].y,
-                 MegamanGame::HP,
-                 _tex);
+    createPlayer(_boxWorld, playerSpawns[0].x, playerSpawns[0].y, _tex);
 
     for (const SpawnPoint& sp : _scene.getEnemySpawns())
     {
@@ -91,22 +87,13 @@ MegamanGame::MegamanGame()
             createPatroller(_boxWorld,
                             sp.x,
                             sp.y,
-                            MegamanGame::HP,
                             sp.x - 5.f,
                             sp.x + 5.f,
-                            6.f,
-                            0.05f,
                             _enemyTex);
         }
         else if (sp.type == SpawnPoint::Type::Lockster)
         {
-            createLockster(_boxWorld,
-                           sp.x,
-                           sp.y,
-                           MegamanGame::HP,
-                           15.f,
-                           0.18f,
-                           _locksterTex);
+            createLockster(_boxWorld, sp.x, sp.y, _locksterTex);
         }
     }
 }

@@ -350,7 +350,6 @@ struct AI
     float patrolMaxX{};
     float detectionRange{};
     int   alertTimer{};
-    float chargeSpeed{};
     float spawnX{};
     float spawnY{};
     int   shootCooldown{};
@@ -408,27 +407,18 @@ void respawnSystem(b2WorldId                      world,
 
 // ============= ENTITIES   =============
 
-ent_type createPlayer(b2WorldId world, float x, float y, int hp, SDL_Texture* tex);
+ent_type createPlayer(b2WorldId world, float x, float y, SDL_Texture* tex);
 
 ent_type createPatroller(b2WorldId    world,
                          float        x,
                          float        y,
-                         float        hp,
                          float        patrolMinX,
                          float        patrolMaxX,
-                         float        detectionRange,
-                         float        speed,
                          SDL_Texture* tex);
 
-ent_type createLockster(b2WorldId    world,
-                        float        x,
-                        float        y,
-                        float        hp,
-                        float        detectionRange,
-                        float        chargeSpeed,
-                        SDL_Texture* tex);
+ent_type createLockster(b2WorldId world, float x, float y, SDL_Texture* tex);
 
-ent_type createBoss(float x, float y, float hp);
+ent_type createBoss(float x, float y);
 
 ent_type createPlatform(float x, float y, bool isMoving);
 
