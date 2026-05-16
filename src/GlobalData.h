@@ -16,7 +16,7 @@ public:
     static constexpr float START_WIN_H    = 540;
     static constexpr float START_CAM_X    = (START_WIN_W / (2 * PTM)) - 8.f;
     static constexpr float START_CAM_Y    = (START_WIN_H / (2 * PTM)) - 5.5f;
-    static constexpr float SCALE_FACTOR   = 2.f;
+    static constexpr float SCALE_FACTOR   = 2.5f;
     static constexpr float GRAVITY        = 25.f;
 
     static void setWindow(SDL_Window* window)

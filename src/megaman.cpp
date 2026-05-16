@@ -19,8 +19,8 @@ constexpr int   PLAYER_JUMP_START       = 10;
 constexpr int   PLAYER_JUMP_COUNT       = 1;
 constexpr float PLAYER_RUN_SPEED        = 10.f;
 constexpr float PLAYER_JUMP_IMPULSE     = 40.f;
-constexpr float PLAYER_JUMP_COYOTE_TIME = 50.f;
-constexpr float PLAYER_JUMP_BUFFER_TIME = 17.f;
+constexpr float PLAYER_JUMP_COYOTE_TIME = 40.f;
+constexpr float PLAYER_JUMP_BUFFER_TIME = 15.f;
 constexpr float PLAYER_JUMP_FALL_FACTOR = 2.5f;
 constexpr float PLAYER_HP               = 3.f;
 
@@ -36,7 +36,7 @@ constexpr int   PATROLLER_JUMP_COUNT      = 1;
 constexpr float PATROLLER_DETECTION_RANGE = 15.f;
 constexpr float PATROLLER_Y_RANGE         = 1.5f;
 constexpr float PATROLLER_SPEED           = 5.f;
-constexpr int   PATROLLER_HP              = 2.f;
+constexpr int   PATROLLER_HP              = 1.f;
 
 // --- Lockster enemy ---
 constexpr float LOCKSTER_SPRITE_W        = 24.f;
@@ -47,10 +47,10 @@ constexpr int   LOCKSTER_ALERT_START     = 2;
 constexpr int   LOCKSTER_ALERT_COUNT     = 3;
 constexpr int   LOCKSTER_CHARGE_START    = 5;
 constexpr int   LOCKSTER_CHARGE_COUNT    = 4;
-constexpr float LOCKSTER_DETECTION_RANGE = 15.f;
+constexpr float LOCKSTER_DETECTION_RANGE = 8.f;
 constexpr float LOCKSTER_CHARGE_SPEED    = 8.f;
 constexpr bool  LOCKSTER_HAS_BULLETS     = false;
-constexpr int   LOCKSTER_HP              = 1.f;
+constexpr float LOCKSTER_HP              = 0.5f;
 
 // --- Projectile ---
 constexpr float BULLET_SPEED        = 0.5f;
@@ -277,7 +277,7 @@ ent_type createLockster(b2WorldId world, float x, float y, SDL_Texture* tex)
                                            {.x = x, .y = y, .w = halfW, .h = halfH});
     bagel::World::addComponent<Movement>(ent, {.mass = 1, .bodyId = body});
     bagel::World::addComponent<Collision>(ent, {});
-    bagel::World::addComponent<Health>(ent, {.points = PATROLLER_HP});
+    bagel::World::addComponent<Health>(ent, {.points = LOCKSTER_HP});
     bagel::World::addComponent<DamageIntent>(ent, {});
     bagel::World::addComponent<Intent>(ent, {});
     bagel::World::addComponent<Enemy>(ent, {});
@@ -1115,13 +1115,14 @@ void tickPatroller(AI&               ai,
     }
 }
 
-void tickLockster(AI&               ai,
-                  const MTransform& t,
-                  Movement&         m,
-                  Intent&           intent,
-                  float             playerX,
-                  float             playerY)
+void tickLockster(bagel::Entity& lockster, float playerX, float playerY)
 {
+    AI&               ai     = lockster.get<AI>();
+    const MTransform& t      = lockster.get<MTransform>();
+    Movement&         m      = lockster.get<Movement>();
+    Intent&           intent = lockster.get<Intent>();
+    Health&           h      = lockster.get<Health>();
+
     constexpr float Y_MARGIN = 1.5f;
     const float     distX    = std::abs(t.x - playerX);
     const float     distY    = std::abs(t.y - playerY);
@@ -1130,7 +1131,6 @@ void tickLockster(AI&               ai,
 
     const bool inRange    = distX < ai.detectionRange && distY < Y_MARGIN;
     const bool isCharging = ai.alertTimer >= 30;
-
     if (isCharging)
     {
         const bool reached = std::abs(t.x - ai.targetX) < 0.2f;
@@ -1173,9 +1173,12 @@ void tickLockster(AI&               ai,
     }
     else
     {
+
         ai.alertTimer = 0;
         ai.shotsFired = 0;
     }
+
+    h.isInvulnerable = !(isCharging || inRange);
 }
 } // namespace
 
@@ -1227,7 +1230,7 @@ void aiSystem()
                 tickPatroller(ai, t, intent, playerX, playerY);
                 break;
             case AI::Type::Lockster:
-                tickLockster(ai, t, m, intent, playerX, playerY);
+                tickLockster(e, playerX, playerY);
                 break;
             }
         }
