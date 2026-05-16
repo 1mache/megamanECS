@@ -17,9 +17,10 @@ constexpr int   PLAYER_RUN_START        = 0;
 constexpr int   PLAYER_RUN_COUNT        = 4;
 constexpr int   PLAYER_JUMP_START       = 10;
 constexpr int   PLAYER_JUMP_COUNT       = 1;
-constexpr float PLAYER_JUMP_IMPULSE     = 5.f;
-constexpr float PLAYER_JUMP_COYOTE_TIME = 0.1f;
-constexpr float PLAYER_JUMP_BUFFER_TIME = 0.1f;
+constexpr float PLAYER_JUMP_IMPULSE     = 40.f;
+constexpr float PLAYER_JUMP_COYOTE_TIME = 50.f;
+constexpr float PLAYER_JUMP_BUFFER_TIME = 17.f;
+constexpr float PLAYER_JUMP_FALL_FACTOR = 1.5f;
 
 // --- Patroller enemy ---
 constexpr float PATROLLER_SPRITE_W   = 24.f;
@@ -44,11 +45,12 @@ constexpr int   LOCKSTER_CHARGE_COUNT = 2;
 constexpr bool  LOCKSTER_HAS_BULLETS  = false;
 
 // --- Projectile ---
-constexpr float BULLET_SPEED  = 0.5f;
-constexpr float SHOT_SPRITE_W = 8.f;
-constexpr float SHOT_SPRITE_H = 8.f;
-constexpr float BULLET_HALF_W = 0.2f;
-constexpr float BULLET_HALF_H = 0.1f;
+constexpr float BULLET_SPEED        = 0.5f;
+constexpr float ENEMY_BULLET_FACTOR = 0.33f; // enemy bullets are slower for balance
+constexpr float SHOT_SPRITE_W       = 8.f;
+constexpr float SHOT_SPRITE_H       = 8.f;
+constexpr float BULLET_HALF_W       = 0.2f;
+constexpr float BULLET_HALF_H       = 0.1f;
 
 
 // --- Explosion ---
@@ -478,7 +480,6 @@ void jumpSystem()
         if (!e.test(mask))
             continue;
 
-
         auto& j      = e.get<Jump>();
         auto& m      = e.get<Movement>();
         auto& t      = e.get<MTransform>();
@@ -486,17 +487,20 @@ void jumpSystem()
 
         auto& bodyId = m.bodyId;
 
-        constexpr float     GROUND_PROBE     = 0.05f;
-        constexpr float     VERTICAL_EPSILON = 0.01f;
-        const b2WorldId     worldId          = GlobalData::getBoxWorld();
-        const b2QueryFilter filter           = {.categoryBits = CAT_PLAYER,
-                                                .maskBits     = CAT_WORLD};
-        const b2Vec2        down             = {0.f, -(t.h + GROUND_PROBE)};
-        const float         xs[3]            = {t.x,
-                                                t.x + t.w - VERTICAL_EPSILON,
-                                                t.x - t.w + VERTICAL_EPSILON};
+        // how far rays go past sprite bottom.
+        constexpr float     GROUND_PROBE = 0.05f;
+        constexpr float     EPSILON      = 0.1f;
+        constexpr float     DT           = GlobalData::FRAME_DELTA_MS;
+        const b2WorldId     worldId      = GlobalData::getBoxWorld();
+        const b2QueryFilter filter       = {.categoryBits = CAT_PLAYER,
+                                            .maskBits     = CAT_WORLD};
+        const b2Vec2        down         = {0.f, -(t.h + GROUND_PROBE)};
+        const float         xs[3] = {t.x, t.x + t.w - EPSILON, t.x - t.w + EPSILON};
+
+        bool wasGrounded = j.isGrounded;
 
         j.isGrounded = false;
+        // check if grounded with 3 raycasts down.
         for (float x : xs)
         {
             b2RayResult res =
@@ -508,8 +512,51 @@ void jumpSystem()
             }
         }
 
-        if (intent.moveUp && j.isGrounded)
-            b2Body_ApplyLinearImpulse(m.bodyId, {0.f, j.impulse}, {t.x, t.y}, true);
+        // if were on ground reset coyote timer
+        if (j.isGrounded)
+        {
+            j.coyoteTimer = 0.f;
+            if (!wasGrounded) // just landed
+                j.isJumping = false;
+        }
+        // if we just left the ground but not by jumping start coyote timer
+        else if (wasGrounded && !j.isJumping)
+        {
+            // if we just left the ground start coyote timer
+            j.coyoteTimer = PLAYER_JUMP_COYOTE_TIME;
+        }
+
+        //if we want to jump
+        if (intent.moveUp)
+        {
+            // perform only if were grounded or within coyote or buffer timeframe
+            if (!j.isJumping && // and not already mid-air
+                (j.isGrounded || (j.coyoteTimer > 0.f || j.bufferTimer > 0.f)))
+            {
+                b2Body_ApplyLinearImpulse(m.bodyId,
+                                          {0.f, j.impulse},
+                                          {t.x, t.y},
+                                          true);
+                j.isJumping = true;
+            }
+            else if (j.isJumping)
+            {
+                // if player wants to jump while mid air we give a small time window
+                // to perform the jump if he lands at that time
+                j.bufferTimer = PLAYER_JUMP_BUFFER_TIME;
+            }
+        }
+
+        auto playerVel = b2Body_GetLinearVelocity(m.bodyId);
+        // if we are falling. increase gravity pull on player. better feel
+        if (playerVel.y <= 0.f)
+        {
+            b2Body_SetGravityScale(m.bodyId, PLAYER_JUMP_FALL_FACTOR);
+        }
+
+        // decrease both timers
+        j.coyoteTimer = std::max(0.f, j.coyoteTimer - DT);
+        j.bufferTimer = std::max(0.f, j.bufferTimer - DT);
     }
 }
 
@@ -539,7 +586,7 @@ void shootingSystem()
             float       bVelX =
                 e.get<Movement>().facingLeft ? -BULLET_SPEED : BULLET_SPEED;
             if (fromEnemy)
-                bVelX *= 0.5f; // enemy bullets are slower for balance
+                bVelX *= ENEMY_BULLET_FACTOR; // enemy bullets are slower for balance
 
             ent_type bullet = createProjectile(GlobalData::getBoxWorld(),
                                                t.x,
@@ -701,6 +748,8 @@ void drawSystem(SDL_Renderer* ren)
     }
 }
 
+namespace
+{
 static void destroyProjectile(bagel::Entity ent)
 {
     if (ent.has<Movement>())
@@ -711,6 +760,7 @@ static void destroyProjectile(bagel::Entity ent)
     }
     ent.destroy();
 }
+} // namespace
 
 void collisionSystem(b2WorldId world)
 {
