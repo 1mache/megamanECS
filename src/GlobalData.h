@@ -9,15 +9,15 @@ namespace megaman
 class GlobalData
 {
 public:
-    static constexpr int   FPS = 60;
+    static constexpr int   FPS            = 60;
     static constexpr float FRAME_DELTA_MS = FPS ? (1000.f / FPS) : 0.f;
-    static constexpr float PTM = 16.f;
-    static constexpr float START_WIN_W = 720;
-    static constexpr float START_WIN_H = 540;
-    static constexpr float START_CAM_X = (START_WIN_W / (2 * PTM)) - 8.f;
-    static constexpr float START_CAM_Y = (START_WIN_H / (2 * PTM)) - 5.5f;
-    static constexpr float SCALE_FACTOR = 2.5f;
-    static constexpr float GRAVITY = 20.f;
+    static constexpr float PTM            = 16.f;
+    static constexpr float START_WIN_W    = 720;
+    static constexpr float START_WIN_H    = 540;
+    static constexpr float START_CAM_X    = (START_WIN_W / (2 * PTM)) - 8.f;
+    static constexpr float START_CAM_Y    = (START_WIN_H / (2 * PTM)) - 5.5f;
+    static constexpr float SCALE_FACTOR   = 2.f;
+    static constexpr float GRAVITY        = 20.f;
 
     static void setWindow(SDL_Window* window)
     {
@@ -104,8 +104,8 @@ public:
     }
 
 private:
-    GlobalData() = delete;
-    GlobalData(const GlobalData&) = delete;
+    GlobalData()                      = delete;
+    GlobalData(const GlobalData&)     = delete;
     void operator=(const GlobalData&) = delete;
 
     static inline SDL_Window*   _window{};

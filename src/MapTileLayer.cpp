@@ -12,19 +12,19 @@ bool MapTileLayer::create(const tmx::Map&                 map,
                           std::uint32_t                   layerIndex,
                           const std::unique_ptr<Texture>& texture)
 {
-    _texture = *texture;
+    _texture           = *texture;
     const auto& layers = map.getLayers();
     massert(layerIndex < layers.size(), "Layer index out of bounds");
     massert(layers[layerIndex]->getType() == tmx::Layer::Type::Tile &&
             "Layer index does not point to a tile layer");
 
     const auto& layer = layers[layerIndex]->getLayerAs<tmx::TileLayer>();
-    _className = layer.getClass();
+    _className        = layer.getClass();
 
-    const auto mapSize = map.getTileCount();
+    const auto mapSize     = map.getTileCount();
     const auto mapTileSize = map.getTileSize();
 
-    const auto       tint = layer.getTintColour();
+    const auto       tint       = layer.getTintColour();
     const SDL_FColor vertColour = {tint.r / 255.f,
                                    tint.g / 255.f,
                                    tint.b / 255.f,
@@ -35,12 +35,12 @@ bool MapTileLayer::create(const tmx::Map&                 map,
     // MTransform. Map's bottom-left ends up at world (0,0); its top-left at
     // world (0, mapH_m).
     constexpr float invPTM = 1.f / megaman::GlobalData::PTM;
-    const float     mapHM = static_cast<float>(mapSize.y * mapTileSize.y) * invPTM;
+    const float     mapHM  = static_cast<float>(mapSize.y * mapTileSize.y) * invPTM;
 
-    const auto& ts = map.getTilesets()[0]; // the first and only tileset
+    const auto& ts      = map.getTilesets()[0]; // the first and only tileset
     const auto& tileIDs = layer.getTiles();
 
-    const auto texSize = texture->getSize();
+    const auto texSize    = texture->getSize();
     const int  tileCountX = texSize.x / static_cast<int>(mapTileSize.x);
 
     // UV space: texture coordinates. (0,0) = top-left, (1,1) = bottom-right of texture
@@ -127,7 +127,7 @@ void MapTileLayer::draw(SDL_Renderer* renderer, const CameraData& cam) const
     screenVerts.reserve(_vertexData.size());
     for (auto& v : _vertexData)
     {
-        auto vnew = v;
+        auto vnew     = v;
         vnew.position = megaman::worldToScreenPoint(v.position, cam);
         screenVerts.push_back(vnew);
     };

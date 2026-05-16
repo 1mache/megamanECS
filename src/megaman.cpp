@@ -41,8 +41,8 @@ constexpr int   LOCKSTER_CHARGE_COUNT = 2;
 constexpr bool  LOCKSTER_HAS_BULLETS  = false;
 
 // --- Projectile ---
-constexpr float BULLET_SPEED  = 0.15f;
-constexpr float SHOT_SPRITE_W = 16.f;
+constexpr float BULLET_SPEED  = 0.5f;
+constexpr float SHOT_SPRITE_W = 8.f;
 constexpr float SHOT_SPRITE_H = 8.f;
 constexpr float BULLET_HALF_W = 0.2f;
 constexpr float BULLET_HALF_H = 0.1f;
@@ -479,9 +479,12 @@ void shootingSystem()
         if (intent.shoot && w.shootCooldown <= 0)
         {
             const auto& t         = e.get<MTransform>();
-            const bool  fromEnemy = !e.has<Input>();
-            const float bVelX =
+            bool        fromEnemy = !e.has<Input>();
+            float       bVelX =
                 e.get<Movement>().facingLeft ? -BULLET_SPEED : BULLET_SPEED;
+            if (fromEnemy)
+                bVelX *= 0.5f; // enemy bullets are slower for balance
+
             ent_type bullet = createProjectile(GlobalData::getBoxWorld(),
                                                t.x,
                                                t.y,

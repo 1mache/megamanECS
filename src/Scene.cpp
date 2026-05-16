@@ -78,10 +78,10 @@ WorldBoundsM Scene::getBoundsM() const
     for (std::size_t i = 1; i < _tileLayers.size(); ++i)
     {
         const auto bi = _tileLayers[i]->getBoundsM();
-        bounds.minX = std::min(bounds.minX, bi.minX);
-        bounds.maxX = std::max(bounds.maxX, bi.maxX);
-        bounds.minY = std::min(bounds.minY, bi.minY);
-        bounds.maxY = std::max(bounds.maxY, bi.maxY);
+        bounds.minX   = std::min(bounds.minX, bi.minX);
+        bounds.maxX   = std::max(bounds.maxX, bi.maxX);
+        bounds.minY   = std::min(bounds.minY, bi.minY);
+        bounds.maxY   = std::max(bounds.maxY, bi.maxY);
     }
     return bounds;
 }
@@ -91,7 +91,7 @@ void Scene::clampCameraToBounds(CameraData& cam) const
     if (!isValid())
         return;
 
-    const auto  b = getBoundsM();
+    const auto  b     = getBoundsM();
     const float halfW = screenToWorldSize(GlobalData::getWinW() * 0.5f);
     const float halfH = screenToWorldSize(GlobalData::getWinH() * 0.5f);
 
@@ -112,13 +112,8 @@ void Scene::clampCameraToBounds(CameraData& cam) const
     const float clampedY = (minCy > maxCy) ? (b.minY + b.maxY) * 0.5f
                                            : std::clamp(cam.posY, minCy, maxCy);
 
-    // pixel snapping the camera
-    const float pixelW = 1.f / (GlobalData::PTM * GlobalData::SCALE_FACTOR);
-    const float pixelSnappedX = std::round(clampedX / pixelW) * pixelW;
-    const float pixelSnappedY = std::round(clampedY / pixelW) * pixelW;
-
-    cam.posX = pixelSnappedX;
-    cam.posY = pixelSnappedY;
+    cam.posX = clampedX;
+    cam.posY = clampedY;
 }
 
 const std::vector<SpawnPoint>& Scene::getPlayerSpawns() const
