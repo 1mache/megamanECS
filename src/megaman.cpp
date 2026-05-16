@@ -125,8 +125,9 @@ ent_type createPlayer(b2WorldId world, float x, float y, int hp, SDL_Texture* te
 
     bagel::World::addComponent<PlayerAnimation>(
         ent,
-        {.clips = {AnimationClip{PLAYER_IDLE_START, PLAYER_IDLE_COUNT},  // [0] Idle
-                   AnimationClip{PLAYER_RUN_START, PLAYER_RUN_COUNT}}}); // [1] Run
+        {.clips = {AnimationClip{PLAYER_IDLE_START, PLAYER_IDLE_COUNT},   // [0] Idle
+                   AnimationClip{PLAYER_RUN_START,  PLAYER_RUN_COUNT},   // [1] Run
+                   AnimationClip{PLAYER_JUMP_START, PLAYER_JUMP_COUNT}}}); // [2] Jump
     bagel::World::addComponent<RenderFrame>(ent, {});
     bagel::World::addComponent<Drawable>(
         ent,
@@ -142,7 +143,11 @@ ent_type createPlayer(b2WorldId world, float x, float y, int hp, SDL_Texture* te
     bagel::World::addComponent<Weapon>(ent, {});
     bagel::World::addComponent<Respawn>(
         ent,
-        {.spawnX = x, .spawnY = y, .maxHp = static_cast<float>(hp)});
+        {.spawnX            = x,
+         .spawnY            = y,
+         .lastCheckpointX   = x,
+         .lastCheckpointY   = y,
+         .maxHp             = static_cast<float>(hp)});
 
     return ent;
 }
@@ -415,7 +420,7 @@ void inputSystem()
     }
 }
 
-void movementSystem()
+void movementSystem(float sceneMinY)
 {
     static const bagel::Mask mask =
         bagel::MaskBuilder().set<MTransform>().set<Movement>().build();
@@ -454,6 +459,14 @@ void movementSystem()
 
         if (b2Body_IsValid(m.bodyId))
             transformUpdateWithB2Pos(t, b2Body_GetPosition(m.bodyId));
+
+        if (e.has<Input>() && e.has<DamageIntent>() && e.has<Health>())
+        {
+            auto& di = e.get<DamageIntent>();
+            auto& h  = e.get<Health>();
+            if (t.y < sceneMinY - FALL_KILL_MARGIN_M && !di.pending && !h.isInvulnerable)
+                di = {.amount = FALL_DAMAGE_HP, .pending = true, .fromContact = false, .fromFall = true};
+        }
     }
 }
 
@@ -516,8 +529,14 @@ void playerAnimSystem()
         const auto& m  = e.get<Movement>();
         auto&       rf = e.get<RenderFrame>();
 
-        a.state = m.velX != 0.f ? PlayerAnimation::State::Run
-                                : PlayerAnimation::State::Idle;
+        constexpr float JUMP_VEL_EPSILON = 0.1f;
+        const auto      vel              = b2Body_GetLinearVelocity(m.bodyId);
+        if (std::fabs(vel.y) > JUMP_VEL_EPSILON)
+            a.state = PlayerAnimation::State::Jump;
+        else if (m.velX != 0.f)
+            a.state = PlayerAnimation::State::Run;
+        else
+            a.state = PlayerAnimation::State::Idle;
         tickAnim(a, rf);
     }
 }
@@ -812,7 +831,9 @@ void damageSystem()
             h.invulnerableTimer = 90;
             h.justHit           = true;
             if (di.fromContact)
-                std::cout << "player hit by enemy, hp=" << h.points << "\n";
+                std::cout << "hit by enemy, hp=" << h.points << "\n";
+            else if (di.fromFall)
+                std::cout << "player fell, hp=" << h.points << "\n";
             else
                 std::cout << (e.has<Input>() ? "enemy bullet hit player"
                                              : "player bullet hit enemy")
@@ -1041,6 +1062,30 @@ void aiSystem()
     }
 }
 
+void checkpointSystem(const std::vector<SpawnPoint>& checkpoints)
+{
+    static const bagel::Mask mask =
+        bagel::MaskBuilder().set<Input>().set<MTransform>().set<Respawn>().build();
+
+    for (bagel::Entity e = bagel::Entity::first(); !e.eof(); e.next())
+    {
+        if (!e.test(mask))
+            continue;
+
+        const auto& t = e.get<MTransform>();
+        auto&       r = e.get<Respawn>();
+
+        for (const SpawnPoint& cp : checkpoints)
+        {
+            if (t.x >= cp.x && cp.x > r.lastCheckpointX)
+            {
+                r.lastCheckpointX = cp.x;
+                r.lastCheckpointY = cp.y;
+            }
+        }
+    }
+}
+
 void respawnSystem()
 {
     static const bagel::Mask mask = bagel::MaskBuilder()
@@ -1094,7 +1139,7 @@ void respawnSystem()
                 if (b2Body_IsValid(m.bodyId))
                 {
                     b2Body_SetTransform(m.bodyId,
-                                        {r.spawnX, r.spawnY},
+                                        {r.lastCheckpointX, r.lastCheckpointY},
                                         b2Body_GetRotation(m.bodyId));
                     transformUpdateWithB2Pos(t, b2Body_GetPosition(m.bodyId));
                     b2Body_SetLinearVelocity(m.bodyId, {0.f, 0.f});

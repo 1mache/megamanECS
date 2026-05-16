@@ -1,4 +1,4 @@
-#include "MegamanGame.h"
+#include "megamanGame.h"
 #include "GlobalData.h"
 #include "Utils.h"
 #include "megaman.h"
@@ -85,8 +85,8 @@ MegamanGame::MegamanGame()
                             sp.x,
                             sp.y,
                             MegamanGame::HP,
-                            1.f,
-                            5.f,
+                            sp.x - 5.f,
+                            sp.x + 5.f,
                             6.f,
                             0.05f,
                             _enemyTex);
@@ -131,11 +131,15 @@ void MegamanGame::run()
     auto start = SDL_GetTicks();
     bool quit  = false;
 
+    const float                    sceneMinY   = _scene.getBoundsM().minY;
+    const std::vector<SpawnPoint>& checkpoints = _scene.getPlayerSpawns();
+
     while (!quit)
     {
         inputSystem();
         aiSystem();
-        movementSystem();
+        movementSystem(sceneMinY);
+        checkpointSystem(checkpoints);
         shootingSystem();
         collisionSystem(_boxWorld);
         damageSystem();
