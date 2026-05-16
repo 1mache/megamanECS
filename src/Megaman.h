@@ -398,6 +398,7 @@ void drawSystem(SDL_Renderer* ren);
 void hudSystem(SDL_Renderer* ren, SDL_Texture* heartTex);
 void shootingSystem();
 void collisionSystem(b2WorldId box);
+void projectileCullSystem();
 void damageSystem();
 void healthSystem();
 void aiSystem();

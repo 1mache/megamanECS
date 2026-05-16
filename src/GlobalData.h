@@ -1,6 +1,7 @@
 #pragma once
 #include "CameraData.h"
 #include "Utils.h"
+#include "WorldBoundsM.h"
 #include <SDL3/SDL.h>
 #include <box2d/box2d.h>
 
@@ -101,6 +102,15 @@ public:
     {
         _camData.posX = x;
         _camData.posY = y;
+    }
+
+    static WorldBoundsM getCamBoundsM()
+    {
+        constexpr float ppm   = PTM * SCALE_FACTOR;
+        const float     halfW = START_WIN_W * 0.5f / ppm;
+        const float     halfH = START_WIN_H * 0.5f / ppm;
+        return { _camData.posX - halfW, _camData.posX + halfW,
+                 _camData.posY - halfH, _camData.posY + halfH };
     }
 
 private:

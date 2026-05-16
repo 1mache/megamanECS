@@ -1,10 +1,9 @@
 #include "MegamanGame.h"
 #include "GlobalData.h"
+#include "Megaman.h"
 #include "Utils.h"
-#include "megaman.h"
 #include <SDL3_image/SDL_image.h>
 #include <iostream>
-
 
 namespace megaman
 {
@@ -156,6 +155,8 @@ void MegamanGame::run()
             _scene.clampCameraToBounds(cam);
             GlobalData::updateCamPosition(cam.posX, cam.posY);
         }
+
+        projectileCullSystem();
 
         SDL_RenderClear(_ren);
         if (_scene.isValid())
