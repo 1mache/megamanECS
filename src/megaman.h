@@ -78,7 +78,7 @@ struct bagel::Storage<megaman::Movement> final : bagel::NoInstance
 template <>
 struct bagel::Storage<megaman::Jump> final : bagel::NoInstance
 {
-    using type = bagel::PackedStorage<megaman::Jump>;
+    using type = bagel::SparseStorage<megaman::Jump>;
 };
 
 template <>
@@ -245,7 +245,7 @@ struct Movement
 {
     // Preferred storage: Packed, per frame iteration even though entities
     // with movement will be created and destroyed "frequently" so stack is an option too.
-
+    float    speed{};
     float    mass{};
     float    velX{};
     float    velY{};
@@ -257,7 +257,7 @@ struct Movement
 
 struct Jump
 {
-    // Preferred storage: Packed, same reason as Movement since its also physics related.
+    // Preferred storage: Sparse, only player has it
 
     bool  isGrounded{};
     bool  isJumping{};
@@ -308,12 +308,11 @@ struct Intent
     // What the entity wants to do this frame.
     // InputSystem writes this for the player; AISystem writes it for enemies.
     // MovementSystem and ShootingSystem consume it.
-    bool  moveLeft{};
-    bool  moveRight{};
-    bool  moveUp{};
-    bool  moveDown{};
-    bool  shoot{};
-    float speed{};
+    bool moveLeft{};
+    bool moveRight{};
+    bool moveUp{};
+    bool moveDown{};
+    bool shoot{};
 };
 
 struct DamageIntent
@@ -347,7 +346,6 @@ struct AI
     float patrolMinX{};
     float patrolMaxX{};
     float detectionRange{};
-    float speed{};
     int   alertTimer{};
     float chargeSpeed{};
     float spawnX{};

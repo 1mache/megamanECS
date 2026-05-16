@@ -17,6 +17,7 @@ constexpr int   PLAYER_RUN_START        = 0;
 constexpr int   PLAYER_RUN_COUNT        = 4;
 constexpr int   PLAYER_JUMP_START       = 10;
 constexpr int   PLAYER_JUMP_COUNT       = 1;
+constexpr float PLAYER_RUN_SPEED        = 10.f;
 constexpr float PLAYER_JUMP_IMPULSE     = 40.f;
 constexpr float PLAYER_JUMP_COYOTE_TIME = 50.f;
 constexpr float PLAYER_JUMP_BUFFER_TIME = 17.f;
@@ -32,6 +33,8 @@ constexpr int   PATROLLER_RUN_COUNT  = 2;
 constexpr int   PATROLLER_JUMP_START = 0;
 constexpr int   PATROLLER_JUMP_COUNT = 1;
 constexpr float PATROLLER_Y_RANGE    = 1.5f;
+constexpr float PATROLLER_SPEED      = 5.f;
+constexpr int   PATROLLER_HP         = 2.f;
 
 // --- Lockster enemy ---
 constexpr float LOCKSTER_SPRITE_W     = 24.f;
@@ -43,6 +46,8 @@ constexpr int   LOCKSTER_ALERT_COUNT  = 4;
 constexpr int   LOCKSTER_CHARGE_START = 6;
 constexpr int   LOCKSTER_CHARGE_COUNT = 2;
 constexpr bool  LOCKSTER_HAS_BULLETS  = false;
+constexpr float LOCKSTER_SPEED        = 8.f;
+constexpr int   LOCKSTER_HP           = 1.f;
 
 // --- Projectile ---
 constexpr float BULLET_SPEED        = 0.5f;
@@ -138,7 +143,9 @@ ent_type createPlayer(b2WorldId world, float x, float y, int hp, SDL_Texture* te
         {.texture = tex, .spriteW = PLAYER_SPRITE_W, .spriteH = PLAYER_SPRITE_H});
     bagel::World::addComponent<MTransform>(ent,
                                            {.x = x, .y = y, .w = halfW, .h = halfH});
-    bagel::World::addComponent<Movement>(ent, {.mass = 1.f, .bodyId = body});
+    bagel::World::addComponent<Movement>(
+        ent,
+        {.speed = PLAYER_RUN_SPEED, .mass = 1.f, .bodyId = body});
     bagel::World::addComponent<Jump>(ent,
                                      {
                                          .impulse     = PLAYER_JUMP_IMPULSE,
@@ -149,7 +156,7 @@ ent_type createPlayer(b2WorldId world, float x, float y, int hp, SDL_Texture* te
     bagel::World::addComponent<Health>(ent, {.points = static_cast<float>(hp)});
     bagel::World::addComponent<DamageIntent>(ent, {});
     bagel::World::addComponent<Input>(ent, {});
-    bagel::World::addComponent<Intent>(ent, {.speed = 0.05f});
+    bagel::World::addComponent<Intent>(ent, {});
     bagel::World::addComponent<Weapon>(ent, {});
     bagel::World::addComponent<Respawn>(
         ent,
@@ -201,7 +208,9 @@ ent_type createPatroller(b2WorldId    world,
                                           .defaultFacingLeft = false});
     bagel::World::addComponent<MTransform>(ent,
                                            {.x = x, .y = y, .w = halfW, .h = halfH});
-    bagel::World::addComponent<Movement>(ent, {.mass = 1, .bodyId = body});
+    bagel::World::addComponent<Movement>(
+        ent,
+        {.speed = speed, .mass = 1, .bodyId = body});
     bagel::World::addComponent<Collision>(ent, {});
     bagel::World::addComponent<Health>(ent, {.points = hp});
     bagel::World::addComponent<DamageIntent>(ent, {});
@@ -212,7 +221,6 @@ ent_type createPatroller(b2WorldId    world,
                                     .patrolMinX     = patrolMinX,
                                     .patrolMaxX     = patrolMaxX,
                                     .detectionRange = detectionRange,
-                                    .speed          = speed,
                                     .spawnX         = x,
                                     .spawnY         = y});
     bagel::World::addComponent<Weapon>(ent, {});
@@ -450,15 +458,13 @@ void movementSystem()
             else if (intent.moveRight)
                 m.facingLeft = false;
 
-            m.velX = intent.moveLeft    ? -intent.speed
-                     : intent.moveRight ? intent.speed
-                                        : 0.f;
+            m.velX = intent.moveLeft ? -m.speed : intent.moveRight ? m.speed : 0.f;
 
             auto currentVel = b2Body_GetLinearVelocity(m.bodyId);
 
 
             if (b2Body_IsValid(m.bodyId))
-                b2Body_SetLinearVelocity(m.bodyId, {m.velX * 100, currentVel.y});
+                b2Body_SetLinearVelocity(m.bodyId, {m.velX, currentVel.y});
         }
 
         if (b2Body_IsValid(m.bodyId))
@@ -993,8 +999,7 @@ void tickPatroller(AI&               ai,
     const float distX = std::abs(t.x - playerX);
     const float distY = std::abs(t.y - playerY);
 
-    intent       = {};
-    intent.speed = ai.speed;
+    intent = {};
 
     if (distX < ai.detectionRange && distY < PATROLLER_Y_RANGE)
     {
@@ -1042,10 +1047,11 @@ void tickLockster(AI&               ai,
         {
             ai.alertTimer = 0;
             ai.shotsFired = 0;
+            m.speed       = 0.f;
         }
         else
         {
-            intent.speed = ai.chargeSpeed;
+            m.speed = ai.chargeSpeed;
             if (t.x < ai.targetX)
                 intent.moveRight = true;
             else
@@ -1125,9 +1131,7 @@ void aiSystem()
             if (ai.freezeFrames > 0)
             {
                 --ai.freezeFrames;
-                const float spd = intent.speed;
-                intent          = {};
-                intent.speed    = spd;
+                intent = {};
                 continue;
             }
 
@@ -1168,12 +1172,7 @@ void respawnSystem()
 
         auto zeroIntent = [&]() {
             if (e.has<Intent>())
-            {
-                auto&       intent = e.get<Intent>();
-                const float spd    = intent.speed;
-                intent             = {};
-                intent.speed       = spd;
-            }
+                e.get<Intent>() = {};
         };
 
         if (!r.isRespawning && h.justHit)
