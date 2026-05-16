@@ -1,4 +1,4 @@
-#include "megamanGame.h"
+#include "MegamanGame.h"
 #include "GlobalData.h"
 #include "Utils.h"
 #include "megaman.h"
