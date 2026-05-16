@@ -21,7 +21,7 @@ constexpr float PLAYER_RUN_SPEED        = 10.f;
 constexpr float PLAYER_JUMP_IMPULSE     = 40.f;
 constexpr float PLAYER_JUMP_COYOTE_TIME = 50.f;
 constexpr float PLAYER_JUMP_BUFFER_TIME = 17.f;
-constexpr float PLAYER_JUMP_FALL_FACTOR = 1.5f;
+constexpr float PLAYER_JUMP_FALL_FACTOR = 2.f;
 constexpr float PLAYER_HP               = 3.f;
 
 // --- Patroller enemy ---
@@ -543,6 +543,8 @@ void jumpSystem()
         // if were on ground reset coyote timer
         if (j.isGrounded)
         {
+            // reset gravity in case we were falling
+            b2Body_SetGravityScale(bodyId, 1.f);
             j.coyoteTimer = 0.f;
             if (!wasGrounded) // just landed
                 j.isJumping = false;
@@ -577,7 +579,7 @@ void jumpSystem()
 
         auto playerVel = b2Body_GetLinearVelocity(m.bodyId);
         // if we are falling. increase gravity pull on player. better feel
-        if (playerVel.y <= 0.f)
+        if (j.isJumping && playerVel.y <= 0.f)
         {
             b2Body_SetGravityScale(m.bodyId, PLAYER_JUMP_FALL_FACTOR);
         }
