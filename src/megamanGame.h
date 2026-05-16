@@ -34,6 +34,7 @@ private:
     SDL_Texture*  _locksterTex = nullptr;
     SDL_Texture*  _shotTex = nullptr;
     SDL_Texture*  _explosionTex = nullptr;
+    SDL_Texture*  _heartTex = nullptr;
 
     b2WorldId _boxWorld = b2_nullWorldId;
     Scene     _scene{MAP_PATH};

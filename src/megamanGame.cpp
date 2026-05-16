@@ -1,4 +1,4 @@
-#include "MegamanGame.h"
+#include "megamanGame.h"
 #include "GlobalData.h"
 #include "Utils.h"
 #include "megaman.h"
@@ -62,6 +62,13 @@ MegamanGame::MegamanGame()
     }
     GlobalData::setExplosionTexture(_explosionTex);
 
+    _heartTex = IMG_LoadTexture(_ren, "res/heart.png");
+    if (_heartTex == nullptr)
+    {
+        std::cout << SDL_GetError() << std::endl;
+        return;
+    }
+
     b2WorldDef worldDef = b2DefaultWorldDef();
     worldDef.gravity    = {0, -GlobalData::GRAVITY};
     _boxWorld           = b2CreateWorld(&worldDef);
@@ -85,8 +92,8 @@ MegamanGame::MegamanGame()
                             sp.x,
                             sp.y,
                             MegamanGame::HP,
-                            1.f,
-                            5.f,
+                            sp.x - 5.f,
+                            sp.x + 5.f,
                             6.f,
                             0.05f,
                             _enemyTex);
@@ -118,6 +125,8 @@ MegamanGame::~MegamanGame()
         SDL_DestroyTexture(_shotTex);
     if (_explosionTex != nullptr)
         SDL_DestroyTexture(_explosionTex);
+    if (_heartTex != nullptr)
+        SDL_DestroyTexture(_heartTex);
     if (_ren != nullptr)
         SDL_DestroyRenderer(_ren);
     if (_win != nullptr)
@@ -131,17 +140,22 @@ void MegamanGame::run()
     auto start = SDL_GetTicks();
     bool quit  = false;
 
+    const float                    sceneMinY   = _scene.getBoundsM().minY;
+    const std::vector<SpawnPoint>& checkpoints = _scene.getPlayerSpawns();
+    const std::vector<SpawnPoint>  enemySpawns = _scene.getEnemySpawns();
+
     while (!quit)
     {
         inputSystem();
         aiSystem();
         jumpSystem();
-        movementSystem();
+        movementSystem(sceneMinY);
+        checkpointSystem(checkpoints);
         shootingSystem();
         collisionSystem(_boxWorld);
         damageSystem();
         healthSystem();
-        respawnSystem();
+        respawnSystem(_boxWorld, enemySpawns, _locksterTex);
         playerAnimSystem();
         patrollerAnimSystem();
         locksterAnimSystem();
@@ -159,6 +173,7 @@ void MegamanGame::run()
             _scene.draw(_ren, GlobalData::getCamData());
 
         drawSystem(_ren);
+        hudSystem(_ren, _heartTex);
         SDL_RenderPresent(_ren);
 
         const auto end = SDL_GetTicks();

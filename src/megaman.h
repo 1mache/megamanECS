@@ -2,11 +2,13 @@
 
 #include "MTransform.h"
 #include "SDL3/SDL.h"
+#include "SpawnPoint.h"
 #include "bagel.h"
 #include <array>
 #include <box2d/box2d.h>
 #include <cstdint>
 #include <string>
+#include <vector>
 
 namespace megaman
 { // forward declarations
@@ -191,13 +193,14 @@ struct PlayerAnimation
     enum class State
     {
         Idle,
-        Run
+        Run,
+        Jump
     };
     State                        state{State::Idle};
     State                        prev{State::Idle};
     int                          frame{};
     int                          timer{};
-    std::array<AnimationClip, 2> clips{};
+    std::array<AnimationClip, 3> clips{};
 };
 
 struct PatrollerAnimation
@@ -293,7 +296,6 @@ struct Health
     bool  isInvulnerable{};
     bool  isContactInvulnerable{};
     bool  isDead{};
-    bool  justHit{};
     int   invulnerableTimer{};
 };
 
@@ -321,6 +323,7 @@ struct DamageIntent
     float amount{};
     bool  pending{};
     bool  fromContact{};
+    bool  fromFall{};
 };
 
 struct Enemy
@@ -375,6 +378,8 @@ struct Respawn
 {
     float spawnX{};
     float spawnY{};
+    float lastCheckpointX{};
+    float lastCheckpointY{};
     float maxHp{};
     int   flickerTimer{};
     bool  isRespawning{};
@@ -383,19 +388,23 @@ struct Respawn
 // ============= SYSTEMS    =============
 
 void inputSystem();
-void movementSystem();
+void movementSystem(float sceneMinY);
+void checkpointSystem(const std::vector<SpawnPoint>& checkpoints);
 void jumpSystem();
 void playerAnimSystem();
 void patrollerAnimSystem();
 void locksterAnimSystem();
 void explosionAnimSystem();
 void drawSystem(SDL_Renderer* ren);
+void hudSystem(SDL_Renderer* ren, SDL_Texture* heartTex);
 void shootingSystem();
 void collisionSystem(b2WorldId box);
 void damageSystem();
 void healthSystem();
 void aiSystem();
-void respawnSystem();
+void respawnSystem(b2WorldId                      world,
+                   const std::vector<SpawnPoint>& enemySpawns,
+                   SDL_Texture*                   locksterTex);
 
 // ============= ENTITIES   =============
 
