@@ -231,7 +231,8 @@ ent_type createLockster(b2WorldId    world,
     bodyDef.type          = b2_dynamicBody;
     bodyDef.position      = {x, y};
     bodyDef.fixedRotation = true;
-    bodyDef.gravityScale  = 0.f;
+    bodyDef.gravityScale  = 1.f;
+    bodyDef.enableSleep   = false;
     bodyDef.userData      = reinterpret_cast<void*>(static_cast<uintptr_t>(ent.id));
     b2BodyId body         = b2CreateBody(world, &bodyDef);
 
@@ -460,12 +461,25 @@ void movementSystem(float sceneMinY)
         if (b2Body_IsValid(m.bodyId))
             transformUpdateWithB2Pos(t, b2Body_GetPosition(m.bodyId));
 
-        if (e.has<Input>() && e.has<DamageIntent>() && e.has<Health>())
+        if (e.has<Health>() && t.y < sceneMinY)
         {
-            auto& di = e.get<DamageIntent>();
-            auto& h  = e.get<Health>();
-            if (t.y < sceneMinY - FALL_KILL_MARGIN_M && !di.pending && !h.isInvulnerable)
-                di = {.amount = FALL_DAMAGE_HP, .pending = true, .fromContact = false, .fromFall = true};
+            auto& h = e.get<Health>();
+            if (e.has<Input>())
+            {
+                if (e.has<DamageIntent>())
+                {
+                    auto& di = e.get<DamageIntent>();
+                    if (!di.pending && !h.isInvulnerable)
+                        di = {.amount = h.points, .pending = true, .fromContact = false, .fromFall = true};
+                }
+            }
+            else
+            {
+                if (b2Body_IsValid(m.bodyId))
+                    b2DestroyBody(m.bodyId);
+                m.bodyId = b2_nullBodyId;
+                bagel::Entity{e.entity()}.destroy();
+            }
         }
     }
 }
@@ -664,6 +678,62 @@ void drawSystem(SDL_Renderer* ren)
     }
 }
 
+void hudSystem(SDL_Renderer* ren, SDL_Texture* heartTex)
+{
+    static const bagel::Mask mask = bagel::MaskBuilder()
+                                        .set<Input>()
+                                        .set<Health>()
+                                        .set<Respawn>()
+                                        .build();
+
+    for (bagel::Entity e = bagel::Entity::first(); !e.eof(); e.next())
+    {
+        if (!e.test(mask))
+            continue;
+
+        const auto& h = e.get<Health>();
+        const auto& r = e.get<Respawn>();
+
+        const float hp    = std::max(0.f, h.points);
+        const int   nFull = static_cast<int>(hp);
+        const bool  hasHalf = (hp - static_cast<float>(nFull)) >= 0.5f;
+        const int   total = static_cast<int>(r.maxHp);
+
+        constexpr float HEART_DST = 24.f;
+        constexpr float HEART_GAP = 4.f;
+        constexpr float HEART_X0  = 10.f;
+        constexpr float HEART_Y0  = 10.f;
+
+        for (int i = 0; i < total; ++i)
+        {
+            const float x = HEART_X0 + static_cast<float>(i) * (HEART_DST + HEART_GAP);
+
+            if (i < nFull)
+            {
+                SDL_FRect src = {0.f, 0.f, 8.f, 8.f};
+                SDL_FRect dst = {x, HEART_Y0, HEART_DST, HEART_DST};
+                SDL_RenderTexture(ren, heartTex, &src, &dst);
+            }
+            else if (i == nFull && hasHalf)
+            {
+                SDL_FRect src = {0.f, 0.f, 4.f, 8.f};
+                SDL_FRect dst = {x, HEART_Y0, HEART_DST / 2.f, HEART_DST};
+                SDL_RenderTexture(ren, heartTex, &src, &dst);
+            }
+            else
+            {
+                SDL_SetTextureAlphaMod(heartTex, 80);
+                SDL_FRect src = {0.f, 0.f, 8.f, 8.f};
+                SDL_FRect dst = {x, HEART_Y0, HEART_DST, HEART_DST};
+                SDL_RenderTexture(ren, heartTex, &src, &dst);
+                SDL_SetTextureAlphaMod(heartTex, 255);
+            }
+        }
+
+        break;
+    }
+}
+
 static void destroyProjectile(bagel::Entity ent)
 {
     if (ent.has<Movement>())
@@ -829,7 +899,6 @@ void damageSystem()
             h.points -= di.amount;
             h.isInvulnerable    = true;
             h.invulnerableTimer = 90;
-            h.justHit           = true;
             if (di.fromContact)
                 std::cout << "hit by enemy, hp=" << h.points << "\n";
             else if (di.fromFall)
@@ -936,7 +1005,6 @@ void tickPatroller(AI&               ai,
 
 void tickLockster(AI&               ai,
                   const MTransform& t,
-                  Movement&         m,
                   Intent&           intent,
                   float             playerX,
                   float             playerY)
@@ -995,13 +1063,6 @@ void tickLockster(AI&               ai,
         ai.shotsFired = 0;
     }
 
-    if (b2Body_IsValid(m.bodyId))
-    {
-        const b2Vec2 pos = b2Body_GetPosition(m.bodyId);
-        b2Body_SetTransform(m.bodyId,
-                            {pos.x, ai.spawnY},
-                            b2Body_GetRotation(m.bodyId));
-    }
 }
 } // namespace
 
@@ -1012,7 +1073,6 @@ void aiSystem()
 
     static const bagel::Mask enemyMask = bagel::MaskBuilder()
                                              .set<AI>()
-                                             .set<Movement>()
                                              .set<Intent>()
                                              .set<MTransform>()
                                              .build();
@@ -1047,7 +1107,6 @@ void aiSystem()
             }
 
             const auto& t = e.get<MTransform>();
-            auto&       m = e.get<Movement>();
 
             switch (ai.type)
             {
@@ -1055,7 +1114,7 @@ void aiSystem()
                 tickPatroller(ai, t, intent, playerX, playerY);
                 break;
             case AI::Type::Lockster:
-                tickLockster(ai, t, m, intent, playerX, playerY);
+                tickLockster(ai, t, intent, playerX, playerY);
                 break;
             }
         }
@@ -1086,7 +1145,10 @@ void checkpointSystem(const std::vector<SpawnPoint>& checkpoints)
     }
 }
 
-void respawnSystem()
+constexpr float LOCKSTER_DETECTION_RANGE = 15.f;
+constexpr float LOCKSTER_CHARGE_SPEED    = 0.18f;
+
+void respawnSystem(b2WorldId world, const std::vector<SpawnPoint>& enemySpawns, SDL_Texture* locksterTex)
 {
     static const bagel::Mask mask = bagel::MaskBuilder()
                                         .set<Respawn>()
@@ -1115,9 +1177,8 @@ void respawnSystem()
             }
         };
 
-        if (!r.isRespawning && h.justHit)
+        if (!r.isRespawning && h.isDead)
         {
-            h.justHit      = false;
             r.isRespawning = true;
             r.flickerTimer = 60;
             if (b2Body_IsValid(m.bodyId))
@@ -1144,6 +1205,8 @@ void respawnSystem()
                     transformUpdateWithB2Pos(t, b2Body_GetPosition(m.bodyId));
                     b2Body_SetLinearVelocity(m.bodyId, {0.f, 0.f});
                 }
+                h.points  = r.maxHp;
+                h.isDead  = false;
                 h.isInvulnerable    = true;
                 h.invulnerableTimer = 60;
                 r.isRespawning      = false;
@@ -1172,6 +1235,34 @@ void respawnSystem()
                     eai.shotsFired      = 0;
                     eai.freezeFrames    = 0;
                     eai.patrollingRight = true;
+                }
+
+                static const bagel::Mask locksterAIMask =
+                    bagel::MaskBuilder().set<AI>().set<MTransform>().build();
+                for (const SpawnPoint& sp : enemySpawns)
+                {
+                    if (sp.type != SpawnPoint::Type::Lockster)
+                        continue;
+
+                    bool found = false;
+                    for (bagel::Entity le = bagel::Entity::first(); !le.eof(); le.next())
+                    {
+                        if (!le.test(locksterAIMask))
+                            continue;
+                        const AI& lai = le.get<AI>();
+                        if (lai.type == AI::Type::Lockster &&
+                            std::abs(lai.spawnX - sp.x) < 0.5f &&
+                            std::abs(lai.spawnY - sp.y) < 0.5f)
+                        {
+                            found = true;
+                            break;
+                        }
+                    }
+                    if (!found)
+                        createLockster(world, sp.x, sp.y, r.maxHp,
+                                       LOCKSTER_DETECTION_RANGE,
+                                       LOCKSTER_CHARGE_SPEED,
+                                       locksterTex);
                 }
             }
             else

@@ -62,6 +62,13 @@ MegamanGame::MegamanGame()
     }
     GlobalData::setExplosionTexture(_explosionTex);
 
+    _heartTex = IMG_LoadTexture(_ren, "res/heart.png");
+    if (_heartTex == nullptr)
+    {
+        std::cout << SDL_GetError() << std::endl;
+        return;
+    }
+
     b2WorldDef worldDef = b2DefaultWorldDef();
     worldDef.gravity    = {0, -GlobalData::GRAVITY};
     _boxWorld           = b2CreateWorld(&worldDef);
@@ -118,6 +125,8 @@ MegamanGame::~MegamanGame()
         SDL_DestroyTexture(_shotTex);
     if (_explosionTex != nullptr)
         SDL_DestroyTexture(_explosionTex);
+    if (_heartTex != nullptr)
+        SDL_DestroyTexture(_heartTex);
     if (_ren != nullptr)
         SDL_DestroyRenderer(_ren);
     if (_win != nullptr)
@@ -133,6 +142,7 @@ void MegamanGame::run()
 
     const float                    sceneMinY   = _scene.getBoundsM().minY;
     const std::vector<SpawnPoint>& checkpoints = _scene.getPlayerSpawns();
+    const std::vector<SpawnPoint>  enemySpawns = _scene.getEnemySpawns();
 
     while (!quit)
     {
@@ -144,7 +154,7 @@ void MegamanGame::run()
         collisionSystem(_boxWorld);
         damageSystem();
         healthSystem();
-        respawnSystem();
+        respawnSystem(_boxWorld, enemySpawns, _locksterTex);
         playerAnimSystem();
         patrollerAnimSystem();
         locksterAnimSystem();
@@ -162,6 +172,7 @@ void MegamanGame::run()
             _scene.draw(_ren, GlobalData::getCamData());
 
         drawSystem(_ren);
+        hudSystem(_ren, _heartTex);
         SDL_RenderPresent(_ren);
 
         const auto end = SDL_GetTicks();

@@ -155,9 +155,7 @@ inline constexpr uint64_t CAT_ENEMY_BULLET  = 0x0010;
 
 // ============= COMPONENTS =============
 
-inline constexpr int   ANIM_SPEED         = 8;
-inline constexpr float FALL_DAMAGE_HP     = 1.5f;
-inline constexpr float FALL_KILL_MARGIN_M = 1.0f;
+inline constexpr int ANIM_SPEED = 8;
 
 // One entry in a per-entity clip table. Describes a slice of the sprite sheet
 // for a single animation state. Stored in the per-entity animation component
@@ -280,7 +278,6 @@ struct Health
     bool  isInvulnerable{};
     bool  isContactInvulnerable{};
     bool  isDead{};
-    bool  justHit{};
     int   invulnerableTimer{};
 };
 
@@ -382,12 +379,13 @@ void patrollerAnimSystem();
 void locksterAnimSystem();
 void explosionAnimSystem();
 void drawSystem(SDL_Renderer* ren);
+void hudSystem(SDL_Renderer* ren, SDL_Texture* heartTex);
 void shootingSystem();
 void collisionSystem(b2WorldId box);
 void damageSystem();
 void healthSystem();
 void aiSystem();
-void respawnSystem();
+void respawnSystem(b2WorldId world, const std::vector<SpawnPoint>& enemySpawns, SDL_Texture* locksterTex);
 
 // ============= ENTITIES   =============
 
