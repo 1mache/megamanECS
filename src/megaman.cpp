@@ -9,14 +9,17 @@
 namespace
 {
 // --- Player ---
-constexpr float PLAYER_SPRITE_W   = 28.f;
-constexpr float PLAYER_SPRITE_H   = 28.f;
-constexpr int   PLAYER_IDLE_START = 8;
-constexpr int   PLAYER_IDLE_COUNT = 1;
-constexpr int   PLAYER_RUN_START  = 0;
-constexpr int   PLAYER_RUN_COUNT  = 4;
-constexpr int   PLAYER_JUMP_START = 10;
-constexpr int   PLAYER_JUMP_COUNT = 1;
+constexpr float PLAYER_SPRITE_W         = 28.f;
+constexpr float PLAYER_SPRITE_H         = 28.f;
+constexpr int   PLAYER_IDLE_START       = 8;
+constexpr int   PLAYER_IDLE_COUNT       = 1;
+constexpr int   PLAYER_RUN_START        = 0;
+constexpr int   PLAYER_RUN_COUNT        = 4;
+constexpr int   PLAYER_JUMP_START       = 10;
+constexpr int   PLAYER_JUMP_COUNT       = 1;
+constexpr float PLAYER_JUMP_IMPULSE     = 5.f;
+constexpr float PLAYER_JUMP_COYOTE_TIME = 0.1f;
+constexpr float PLAYER_JUMP_BUFFER_TIME = 0.1f;
 
 // --- Patroller enemy ---
 constexpr float PATROLLER_SPRITE_W   = 24.f;
@@ -134,6 +137,12 @@ ent_type createPlayer(b2WorldId world, float x, float y, int hp, SDL_Texture* te
     bagel::World::addComponent<MTransform>(ent,
                                            {.x = x, .y = y, .w = halfW, .h = halfH});
     bagel::World::addComponent<Movement>(ent, {.mass = 1.f, .bodyId = body});
+    bagel::World::addComponent<Jump>(ent,
+                                     {
+                                         .impulse     = PLAYER_JUMP_IMPULSE,
+                                         .bufferTimer = PLAYER_JUMP_BUFFER_TIME,
+                                         .coyoteTimer = PLAYER_JUMP_COYOTE_TIME,
+                                     });
     bagel::World::addComponent<Collision>(ent, {});
     bagel::World::addComponent<Health>(ent, {.points = static_cast<float>(hp)});
     bagel::World::addComponent<DamageIntent>(ent, {});
@@ -443,17 +452,64 @@ void movementSystem()
                      : intent.moveRight ? intent.speed
                                         : 0.f;
 
-            if (intent.moveUp)
-                b2Body_ApplyLinearImpulse(m.bodyId, {0.f, 10.f}, {t.x, t.y}, true);
             auto currentVel = b2Body_GetLinearVelocity(m.bodyId);
 
 
             if (b2Body_IsValid(m.bodyId))
-                b2Body_SetLinearVelocity(m.bodyId, {m.velX * fps, currentVel.y});
+                b2Body_SetLinearVelocity(m.bodyId, {m.velX * 100, currentVel.y});
         }
 
         if (b2Body_IsValid(m.bodyId))
             transformUpdateWithB2Pos(t, b2Body_GetPosition(m.bodyId));
+    }
+}
+
+void jumpSystem()
+{
+    static const bagel::Mask mask = bagel::MaskBuilder()
+                                        .set<Jump>()
+                                        .set<MTransform>()
+                                        .set<Movement>()
+                                        .set<Intent>()
+                                        .build();
+
+    for (bagel::Entity e = bagel::Entity::first(); !e.eof(); e.next())
+    {
+        if (!e.test(mask))
+            continue;
+
+
+        auto& j      = e.get<Jump>();
+        auto& m      = e.get<Movement>();
+        auto& t      = e.get<MTransform>();
+        auto& intent = e.get<Intent>();
+
+        auto& bodyId = m.bodyId;
+
+        constexpr float     GROUND_PROBE     = 0.05f;
+        constexpr float     VERTICAL_EPSILON = 0.01f;
+        const b2WorldId     worldId          = GlobalData::getBoxWorld();
+        const b2QueryFilter filter           = {.categoryBits = CAT_PLAYER,
+                                                .maskBits     = CAT_WORLD};
+        const b2Vec2        down             = {0.f, -(t.h + GROUND_PROBE)};
+        const float         xs[3]            = {t.x,
+                                                t.x + t.w - VERTICAL_EPSILON,
+                                                t.x - t.w + VERTICAL_EPSILON};
+
+        j.isGrounded = false;
+        for (float x : xs)
+        {
+            b2RayResult res =
+                b2World_CastRayClosest(worldId, {x, t.y}, down, filter);
+            if (res.hit)
+            {
+                j.isGrounded = true;
+                break;
+            }
+        }
+
+        if (intent.moveUp && j.isGrounded)
+            b2Body_ApplyLinearImpulse(m.bodyId, {0.f, j.impulse}, {t.x, t.y}, true);
     }
 }
 

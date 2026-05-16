@@ -17,6 +17,7 @@ struct PatrollerAnimation;
 struct LocksterAnimation;
 struct ExplosionAnimation;
 struct Movement;
+struct Jump;
 struct Collision;
 struct Drawable;
 struct Health;
@@ -72,6 +73,12 @@ template <>
 struct bagel::Storage<megaman::Movement> final : bagel::NoInstance
 {
     using type = bagel::PackedStorage<megaman::Movement>;
+};
+
+template <>
+struct bagel::Storage<megaman::Jump> final : bagel::NoInstance
+{
+    using type = bagel::PackedStorage<megaman::Jump>;
 };
 
 template <>
@@ -248,6 +255,17 @@ struct Movement
     bool     facingLeft{};
 };
 
+struct Jump
+{
+    // Preferred storage: Packed, same reason as Movement since its also physics related.
+
+    bool  isGrounded{};
+    bool  isJumping{};
+    float impulse{};
+    float bufferTimer{};
+    float coyoteTimer{};
+};
+
 struct Collision
 {
     // Preferred storage: Packed, same reason as Movement since its also physics related.
@@ -368,6 +386,7 @@ struct Respawn
 
 void inputSystem();
 void movementSystem();
+void jumpSystem();
 void playerAnimSystem();
 void patrollerAnimSystem();
 void locksterAnimSystem();

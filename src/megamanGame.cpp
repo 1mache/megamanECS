@@ -135,6 +135,7 @@ void MegamanGame::run()
     {
         inputSystem();
         aiSystem();
+        jumpSystem();
         movementSystem();
         shootingSystem();
         collisionSystem(_boxWorld);
