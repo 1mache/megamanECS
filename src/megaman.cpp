@@ -9,20 +9,23 @@
 namespace
 {
 // --- Player ---
-constexpr float PLAYER_SPRITE_W         = 28.f;
-constexpr float PLAYER_SPRITE_H         = 28.f;
-constexpr int   PLAYER_IDLE_START       = 8;
-constexpr int   PLAYER_IDLE_COUNT       = 1;
-constexpr int   PLAYER_RUN_START        = 0;
-constexpr int   PLAYER_RUN_COUNT        = 4;
-constexpr int   PLAYER_JUMP_START       = 10;
-constexpr int   PLAYER_JUMP_COUNT       = 1;
-constexpr float PLAYER_RUN_SPEED        = 10.f;
-constexpr float PLAYER_JUMP_IMPULSE     = 40.f;
-constexpr float PLAYER_JUMP_COYOTE_TIME = 40.f;
-constexpr float PLAYER_JUMP_BUFFER_TIME = 15.f;
-constexpr float PLAYER_JUMP_FALL_FACTOR = 2.5f;
-constexpr float PLAYER_HP               = 3.f;
+constexpr float PLAYER_SPRITE_W          = 28.f;
+constexpr float PLAYER_SPRITE_H          = 28.f;
+constexpr int   PLAYER_IDLE_START        = 8;
+constexpr int   PLAYER_IDLE_COUNT        = 1;
+constexpr int   PLAYER_RUN_START         = 0;
+constexpr int   PLAYER_RUN_COUNT         = 4;
+constexpr int   PLAYER_JUMP_START        = 10;
+constexpr int   PLAYER_JUMP_COUNT        = 1;
+constexpr float PLAYER_RUN_SPEED         = 10.f;
+constexpr float PLAYER_JUMP_IMPULSE      = 40.f;
+constexpr float PLAYER_JUMP_COYOTE_TIME  = 40.f;
+constexpr float PLAYER_JUMP_BUFFER_TIME  = 15.f;
+constexpr float PLAYER_JUMP_FALL_FACTOR  = 2.5f;
+constexpr float PLAYER_HP                = 3.f;
+constexpr int   PLAYER_HIT_IFRAMES       = 90;
+constexpr int   PLAYER_RESPAWN_IFRAMES   = 60;
+constexpr int   PLAYER_HIT_FREEZE_FRAMES = 60;
 
 // --- Patroller enemy ---
 constexpr float PATROLLER_SPRITE_W        = 24.f;
@@ -998,20 +1001,10 @@ void damageSystem()
             continue;
 
         auto& h = e.get<Health>();
-        if (di.fromContact)
-        {
-            if (h.isContactInvulnerable)
-            {
-                di.pending = false;
-                continue;
-            }
-            h.isContactInvulnerable = true;
-        }
         if (!h.isInvulnerable)
         {
             h.points -= di.amount;
-            h.isInvulnerable    = true;
-            h.invulnerableTimer = 90;
+
             if (di.fromContact)
                 std::cout << "hit by enemy, hp=" << h.points << "\n";
             else if (di.fromFall)
@@ -1021,6 +1014,7 @@ void damageSystem()
                                              : "player bullet hit enemy")
                           << ", hp=" << h.points << "\n";
 
+            // if its player
             if (e.has<Input>())
             {
                 static const bagel::Mask aiMask =
@@ -1028,8 +1022,11 @@ void damageSystem()
                 for (bagel::Entity en = bagel::Entity::first(); !en.eof(); en.next())
                 {
                     if (en.test(aiMask))
-                        en.get<AI>().freezeFrames = 60;
+                        en.get<AI>().freezeFrames = PLAYER_HIT_FREEZE_FRAMES;
                 }
+
+                h.isInvulnerable    = true;
+                h.invulnerableTimer = PLAYER_HIT_IFRAMES;
             }
         }
         di.pending = false;
@@ -1050,8 +1047,7 @@ void healthSystem()
         auto& h = e.get<Health>();
         if (h.isInvulnerable && --h.invulnerableTimer <= 0)
         {
-            h.isInvulnerable        = false;
-            h.isContactInvulnerable = false;
+            h.isInvulnerable = false;
         }
         if (h.points <= 0)
         {
@@ -1178,7 +1174,8 @@ void tickLockster(bagel::Entity& lockster, float playerX, float playerY)
         ai.shotsFired = 0;
     }
 
-    h.isInvulnerable = !(isCharging || inRange);
+    // lockster is invulnerable while idle
+    h.isInvulnerable = !isCharging;
 }
 } // namespace
 
@@ -1318,7 +1315,7 @@ void respawnSystem(b2WorldId                      world,
                 h.points            = r.maxHp;
                 h.isDead            = false;
                 h.isInvulnerable    = true;
-                h.invulnerableTimer = 60;
+                h.invulnerableTimer = PLAYER_RESPAWN_IFRAMES;
                 r.isRespawning      = false;
 
                 static const bagel::Mask aiMask = bagel::MaskBuilder()

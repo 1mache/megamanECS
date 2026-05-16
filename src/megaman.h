@@ -294,7 +294,6 @@ struct Health
 
     float points{};
     bool  isInvulnerable{};
-    bool  isContactInvulnerable{};
     bool  isDead{};
     int   invulnerableTimer{};
 };
