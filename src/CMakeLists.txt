@@ -23,8 +23,8 @@ target_sources(
         WorldBoundsM.h
         megaman.cpp
         megaman.h
-        MegamanGame.cpp
-        MegamanGame.h
+        megamanGame.cpp
+        megamanGame.h
         Utils.h
 )
 

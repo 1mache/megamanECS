@@ -1,4 +1,4 @@
-#include "megaman.h"
+#include "Megaman.h"
 #include "GlobalData.h"
 #include "MTransform.h"
 #include <cmath>
@@ -860,6 +860,29 @@ static void destroyProjectile(bagel::Entity ent)
     ent.destroy();
 }
 } // namespace
+
+void projectileCullSystem()
+{
+    const WorldBoundsM bounds = GlobalData::getCamBoundsM();
+
+    static const bagel::Mask mask =
+        bagel::MaskBuilder().set<Projectile>().set<MTransform>().build();
+
+    std::vector<ent_type> toDestroy;
+    for (bagel::Entity e = bagel::Entity::first(); !e.eof(); e.next())
+    {
+        if (!e.test(mask))
+            continue;
+        const auto& t = e.get<MTransform>();
+        if (t.x < bounds.minX - BULLET_HALF_W ||
+            t.x > bounds.maxX + BULLET_HALF_W ||
+            t.y < bounds.minY - BULLET_HALF_H ||
+            t.y > bounds.maxY + BULLET_HALF_H)
+            toDestroy.push_back(e.entity());
+    }
+    for (ent_type id : toDestroy)
+        destroyProjectile(bagel::Entity{id});
+}
 
 void collisionSystem(b2WorldId world)
 {

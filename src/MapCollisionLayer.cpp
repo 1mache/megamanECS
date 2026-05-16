@@ -1,7 +1,7 @@
 #include "MapCollisionLayer.h"
 
 #include "GlobalData.h"
-#include "megaman.h"
+#include "Megaman.h"
 
 #include <tmxlite/ObjectGroup.hpp>
 
