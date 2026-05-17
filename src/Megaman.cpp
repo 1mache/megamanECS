@@ -584,26 +584,29 @@ void jumpSystem()
             j.coyoteTimer = PLAYER_JUMP_COYOTE_TIME;
         }
 
-        //if we want to jump
-        if (intent.moveUp)
+        const bool jumpPressed = intent.moveUp && !j.prevMoveUp;
+
+        // set buffer only on fresh press while airborne, not while held
+        if (jumpPressed && j.isJumping)
+            j.bufferTimer = PLAYER_JUMP_BUFFER_TIME;
+
+        if (!j.isJumping)
         {
-            // perform only if were grounded or within coyote or buffer timeframe
-            if (!j.isJumping && // and not already mid-air
-                (j.isGrounded || (j.coyoteTimer > 0.f || j.bufferTimer > 0.f)))
+            if (jumpPressed && (j.isGrounded || j.coyoteTimer > 0.f))
             {
-                b2Body_ApplyLinearImpulse(m.bodyId,
-                                          {0.f, j.impulse},
-                                          {t.x, t.y},
-                                          true);
+                b2Body_ApplyLinearImpulse(m.bodyId, {0.f, j.impulse}, {t.x, t.y}, true);
                 j.isJumping = true;
             }
-            else if (j.isJumping)
+            else if (j.isGrounded && j.bufferTimer > 0.f)
             {
-                // if player wants to jump while mid air we give a small time window
-                // to perform the jump if he lands at that time
-                j.bufferTimer = PLAYER_JUMP_BUFFER_TIME;
+                // buffered jump: pressed early while airborne, fires on landing
+                b2Body_ApplyLinearImpulse(m.bodyId, {0.f, j.impulse}, {t.x, t.y}, true);
+                j.isJumping   = true;
+                j.bufferTimer = 0.f;
             }
         }
+
+        j.prevMoveUp = intent.moveUp;
 
         auto playerVel = b2Body_GetLinearVelocity(m.bodyId);
         // if we are  in falling phase of jump. increase gravity pull on player. better feel

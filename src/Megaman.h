@@ -270,6 +270,7 @@ struct Jump
     float impulse{};
     float bufferTimer{};
     float coyoteTimer{};
+    bool  prevMoveUp{};
 };
 
 struct Collision
