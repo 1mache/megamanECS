@@ -17,6 +17,11 @@ constexpr int   PLAYER_RUN_START         = 0;
 constexpr int   PLAYER_RUN_COUNT         = 4;
 constexpr int   PLAYER_JUMP_START        = 10;
 constexpr int   PLAYER_JUMP_COUNT        = 1;
+constexpr int   PLAYER_SHOOT_IDLE_START  = 9;
+constexpr int   PLAYER_SHOOT_IDLE_COUNT  = 1;
+constexpr int   PLAYER_SHOOT_RUN_START   = 4;
+constexpr int   PLAYER_SHOOT_RUN_COUNT   = 4;
+constexpr int   PLAYER_SHOOT_HOLD_TICKS  = 12;
 constexpr float PLAYER_RUN_SPEED         = 10.f;
 constexpr float PLAYER_JUMP_IMPULSE      = 40.f;
 constexpr float PLAYER_JUMP_COYOTE_TIME  = 40.f;
@@ -141,9 +146,11 @@ ent_type createPlayer(b2WorldId world, float x, float y, SDL_Texture* tex)
     bagel::World::addComponent<PlayerAnimation>(
         ent,
         {.clips = {
-             AnimationClip{PLAYER_IDLE_START, PLAYER_IDLE_COUNT},    // [0] Idle
-             AnimationClip{PLAYER_RUN_START, PLAYER_RUN_COUNT},      // [1] Run
-             AnimationClip{PLAYER_JUMP_START, PLAYER_JUMP_COUNT}}}); // [2] Jump
+             AnimationClip{PLAYER_IDLE_START,        PLAYER_IDLE_COUNT},
+             AnimationClip{PLAYER_RUN_START,         PLAYER_RUN_COUNT},
+             AnimationClip{PLAYER_JUMP_START,        PLAYER_JUMP_COUNT},
+             AnimationClip{PLAYER_SHOOT_IDLE_START,  PLAYER_SHOOT_IDLE_COUNT},
+             AnimationClip{PLAYER_SHOOT_RUN_START,   PLAYER_SHOOT_RUN_COUNT}}});
     bagel::World::addComponent<RenderFrame>(ent, {});
     bagel::World::addComponent<Drawable>(
         ent,
@@ -625,15 +632,14 @@ void shootingSystem()
             if (fromEnemy)
                 bVelX *= ENEMY_BULLET_FACTOR; // enemy bullets are slower for balance
 
-            ent_type bullet = createProjectile(GlobalData::getBoxWorld(),
+            createProjectile(GlobalData::getBoxWorld(),
                                                t.x,
                                                t.y,
                                                bVelX,
                                                0.f,
                                                fromEnemy);
-            if (!fromEnemy)
-                std::cout << "bullet created id=" << bullet.id
-                          << " tex=" << GlobalData::getShotTexture() << "\n";
+            if (!fromEnemy && e.has<PlayerAnimation>())
+                e.get<PlayerAnimation>().shootHoldTicks = PLAYER_SHOOT_HOLD_TICKS;
             w.shootCooldown = fromEnemy ? 60 : 20;
         }
     }
@@ -658,10 +664,14 @@ void playerAnimSystem()
         auto&       rf   = e.get<RenderFrame>();
         auto&       jump = e.get<Jump>();
 
-        const auto vel = b2Body_GetLinearVelocity(m.bodyId);
+        if (a.shootHoldTicks > 0)
+            --a.shootHoldTicks;
 
         if (jump.isJumping)
             a.state = PlayerAnimation::State::Jump;
+        else if (a.shootHoldTicks > 0)
+            a.state = m.velX != 0.f ? PlayerAnimation::State::ShootRun
+                                    : PlayerAnimation::State::ShootIdle;
         else if (m.velX != 0.f)
             a.state = PlayerAnimation::State::Run;
         else
