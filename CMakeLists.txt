@@ -16,8 +16,6 @@ option(ENABLE_WARNINGS "Enable to add warnings to a target." ON)
 option(ENABLE_WARNINGS_AS_ERRORS "Enable to treat warnings as errors." ON)
 option(ENABLE_UNUSED_WARNINGS "Enable -Wunused warnings." OFF)
 
-option(ENABLE_TESTING "Enable a Unit Testing build." ON)
-
 option(ENABLE_SANITIZE_ADDR "Enable address sanitize." OFF)
 option(ENABLE_SANITIZE_UNDEF "Enable undefined sanitize." OFF)
 option(ENABLE_SANITIZE_LEAK "Enable leak sanitize (Gcc/Clang only)." OFF)
@@ -94,9 +92,3 @@ endforeach()
 
 add_subdirectory(app)
 add_subdirectory(src)
-
-if(ENABLE_TESTING)
-    include(CTest)
-    enable_testing()
-    add_subdirectory(tests)
-endif()
