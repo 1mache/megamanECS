@@ -9,25 +9,28 @@
 namespace
 {
 // --- Player ---
-constexpr float PLAYER_SPRITE_W         = 28.f;
-constexpr float PLAYER_SPRITE_H         = 28.f;
-constexpr int   PLAYER_IDLE_START       = 8;
-constexpr int   PLAYER_IDLE_COUNT       = 1;
-constexpr int   PLAYER_RUN_START        = 0;
-constexpr int   PLAYER_RUN_COUNT        = 4;
-constexpr int   PLAYER_JUMP_START       = 10;
-constexpr int   PLAYER_JUMP_COUNT       = 1;
-constexpr int   PLAYER_SHOOT_IDLE_START = 9;
-constexpr int   PLAYER_SHOOT_IDLE_COUNT = 1;
-constexpr int   PLAYER_SHOOT_RUN_START  = 4;
-constexpr int   PLAYER_SHOOT_RUN_COUNT  = 4;
-constexpr int   PLAYER_SHOOT_HOLD_TICKS = 12;
-constexpr float PLAYER_RUN_SPEED        = 10.f;
-constexpr float PLAYER_JUMP_IMPULSE     = 40.f;
-constexpr float PLAYER_JUMP_COYOTE_TIME = 50.f;
-constexpr float PLAYER_JUMP_BUFFER_TIME = 17.f;
-constexpr float PLAYER_JUMP_FALL_FACTOR = 2.5f;
-constexpr float PLAYER_HP               = 3.f;
+constexpr float PLAYER_SPRITE_W          = 28.f;
+constexpr float PLAYER_SPRITE_H          = 28.f;
+constexpr int   PLAYER_IDLE_START        = 8;
+constexpr int   PLAYER_IDLE_COUNT        = 1;
+constexpr int   PLAYER_RUN_START         = 0;
+constexpr int   PLAYER_RUN_COUNT         = 4;
+constexpr int   PLAYER_JUMP_START        = 10;
+constexpr int   PLAYER_JUMP_COUNT        = 1;
+constexpr int   PLAYER_SHOOT_IDLE_START  = 9;
+constexpr int   PLAYER_SHOOT_IDLE_COUNT  = 1;
+constexpr int   PLAYER_SHOOT_RUN_START   = 4;
+constexpr int   PLAYER_SHOOT_RUN_COUNT   = 4;
+constexpr int   PLAYER_SHOOT_HOLD_TICKS  = 12;
+constexpr float PLAYER_RUN_SPEED         = 10.f;
+constexpr float PLAYER_JUMP_IMPULSE      = 40.f;
+constexpr float PLAYER_JUMP_COYOTE_TIME  = 40.f;
+constexpr float PLAYER_JUMP_BUFFER_TIME  = 15.f;
+constexpr float PLAYER_JUMP_FALL_FACTOR  = 2.5f;
+constexpr float PLAYER_HP                = 3.f;
+constexpr int   PLAYER_HIT_IFRAMES       = 90;
+constexpr int   PLAYER_RESPAWN_IFRAMES   = 60;
+constexpr int   PLAYER_HIT_FREEZE_FRAMES = 60;
 
 // --- Patroller enemy ---
 constexpr float PATROLLER_SPRITE_W        = 24.f;
@@ -41,7 +44,7 @@ constexpr int   PATROLLER_JUMP_COUNT      = 1;
 constexpr float PATROLLER_DETECTION_RANGE = 15.f;
 constexpr float PATROLLER_Y_RANGE         = 1.5f;
 constexpr float PATROLLER_SPEED           = 5.f;
-constexpr int   PATROLLER_HP              = 2.f;
+constexpr int   PATROLLER_HP              = 1.f;
 
 // --- Lockster enemy ---
 constexpr float LOCKSTER_SPRITE_W        = 24.f;
@@ -52,10 +55,10 @@ constexpr int   LOCKSTER_ALERT_START     = 2;
 constexpr int   LOCKSTER_ALERT_COUNT     = 3;
 constexpr int   LOCKSTER_CHARGE_START    = 5;
 constexpr int   LOCKSTER_CHARGE_COUNT    = 4;
-constexpr float LOCKSTER_DETECTION_RANGE = 15.f;
+constexpr float LOCKSTER_DETECTION_RANGE = 8.f;
 constexpr float LOCKSTER_CHARGE_SPEED    = 8.f;
 constexpr bool  LOCKSTER_HAS_BULLETS     = false;
-constexpr int   LOCKSTER_HP              = 1.f;
+constexpr float LOCKSTER_HP              = 0.5f;
 
 // --- Projectile ---
 constexpr float BULLET_SPEED        = 0.5f;
@@ -284,7 +287,7 @@ ent_type createLockster(b2WorldId world, float x, float y, SDL_Texture* tex)
                                            {.x = x, .y = y, .w = halfW, .h = halfH});
     bagel::World::addComponent<Movement>(ent, {.mass = 1, .bodyId = body});
     bagel::World::addComponent<Collision>(ent, {});
-    bagel::World::addComponent<Health>(ent, {.points = PATROLLER_HP});
+    bagel::World::addComponent<Health>(ent, {.points = LOCKSTER_HP});
     bagel::World::addComponent<DamageIntent>(ent, {});
     bagel::World::addComponent<Intent>(ent, {});
     bagel::World::addComponent<Enemy>(ent, {});
@@ -1031,20 +1034,10 @@ void damageSystem()
             continue;
 
         auto& h = e.get<Health>();
-        if (di.fromContact)
-        {
-            if (h.isContactInvulnerable)
-            {
-                di.pending = false;
-                continue;
-            }
-            h.isContactInvulnerable = true;
-        }
         if (!h.isInvulnerable)
         {
             h.points -= di.amount;
-            h.isInvulnerable    = true;
-            h.invulnerableTimer = 90;
+
             if (di.fromContact)
                 std::cout << "hit by enemy, hp=" << h.points << "\n";
             else if (di.fromFall)
@@ -1054,6 +1047,7 @@ void damageSystem()
                                              : "player bullet hit enemy")
                           << ", hp=" << h.points << "\n";
 
+            // if its player
             if (e.has<Input>())
             {
                 static const bagel::Mask aiMask =
@@ -1061,8 +1055,11 @@ void damageSystem()
                 for (bagel::Entity en = bagel::Entity::first(); !en.eof(); en.next())
                 {
                     if (en.test(aiMask))
-                        en.get<AI>().freezeFrames = 60;
+                        en.get<AI>().freezeFrames = PLAYER_HIT_FREEZE_FRAMES;
                 }
+
+                h.isInvulnerable    = true;
+                h.invulnerableTimer = PLAYER_HIT_IFRAMES;
             }
         }
         di.pending = false;
@@ -1083,8 +1080,7 @@ void healthSystem()
         auto& h = e.get<Health>();
         if (h.isInvulnerable && --h.invulnerableTimer <= 0)
         {
-            h.isInvulnerable        = false;
-            h.isContactInvulnerable = false;
+            h.isInvulnerable = false;
         }
         if (h.points <= 0)
         {
@@ -1148,13 +1144,14 @@ void tickPatroller(AI&               ai,
     }
 }
 
-void tickLockster(AI&               ai,
-                  const MTransform& t,
-                  Movement&         m,
-                  Intent&           intent,
-                  float             playerX,
-                  float             playerY)
+void tickLockster(bagel::Entity& lockster, float playerX, float playerY)
 {
+    AI&               ai     = lockster.get<AI>();
+    const MTransform& t      = lockster.get<MTransform>();
+    Movement&         m      = lockster.get<Movement>();
+    Intent&           intent = lockster.get<Intent>();
+    Health&           h      = lockster.get<Health>();
+
     constexpr float Y_MARGIN = 1.5f;
     const float     distX    = std::abs(t.x - playerX);
     const float     distY    = std::abs(t.y - playerY);
@@ -1163,7 +1160,6 @@ void tickLockster(AI&               ai,
 
     const bool inRange    = distX < ai.detectionRange && distY < Y_MARGIN;
     const bool isCharging = ai.alertTimer >= 30;
-
     if (isCharging)
     {
         const bool reached = std::abs(t.x - ai.targetX) < 0.2f;
@@ -1206,9 +1202,13 @@ void tickLockster(AI&               ai,
     }
     else
     {
+
         ai.alertTimer = 0;
         ai.shotsFired = 0;
     }
+
+    // lockster is invulnerable while idle
+    h.isInvulnerable = !isCharging;
 }
 } // namespace
 
@@ -1260,7 +1260,7 @@ void aiSystem()
                 tickPatroller(ai, t, intent, playerX, playerY);
                 break;
             case AI::Type::Lockster:
-                tickLockster(ai, t, m, intent, playerX, playerY);
+                tickLockster(e, playerX, playerY);
                 break;
             }
         }
@@ -1348,7 +1348,7 @@ void respawnSystem(b2WorldId                      world,
                 h.points            = r.maxHp;
                 h.isDead            = false;
                 h.isInvulnerable    = true;
-                h.invulnerableTimer = 60;
+                h.invulnerableTimer = PLAYER_RESPAWN_IFRAMES;
                 r.isRespawning      = false;
 
                 static const bagel::Mask aiMask = bagel::MaskBuilder()
