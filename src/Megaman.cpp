@@ -975,15 +975,27 @@ void collisionSystem(b2WorldId world)
         if (bulletId >= 0)
         {
             bagel::Entity bullet{ent_type{bulletId}};
+            if (otherId < 0)
+            {
+                if (!alreadyQueued(bullet.entity()))
+                    toDestroy.push_back(bullet.entity());
+                continue; // hit world geometry. destroy bullet, no damage
+            }
+            bagel::Entity other{ent_type{otherId}};
 
-            if (!alreadyQueued(bullet.entity()))
+            // bounce bullet back if hit invulnerable enemy
+            if (other.has<Health>() && other.has<Enemy>() &&
+                other.get<Health>().isInvulnerable)
+            {
+                auto& bulletM = bullet.get<Movement>();
+                bulletM.velX  = -bulletM.velX;
+                continue;
+            }
+            else if (!alreadyQueued(bullet.entity()))
                 toDestroy.push_back(bullet.entity());
 
-            if (otherId < 0)
-                continue; // hit world geometry. destroy bullet, no damage
 
-            bagel::Entity other{ent_type{otherId}};
-            const bool    fromEnemy = bullet.get<Projectile>().fromEnemy;
+            const bool fromEnemy = bullet.get<Projectile>().fromEnemy;
 
             if (!fromEnemy && other.test(enemyDamageMask))
                 other.get<DamageIntent>() = {.amount      = BULLET_DAMAGE,
