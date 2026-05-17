@@ -194,13 +194,16 @@ struct PlayerAnimation
     {
         Idle,
         Run,
-        Jump
+        Jump,
+        ShootIdle,
+        ShootRun
     };
     State                        state{State::Idle};
     State                        prev{State::Idle};
     int                          frame{};
     int                          timer{};
-    std::array<AnimationClip, 3> clips{};
+    int                          shootHoldTicks{};
+    std::array<AnimationClip, 5> clips{};
 };
 
 struct PatrollerAnimation
