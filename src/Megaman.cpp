@@ -78,7 +78,10 @@ constexpr int   EXPLOSION_FRAMES   = 3;
 // --- Damage ---
 constexpr float BULLET_DAMAGE        = 0.5f;
 constexpr float ENEMY_CONTACT_DAMAGE = 1.f;
+} // namespace
 
+namespace megaman
+{
 template <typename AnimT>
 void tickAnim(AnimT& anim, megaman::RenderFrame& rf)
 {
@@ -115,10 +118,24 @@ void tickAnim(AnimT& anim, megaman::RenderFrame& rf)
 
     rf.spriteIndex = clip.startFrame + anim.frame;
 }
-} // namespace
 
-namespace megaman
+const bagel::Mask& playerMask()
 {
+    static const bagel::Mask mask = bagel::MaskBuilder()
+                                        .set<Input>()
+                                        .set<Jump>()
+                                        .set<Movement>()
+                                        .set<Weapon>()
+                                        .set<PlayerAnimation>()
+                                        .set<RenderFrame>()
+                                        .set<Drawable>()
+                                        .set<MTransform>()
+                                        .set<Health>()
+                                        .set<DamageIntent>()
+                                        .build();
+    return mask;
+}
+
 ent_type createPlayer(b2WorldId world, float x, float y, SDL_Texture* tex)
 {
     constexpr float halfW = PLAYER_SPRITE_W / (2 * GlobalData::PTM);
@@ -456,9 +473,6 @@ void movementSystem(float sceneMinY)
     static const bagel::Mask mask =
         bagel::MaskBuilder().set<MTransform>().set<Movement>().build();
 
-    constexpr float fps  = static_cast<float>(GlobalData::FPS);
-    constexpr float velY = 0.083f;
-
     for (bagel::Entity e = bagel::Entity::first(); !e.eof(); e.next())
     {
         if (!e.test(mask))
@@ -490,17 +504,12 @@ void movementSystem(float sceneMinY)
         if (e.has<Health>() && t.y < sceneMinY)
         {
             auto& h = e.get<Health>();
-            if (e.has<Input>())
+            if (e.test(playerMask()))
             {
-                if (e.has<DamageIntent>())
-                {
-                    auto& di = e.get<DamageIntent>();
-                    if (!di.pending && !h.isInvulnerable)
-                        di = {.amount      = h.points,
-                              .pending     = true,
-                              .fromContact = false,
-                              .fromFall    = true};
-                }
+                e.get<DamageIntent>() = {.amount      = h.points,
+                                         .pending     = true,
+                                         .fromContact = false,
+                                         .fromFall    = true};
             }
             else
             {
@@ -652,16 +661,9 @@ void shootingSystem()
 
 void playerAnimSystem()
 {
-    static const bagel::Mask mask = bagel::MaskBuilder()
-                                        .set<PlayerAnimation>()
-                                        .set<Movement>()
-                                        .set<RenderFrame>()
-                                        .set<Jump>()
-                                        .build();
-
     for (bagel::Entity e = bagel::Entity::first(); !e.eof(); e.next())
     {
-        if (!e.test(mask))
+        if (!e.test(playerMask()))
             continue;
 
         auto&       a    = e.get<PlayerAnimation>();
@@ -706,14 +708,11 @@ void locksterAnimSystem()
                                                 .set<MTransform>()
                                                 .set<RenderFrame>()
                                                 .build();
-    static const bagel::Mask playerMask =
-        bagel::MaskBuilder().set<Input>().set<MTransform>().build();
-
-    float playerX = 0.f;
-    float playerY = 0.f;
+    float                    playerX      = 0.f;
+    float                    playerY      = 0.f;
     for (bagel::Entity e = bagel::Entity::first(); !e.eof(); e.next())
     {
-        if (e.test(playerMask))
+        if (e.test(playerMask()))
         {
             playerX = e.get<MTransform>().x;
             playerY = e.get<MTransform>().y;
@@ -826,33 +825,38 @@ void hudSystem(SDL_Renderer* ren, SDL_Texture* heartTex)
         const bool  hasHalf = (hp - static_cast<float>(nFull)) >= 0.5f;
         const int   total   = static_cast<int>(r.maxHp);
 
-        constexpr float HEART_DST = 24.f;
-        constexpr float HEART_GAP = 4.f;
-        constexpr float HEART_X0  = 10.f;
-        constexpr float HEART_Y0  = 10.f;
+        constexpr float HEART_SPRITE_SIDE = 8;
+        constexpr float HEART_DST         = 24.f;
+        constexpr float HEART_GAP         = 4.f;
+        constexpr float HEART_X0          = 10.f;
+        constexpr float HEART_Y0          = 10.f;
 
         for (int i = 0; i < total; ++i)
         {
             const float x =
                 HEART_X0 + static_cast<float>(i) * (HEART_DST + HEART_GAP);
 
+            SDL_FRect src = {0.f, 0.f, HEART_SPRITE_SIDE, HEART_SPRITE_SIDE};
+            SDL_FRect dst = {x, HEART_Y0, HEART_DST, HEART_DST};
+
             if (i < nFull)
             {
-                SDL_FRect src = {0.f, 0.f, 8.f, 8.f};
-                SDL_FRect dst = {x, HEART_Y0, HEART_DST, HEART_DST};
                 SDL_RenderTexture(ren, heartTex, &src, &dst);
             }
             else if (i == nFull && hasHalf)
             {
-                SDL_FRect src = {0.f, 0.f, 4.f, 8.f};
-                SDL_FRect dst = {x, HEART_Y0, HEART_DST / 2.f, HEART_DST};
+                // draw opaque bg heart
+                SDL_SetTextureAlphaMod(heartTex, 80);
+                SDL_RenderTexture(ren, heartTex, &src, &dst);
+                SDL_SetTextureAlphaMod(heartTex, 255);
+                // on top of that half heart
+                src = {0.f, 0.f, HEART_SPRITE_SIDE / 2.f, HEART_SPRITE_SIDE};
+                dst = {x, HEART_Y0, HEART_DST / 2.f, HEART_DST};
                 SDL_RenderTexture(ren, heartTex, &src, &dst);
             }
             else
             {
                 SDL_SetTextureAlphaMod(heartTex, 80);
-                SDL_FRect src = {0.f, 0.f, 8.f, 8.f};
-                SDL_FRect dst = {x, HEART_Y0, HEART_DST, HEART_DST};
                 SDL_RenderTexture(ren, heartTex, &src, &dst);
                 SDL_SetTextureAlphaMod(heartTex, 255);
             }
@@ -903,16 +907,9 @@ void collisionSystem(b2WorldId world)
     constexpr int   subSteps = 4;
     b2World_Step(world, dt, subSteps);
 
-    static const bagel::Mask playerMask = bagel::MaskBuilder()
-                                              .set<Input>()
-                                              .set<MTransform>()
-                                              .set<Health>()
-                                              .set<DamageIntent>()
-                                              .build();
-
     for (bagel::Entity p = bagel::Entity::first(); !p.eof(); p.next())
     {
-        if (p.test(playerMask))
+        if (p.test(playerMask()))
         {
             GlobalData::updateCamPosition(p.get<MTransform>().x,
                                           p.get<MTransform>().y);
@@ -983,7 +980,7 @@ void collisionSystem(b2WorldId world)
                 toDestroy.push_back(bullet.entity());
 
             if (otherId < 0)
-                continue; // hit world geometry — destroy bullet, no damage
+                continue; // hit world geometry. destroy bullet, no damage
 
             bagel::Entity other{ent_type{otherId}};
             const bool    fromEnemy = bullet.get<Projectile>().fromEnemy;
@@ -1217,9 +1214,6 @@ void tickLockster(bagel::Entity& lockster, float playerX, float playerY)
 
 void aiSystem()
 {
-    static const bagel::Mask playerMask =
-        bagel::MaskBuilder().set<Input>().set<MTransform>().build();
-
     static const bagel::Mask enemyMask = bagel::MaskBuilder()
                                              .set<AI>()
                                              .set<Intent>()
@@ -1232,7 +1226,7 @@ void aiSystem()
 
     for (bagel::Entity e = bagel::Entity::first(); !e.eof(); e.next())
     {
-        if (e.test(playerMask))
+        if (e.test(playerMask()))
         {
             playerX = e.get<MTransform>().x;
             playerY = e.get<MTransform>().y;

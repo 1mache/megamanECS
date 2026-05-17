@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<map version="1.10" tiledversion="1.12.1" orientation="orthogonal" renderorder="right-down" width="200" height="20" tilewidth="16" tileheight="16" infinite="0" nextlayerid="7" nextobjectid="55">
+<map version="1.10" tiledversion="1.12.1" orientation="orthogonal" renderorder="right-down" width="200" height="20" tilewidth="16" tileheight="16" infinite="0" nextlayerid="7" nextobjectid="58">
  <tileset firstgid="1" source="mega-tileset.tsx"/>
  <imagelayer id="4" name="bg" parallaxx="0.7" parallaxy="0.3" repeatx="1">
   <image source="bg.png" width="64" height="112"/>
@@ -120,6 +120,12 @@
    <point/>
   </object>
   <object id="17" type="flask" x="1784" y="87.3333">
+   <point/>
+  </object>
+  <object id="55" type="boss" x="3122.5" y="246.5">
+   <point/>
+  </object>
+  <object id="57" type="player" x="1399" y="169">
    <point/>
   </object>
  </objectgroup>

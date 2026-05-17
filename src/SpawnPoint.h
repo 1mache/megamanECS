@@ -12,7 +12,7 @@ struct SpawnPoint
         Ptrol,
         PtrolDest,
         Lockster,
-        Flask,
+        Boss,
         count
     };
 
@@ -20,7 +20,7 @@ struct SpawnPoint
                                                         "ptrol",
                                                         "ptrold",
                                                         "lockster",
-                                                        "flask"};
+                                                        "boss"};
     Type                         type{Type::count}; // invalid value by default
     float                        x{};
     float                        y{};           // world coords, meters, Y-up

@@ -71,10 +71,10 @@ bool MapSpawnLayer::create(const tmx::Map& map, std::uint32_t layerIndex)
             sp.type = SpawnPoint::Type::Lockster;
             _enemySpawns.push_back(sp);
         }
-        else if (objClass == spawnTypeToString(SpawnPoint::Type::Flask))
+        else if (objClass == spawnTypeToString(SpawnPoint::Type::Boss))
         {
-            sp.type = SpawnPoint::Type::Flask;
-            _itemSpawns.push_back(sp);
+            sp.type = SpawnPoint::Type::Boss;
+            _enemySpawns.push_back(sp);
         }
     }
     return isValid();
