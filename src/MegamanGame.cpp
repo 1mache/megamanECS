@@ -3,6 +3,7 @@
 #include "Megaman.h"
 #include "Utils.h"
 #include <SDL3_image/SDL_image.h>
+#include <algorithm>
 #include <iostream>
 
 namespace megaman
@@ -89,8 +90,8 @@ MegamanGame::MegamanGame()
             createPatroller(_boxWorld,
                             sp.x,
                             sp.y,
-                            sp.x - 5.f,
-                            sp.x + 5.f,
+                            std::min(sp.x, sp.patrolDestX),
+                            std::max(sp.x, sp.patrolDestX),
                             _enemyTex);
         }
         else if (sp.type == SpawnPoint::Type::Lockster)

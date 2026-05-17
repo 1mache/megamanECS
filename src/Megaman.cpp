@@ -26,7 +26,7 @@ constexpr float PLAYER_RUN_SPEED         = 10.f;
 constexpr float PLAYER_JUMP_IMPULSE      = 40.f;
 constexpr float PLAYER_JUMP_COYOTE_TIME  = 40.f;
 constexpr float PLAYER_JUMP_BUFFER_TIME  = 10.f;
-constexpr float PLAYER_JUMP_FALL_FACTOR  = 2.5f;
+constexpr float PLAYER_JUMP_FALL_FACTOR  = 3.f;
 constexpr float PLAYER_HP                = 3.f;
 constexpr int   PLAYER_HIT_IFRAMES       = 90;
 constexpr int   PLAYER_RESPAWN_IFRAMES   = 60;
@@ -597,7 +597,7 @@ void jumpSystem()
         }
 
         auto playerVel = b2Body_GetLinearVelocity(m.bodyId);
-        // if we are falling. increase gravity pull on player. better feel
+        // if we are  in falling phase of jump. increase gravity pull on player. better feel
         if (j.isJumping && playerVel.y <= 0.f)
         {
             b2Body_SetGravityScale(m.bodyId, PLAYER_JUMP_FALL_FACTOR);
