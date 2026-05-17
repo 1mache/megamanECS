@@ -12,8 +12,6 @@ set(CMAKE_CXX_EXTENSIONS OFF)
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
 # Options
-option(USE_CPM "Whether to use CPM." ON)
-
 option(ENABLE_WARNINGS "Enable to add warnings to a target." ON)
 option(ENABLE_WARNINGS_AS_ERRORS "Enable to treat warnings as errors." ON)
 option(ENABLE_UNUSED_WARNINGS "Enable -Wunused warnings." OFF)
@@ -51,26 +49,6 @@ if(ENABLE_SANITIZE_ADDR
 endif()
 
 # EXTERNAL LIBRARIES
-
-if(USE_CPM)
-    message(STATUS "Using CPM")
-    include(CPM)
-    if(ENABLE_TESTING)
-        cpmaddpackage("gh:catchorg/Catch2#v3.5.3")
-        list(APPEND CMAKE_MODULE_PATH ${Catch2_SOURCE_DIR}/extras)
-    endif()
-else()
-    message(STATUS "Using FetchContent")
-    if(ENABLE_TESTING)
-        FetchContent_Declare(
-            Catch2
-            GIT_REPOSITORY https://github.com/catchorg/Catch2
-            GIT_TAG v3.5.3
-            GIT_SHALLOW TRUE)
-        FetchContent_MakeAvailable(Catch2)
-        list(APPEND CMAKE_MODULE_PATH ${catch2_SOURCE_DIR}/extras)
-    endif()
-endif()
 
 # SDL3
 set(SDL_STATIC ON CACHE BOOL "Build SDL as a static library" FORCE)
