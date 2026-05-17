@@ -145,12 +145,11 @@ ent_type createPlayer(b2WorldId world, float x, float y, SDL_Texture* tex)
 
     bagel::World::addComponent<PlayerAnimation>(
         ent,
-        {.clips = {
-             AnimationClip{PLAYER_IDLE_START,        PLAYER_IDLE_COUNT},
-             AnimationClip{PLAYER_RUN_START,         PLAYER_RUN_COUNT},
-             AnimationClip{PLAYER_JUMP_START,        PLAYER_JUMP_COUNT},
-             AnimationClip{PLAYER_SHOOT_IDLE_START,  PLAYER_SHOOT_IDLE_COUNT},
-             AnimationClip{PLAYER_SHOOT_RUN_START,   PLAYER_SHOOT_RUN_COUNT}}});
+        {.clips = {AnimationClip{PLAYER_IDLE_START, PLAYER_IDLE_COUNT},
+                   AnimationClip{PLAYER_RUN_START, PLAYER_RUN_COUNT},
+                   AnimationClip{PLAYER_JUMP_START, PLAYER_JUMP_COUNT},
+                   AnimationClip{PLAYER_SHOOT_IDLE_START, PLAYER_SHOOT_IDLE_COUNT},
+                   AnimationClip{PLAYER_SHOOT_RUN_START, PLAYER_SHOOT_RUN_COUNT}}});
     bagel::World::addComponent<RenderFrame>(ent, {});
     bagel::World::addComponent<Drawable>(
         ent,
@@ -633,11 +632,11 @@ void shootingSystem()
                 bVelX *= ENEMY_BULLET_FACTOR; // enemy bullets are slower for balance
 
             createProjectile(GlobalData::getBoxWorld(),
-                                               t.x,
-                                               t.y,
-                                               bVelX,
-                                               0.f,
-                                               fromEnemy);
+                             t.x,
+                             t.y,
+                             bVelX,
+                             0.f,
+                             fromEnemy);
             if (!fromEnemy && e.has<PlayerAnimation>())
                 e.get<PlayerAnimation>().shootHoldTicks = PLAYER_SHOOT_HOLD_TICKS;
             w.shootCooldown = fromEnemy ? 60 : 20;

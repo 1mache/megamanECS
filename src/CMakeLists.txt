@@ -21,10 +21,10 @@ target_sources(
         Texture.cpp
         CameraData.h
         WorldBoundsM.h
-        megaman.cpp
-        megaman.h
-        megamanGame.cpp
-        megamanGame.h
+        Megaman.cpp
+        Megaman.h
+        MegamanGame.cpp
+        MegamanGame.h
         Utils.h
 )
 
