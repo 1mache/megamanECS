@@ -162,7 +162,7 @@ inline constexpr uint64_t CAT_ENEMY_BULLET  = 0x0010;
 
 // ============= COMPONENTS =============
 
-inline constexpr int ANIM_SPEED = 8;
+inline constexpr int DEFAULT_ANIM_SPEED = 8;
 
 // One entry in a per-entity clip table. Describes a slice of the sprite sheet
 // for a single animation state. Stored in the per-entity animation component
@@ -170,9 +170,9 @@ inline constexpr int ANIM_SPEED = 8;
 // frameCount=1 → frozen single frame (no advance). loop=false → one-shot (e.g. explosion).
 struct AnimationClip
 {
-    int  startFrame{};              // first column in the sprite sheet
-    int  frameCount{1};             // number of columns this clip spans
-    int  framesPerStep{ANIM_SPEED}; // game ticks between frame advances
+    int  startFrame{};                      // first column in the sprite sheet
+    int  frameCount{1};                     // number of columns this clip spans
+    int  framesPerStep{DEFAULT_ANIM_SPEED}; // game ticks between frame advances
     bool loop{true}; // wraps to startFrame when done; false = clamp + signal finish
 };
 

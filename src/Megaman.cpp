@@ -25,7 +25,7 @@ constexpr int   PLAYER_SHOOT_HOLD_TICKS  = 12;
 constexpr float PLAYER_RUN_SPEED         = 10.f;
 constexpr float PLAYER_JUMP_IMPULSE      = 40.f;
 constexpr float PLAYER_JUMP_COYOTE_TIME  = 40.f;
-constexpr float PLAYER_JUMP_BUFFER_TIME  = 15.f;
+constexpr float PLAYER_JUMP_BUFFER_TIME  = 10.f;
 constexpr float PLAYER_JUMP_FALL_FACTOR  = 2.5f;
 constexpr float PLAYER_HP                = 3.f;
 constexpr int   PLAYER_HIT_IFRAMES       = 90;
@@ -41,6 +41,7 @@ constexpr int   PATROLLER_RUN_START       = 0;
 constexpr int   PATROLLER_RUN_COUNT       = 2;
 constexpr int   PATROLLER_JUMP_START      = 0;
 constexpr int   PATROLLER_JUMP_COUNT      = 1;
+constexpr int   PATROLLER_ANIM_SPEED      = 16;
 constexpr float PATROLLER_DETECTION_RANGE = 15.f;
 constexpr float PATROLLER_Y_RANGE         = 1.5f;
 constexpr float PATROLLER_SPEED           = 5.f;
@@ -55,6 +56,7 @@ constexpr int   LOCKSTER_ALERT_START     = 2;
 constexpr int   LOCKSTER_ALERT_COUNT     = 3;
 constexpr int   LOCKSTER_CHARGE_START    = 5;
 constexpr int   LOCKSTER_CHARGE_COUNT    = 4;
+constexpr int   LOCKSTER_ANIM_SPEED      = 16;
 constexpr float LOCKSTER_DETECTION_RANGE = 8.f;
 constexpr float LOCKSTER_CHARGE_SPEED    = 8.f;
 constexpr bool  LOCKSTER_HAS_BULLETS     = false;
@@ -211,8 +213,9 @@ ent_type createPatroller(b2WorldId    world,
 
     bagel::World::addComponent<PatrollerAnimation>(
         ent,
-        {.clips = {
-             AnimationClip{PATROLLER_RUN_START, PATROLLER_RUN_COUNT}}}); // [0] Run
+        {.clips = {AnimationClip{PATROLLER_RUN_START,
+                                 PATROLLER_RUN_COUNT,
+                                 PATROLLER_ANIM_SPEED}}}); // [0] Run
     bagel::World::addComponent<RenderFrame>(ent, {});
     bagel::World::addComponent<Drawable>(ent,
                                          {.texture           = tex,
@@ -271,11 +274,14 @@ ent_type createLockster(b2WorldId world, float x, float y, SDL_Texture* tex)
 
     bagel::World::addComponent<LocksterAnimation>(
         ent,
-        {.clips = {AnimationClip{LOCKSTER_IDLE_START, 1}, // [0] Idle — frozen
+        {.clips = {AnimationClip{LOCKSTER_IDLE_START,
+                                 LOCKSTER_IDLE_COUNT,
+                                 LOCKSTER_ANIM_SPEED}, // [0] Idle
                    AnimationClip{LOCKSTER_CHARGE_START,
                                  LOCKSTER_CHARGE_COUNT}, // [1] Charge
                    AnimationClip{LOCKSTER_ALERT_START,
-                                 LOCKSTER_ALERT_COUNT}}}); // [2] Alert
+                                 LOCKSTER_ALERT_COUNT,
+                                 LOCKSTER_ANIM_SPEED}}}); // [2] Alert
     bagel::World::addComponent<RenderFrame>(ent, {});
     bagel::World::addComponent<Drawable>(ent,
                                          {.texture           = tex,
@@ -392,7 +398,7 @@ ent_type createExplosion(float x, float y)
         ent,
         {.clips = {AnimationClip{0,
                                  EXPLOSION_FRAMES,
-                                 ANIM_SPEED,
+                                 DEFAULT_ANIM_SPEED,
                                  false}}}); // [0] Playing, one-shot
     bagel::World::addComponent<RenderFrame>(ent, {});
     bagel::World::addComponent<Movement>(ent, {});
