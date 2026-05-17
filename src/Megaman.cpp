@@ -874,10 +874,8 @@ void projectileCullSystem()
         if (!e.test(mask))
             continue;
         const auto& t = e.get<MTransform>();
-        if (t.x < bounds.minX - BULLET_HALF_W ||
-            t.x > bounds.maxX + BULLET_HALF_W ||
-            t.y < bounds.minY - BULLET_HALF_H ||
-            t.y > bounds.maxY + BULLET_HALF_H)
+        if (t.x < bounds.minX - BULLET_HALF_W || t.x > bounds.maxX + BULLET_HALF_W ||
+            t.y < bounds.minY - BULLET_HALF_H || t.y > bounds.maxY + BULLET_HALF_H)
             toDestroy.push_back(e.entity());
     }
     for (ent_type id : toDestroy)

@@ -22,6 +22,7 @@ MegamanGame::MegamanGame()
     }
     // good for pixel art scaling
     SDL_SetDefaultTextureScaleMode(_ren, SDL_SCALEMODE_NEAREST);
+    SDL_SetRenderDrawColor(_ren, 49, 49, 49, 255);
 
     GlobalData::setWindow(_win);
     GlobalData::setRenderer(_ren);
