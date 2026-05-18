@@ -65,7 +65,7 @@ constexpr int   LOCKSTER_ALERT_COUNT     = 3;
 constexpr int   LOCKSTER_CHARGE_START    = 5;
 constexpr int   LOCKSTER_CHARGE_COUNT    = 4;
 constexpr int   LOCKSTER_ANIM_SPEED      = 16;
-constexpr float LOCKSTER_DETECTION_RANGE = 8.f;
+constexpr float LOCKSTER_DETECTION_RANGE = 7.f;
 constexpr float LOCKSTER_CHARGE_SPEED    = 8.f;
 constexpr float LOCKSTER_HP              = 0.5f;
 
@@ -1132,14 +1132,15 @@ void projectileCullSystem()
     static const bagel::Mask mask =
         bagel::MaskBuilder().set<Projectile>().set<MTransform>().build();
 
+    constexpr float       MARGIN = 3.f; // cull bullets a bit outside the view
     std::vector<ent_type> toDestroy;
     for (bagel::Entity e = bagel::Entity::first(); !e.eof(); e.next())
     {
         if (!e.test(mask))
             continue;
         const auto& t = e.get<MTransform>();
-        if (t.x < bounds.minX - BULLET_HALF_W || t.x > bounds.maxX + BULLET_HALF_W ||
-            t.y < bounds.minY - BULLET_HALF_H || t.y > bounds.maxY + BULLET_HALF_H)
+        if (t.x < bounds.minX - BULLET_HALF_W - MARGIN || t.x > bounds.maxX + BULLET_HALF_W + MARGIN ||
+            t.y < bounds.minY - BULLET_HALF_H - MARGIN || t.y > bounds.maxY + BULLET_HALF_H + MARGIN)
             toDestroy.push_back(e.entity());
     }
     for (ent_type id : toDestroy)

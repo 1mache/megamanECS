@@ -1,13 +1,6 @@
 /**
  * @file GlobalData.h
  * @brief Singleton-style static store for engine-wide resources and constants.
- *
- * Unit system:
- *  - World coordinates are in **meters** (Y-up).
- *  - PTM (pixels-to-meters) = 16: one meter equals 16 texels at native scale.
- *  - SCALE_FACTOR = 2.6: the renderer scales texels up by this factor.
- *  - Combined: 1 m = PTM × SCALE_FACTOR ≈ 41.6 screen pixels.
- *  - GRAVITY is in m/s².
  */
 #pragma once
 #include "CameraData.h"
