@@ -251,10 +251,9 @@ ent_type createPatroller(b2WorldId    world,
     ent_type ent = bagel::World::createEntity();
 
     b2BodyDef bodyDef     = b2DefaultBodyDef();
-    bodyDef.type          = b2_dynamicBody;
+    bodyDef.type          = b2_kinematicBody;
     bodyDef.position      = {x, y};
     bodyDef.fixedRotation = true;
-    bodyDef.gravityScale  = 0.f;
     bodyDef.userData      = reinterpret_cast<void*>(static_cast<uintptr_t>(ent.id));
     b2BodyId body         = b2CreateBody(world, &bodyDef);
 
@@ -268,8 +267,12 @@ ent_type createPatroller(b2WorldId    world,
 
     bagel::World::addComponent<PatrollerAnimation>(
         ent,
-        {.clips = {AnimationClip{PATROLLER_RUN_START,   PATROLLER_RUN_COUNT,   PATROLLER_ANIM_SPEED},  // [0] Run
-                   AnimationClip{PATROLLER_BURST_START, PATROLLER_BURST_COUNT, PATROLLER_ANIM_SPEED}}}); // [1] Burst
+        {.clips = {AnimationClip{PATROLLER_RUN_START,
+                                 PATROLLER_RUN_COUNT,
+                                 PATROLLER_ANIM_SPEED}, // [0] Run
+                   AnimationClip{PATROLLER_BURST_START,
+                                 PATROLLER_BURST_COUNT,
+                                 PATROLLER_ANIM_SPEED}}}); // [1] Burst
     bagel::World::addComponent<RenderFrame>(ent, {});
     bagel::World::addComponent<Drawable>(ent,
                                          {.texture           = tex,
@@ -1251,28 +1254,35 @@ namespace
 {
 void fireRadialBurst(const MTransform& t, bagel::Entity self)
 {
-    const Weapon&    w = self.get<Weapon>();
-    constexpr float  k = 0.70710678f;
-    constexpr std::array<std::pair<float, float>, 8> dirs = {{
-        { 1.f,  0.f}, { k,  k}, { 0.f,  1.f}, {-k,  k},
-        {-1.f,  0.f}, {-k, -k}, { 0.f, -1.f}, { k, -k}
-    }};
+    const Weapon&                                    w    = self.get<Weapon>();
+    constexpr float                                  k    = 0.70710678f;
+    constexpr std::array<std::pair<float, float>, 8> dirs = {{{1.f, 0.f},
+                                                              {k, k},
+                                                              {0.f, 1.f},
+                                                              {-k, k},
+                                                              {-1.f, 0.f},
+                                                              {-k, -k},
+                                                              {0.f, -1.f},
+                                                              {k, -k}}};
     for (auto [dx, dy] : dirs)
     {
         createProjectile(GlobalData::getBoxWorld(),
-                         t.x, t.y,
-                         dx * w.shotSpeed, dy * w.shotSpeed,
-                         w.type, w.damage, true);
+                         t.x,
+                         t.y,
+                         dx * w.shotSpeed,
+                         dy * w.shotSpeed,
+                         w.type,
+                         w.damage,
+                         true);
     }
 }
 
-void tickPatroller(AI&               ai,
-                   const MTransform& t,
-                   Intent&           intent,
-                   float             playerX,
-                   float             playerY,
-                   bagel::Entity     self)
+void tickPatroller(bagel::Entity& patroller, float playerX, float playerY)
 {
+    AI&               ai     = patroller.get<AI>();
+    const MTransform& t      = patroller.get<MTransform>();
+    Intent&           intent = patroller.get<Intent>();
+
     intent = {};
 
     if (ai.burstCooldown > 0)
@@ -1283,18 +1293,19 @@ void tickPatroller(AI&               ai,
         --ai.burstTimer;
         if (!ai.burstFired)
         {
-            fireRadialBurst(t, self);
+            fireRadialBurst(t, patroller);
             ai.burstFired = true;
         }
         ai.state = AI::BURST;
-        if (self.has<PatrollerAnimation>())
-            self.get<PatrollerAnimation>().state = PatrollerAnimation::State::Burst;
+        if (patroller.has<PatrollerAnimation>())
+            patroller.get<PatrollerAnimation>().state =
+                PatrollerAnimation::State::Burst;
         return;
     }
 
     ai.state = AI::PATROL;
-    if (self.has<PatrollerAnimation>())
-        self.get<PatrollerAnimation>().state = PatrollerAnimation::State::Run;
+    if (patroller.has<PatrollerAnimation>())
+        patroller.get<PatrollerAnimation>().state = PatrollerAnimation::State::Run;
 
     if (t.x <= ai.patrolMinX)
         ai.patrollingRight = true;
@@ -1477,14 +1488,12 @@ void aiSystem()
     {
         if (e.test(enemyMask))
         {
-            auto& ai     = e.get<AI>();
-            auto& intent = e.get<Intent>();
-            auto& m      = e.get<Movement>();
+            auto& ai = e.get<AI>();
 
             if (ai.freezeFrames > 0)
             {
                 --ai.freezeFrames;
-                intent = {};
+                e.get<Intent>() = {};
                 continue;
             }
 
@@ -1493,7 +1502,7 @@ void aiSystem()
             switch (ai.type)
             {
             case AI::Type::Patroller:
-                tickPatroller(ai, t, intent, playerX, playerY, e);
+                tickPatroller(e, playerX, playerY);
                 break;
             case AI::Type::Lockster:
                 tickLockster(e, playerX, playerY);
