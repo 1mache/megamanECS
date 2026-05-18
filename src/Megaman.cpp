@@ -634,7 +634,15 @@ void inputSystem()
     {
         if (e.test(mask))
         {
-            auto& intent     = e.get<Intent>();
+            auto& intent = e.get<Intent>();
+
+            // dead player ignores input
+            if (e.has<Health>() && e.get<Health>().isDead)
+            {
+                intent = {};
+                continue;
+            }
+
             intent.moveLeft  = keys[SDL_SCANCODE_LEFT];
             intent.moveRight = keys[SDL_SCANCODE_RIGHT];
             intent.moveUp    = keys[SDL_SCANCODE_UP];
@@ -1132,15 +1140,17 @@ void projectileCullSystem()
     static const bagel::Mask mask =
         bagel::MaskBuilder().set<Projectile>().set<MTransform>().build();
 
-    constexpr float       MARGIN = 3.f; // cull bullets a bit outside the view
+    constexpr float       MARGIN = 1.5f; // cull bullets a bit outside the view
     std::vector<ent_type> toDestroy;
     for (bagel::Entity e = bagel::Entity::first(); !e.eof(); e.next())
     {
         if (!e.test(mask))
             continue;
         const auto& t = e.get<MTransform>();
-        if (t.x < bounds.minX - BULLET_HALF_W - MARGIN || t.x > bounds.maxX + BULLET_HALF_W + MARGIN ||
-            t.y < bounds.minY - BULLET_HALF_H - MARGIN || t.y > bounds.maxY + BULLET_HALF_H + MARGIN)
+        if (t.x < bounds.minX - BULLET_HALF_W - MARGIN ||
+            t.x > bounds.maxX + BULLET_HALF_W + MARGIN ||
+            t.y < bounds.minY - BULLET_HALF_H - MARGIN ||
+            t.y > bounds.maxY + BULLET_HALF_H + MARGIN)
             toDestroy.push_back(e.entity());
     }
     for (ent_type id : toDestroy)
@@ -1415,7 +1425,7 @@ namespace
 /**
  * @brief Spawns 8 bullets in cardinal and diagonal directions from position @p t.
  *
- * Direction vectors are pre-computed unit vectors at 45° intervals (k = 1/√2).
+ * Direction vectors are pre-computed unit vectors at 45 deg intervals (k = 1/√2).
  * All bullets share the Weapon's speed, type, and damage values.
  */
 void fireRadialBurst(const MTransform& t, bagel::Entity self)
