@@ -6,7 +6,7 @@
 # Project related configuration options
 #---------------------------------------------------------------------------
 DOXYFILE_ENCODING       = UTF-8
-PROJECT_NAME            = "Magaman"
+PROJECT_NAME            = "Megaman"
 PROJECT_NUMBER          = 1.0.0
 PROJECT_BRIEF           = "ECS-based Megaman game in C++20"
 PROJECT_LOGO            =
@@ -25,7 +25,7 @@ GENERATE_LATEX          = NO
 #---------------------------------------------------------------------------
 # Configuration options related to the input files
 #---------------------------------------------------------------------------
-INPUT                  =    ../src
+INPUT                  =    ./src
 INPUT_ENCODING         = UTF-8
 FILE_PATTERNS          = *.c \
                          *.cc \
