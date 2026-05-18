@@ -224,13 +224,14 @@ struct PatrollerAnimation
 {
     enum class State
     {
-        Run
+        Run,
+        Burst
     };
     State                        state{State::Run};
     State                        prev{State::Run};
     int                          frame{};
     int                          timer{};
-    std::array<AnimationClip, 1> clips{};
+    std::array<AnimationClip, 2> clips{};
 };
 
 struct LocksterAnimation
@@ -394,7 +395,8 @@ struct AI
     enum State
     {
         PATROL,
-        CHASE_SHOOT
+        CHASE_SHOOT,
+        BURST
     };
 
     Type  type{};
@@ -410,6 +412,9 @@ struct AI
     bool  patrollingRight{true};
     float targetX{};
     int   freezeFrames{};
+    int   burstTimer{};
+    int   burstCooldown{};
+    bool  burstFired{};
 };
 
 struct Weapon

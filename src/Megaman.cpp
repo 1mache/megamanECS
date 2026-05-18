@@ -43,9 +43,13 @@ constexpr int   PATROLLER_JUMP_START      = 0;
 constexpr int   PATROLLER_JUMP_COUNT      = 1;
 constexpr int   PATROLLER_ANIM_SPEED      = 16;
 constexpr float PATROLLER_DETECTION_RANGE = 15.f;
-constexpr float PATROLLER_Y_RANGE         = 1.5f;
 constexpr float PATROLLER_SPEED           = 5.f;
 constexpr int   PATROLLER_HP              = 1.f;
+constexpr int   PATROLLER_BURST_START     = 3;
+constexpr int   PATROLLER_BURST_COUNT     = 1;
+constexpr int   PATROLLER_BURST_FRAMES    = 24;
+constexpr int   PATROLLER_BURST_COOLDOWN  = 90;
+constexpr float PATROLLER_CENTER_TOL      = 0.4f;
 
 // --- Lockster enemy ---
 constexpr float LOCKSTER_SPRITE_W        = 24.f;
@@ -59,7 +63,6 @@ constexpr int   LOCKSTER_CHARGE_COUNT    = 4;
 constexpr int   LOCKSTER_ANIM_SPEED      = 16;
 constexpr float LOCKSTER_DETECTION_RANGE = 8.f;
 constexpr float LOCKSTER_CHARGE_SPEED    = 8.f;
-constexpr bool  LOCKSTER_HAS_BULLETS     = false;
 constexpr float LOCKSTER_HP              = 0.5f;
 
 // --- Boss ---
@@ -265,9 +268,8 @@ ent_type createPatroller(b2WorldId    world,
 
     bagel::World::addComponent<PatrollerAnimation>(
         ent,
-        {.clips = {AnimationClip{PATROLLER_RUN_START,
-                                 PATROLLER_RUN_COUNT,
-                                 PATROLLER_ANIM_SPEED}}}); // [0] Run
+        {.clips = {AnimationClip{PATROLLER_RUN_START,   PATROLLER_RUN_COUNT,   PATROLLER_ANIM_SPEED},  // [0] Run
+                   AnimationClip{PATROLLER_BURST_START, PATROLLER_BURST_COUNT, PATROLLER_ANIM_SPEED}}}); // [1] Burst
     bagel::World::addComponent<RenderFrame>(ent, {});
     bagel::World::addComponent<Drawable>(ent,
                                          {.texture           = tex,
@@ -357,12 +359,6 @@ ent_type createLockster(b2WorldId world, float x, float y, SDL_Texture* tex)
                                     .detectionRange = LOCKSTER_DETECTION_RANGE,
                                     .spawnX         = x,
                                     .spawnY         = y});
-    bagel::World::addComponent<Weapon>(ent,
-                                       {.type          = Weapon::Normal,
-                                        .damage        = BULLET_DAMAGE,
-                                        .shotSpeed     = PATROLLER_SHOT_SPEED,
-                                        .shootCooldown = 60});
-
     return ent;
 }
 
@@ -1253,37 +1249,73 @@ void healthSystem()
 
 namespace
 {
+void fireRadialBurst(const MTransform& t, bagel::Entity self)
+{
+    const Weapon&    w = self.get<Weapon>();
+    constexpr float  k = 0.70710678f;
+    constexpr std::array<std::pair<float, float>, 8> dirs = {{
+        { 1.f,  0.f}, { k,  k}, { 0.f,  1.f}, {-k,  k},
+        {-1.f,  0.f}, {-k, -k}, { 0.f, -1.f}, { k, -k}
+    }};
+    for (auto [dx, dy] : dirs)
+    {
+        createProjectile(GlobalData::getBoxWorld(),
+                         t.x, t.y,
+                         dx * w.shotSpeed, dy * w.shotSpeed,
+                         w.type, w.damage, true);
+    }
+}
+
 void tickPatroller(AI&               ai,
                    const MTransform& t,
                    Intent&           intent,
                    float             playerX,
-                   float             playerY)
+                   float             playerY,
+                   bagel::Entity     self)
 {
-    const float distX = std::abs(t.x - playerX);
-    const float distY = std::abs(t.y - playerY);
-
     intent = {};
 
-    if (distX < ai.detectionRange && distY < PATROLLER_Y_RANGE)
+    if (ai.burstCooldown > 0)
+        --ai.burstCooldown;
+
+    if (ai.burstTimer > 0)
     {
-        ai.state = AI::CHASE_SHOOT;
-        if (t.x < playerX)
-            intent.moveRight = true;
-        else
-            intent.moveLeft = true;
-        intent.shoot = true;
+        --ai.burstTimer;
+        if (!ai.burstFired)
+        {
+            fireRadialBurst(t, self);
+            ai.burstFired = true;
+        }
+        ai.state = AI::BURST;
+        if (self.has<PatrollerAnimation>())
+            self.get<PatrollerAnimation>().state = PatrollerAnimation::State::Burst;
+        return;
     }
+
+    ai.state = AI::PATROL;
+    if (self.has<PatrollerAnimation>())
+        self.get<PatrollerAnimation>().state = PatrollerAnimation::State::Run;
+
+    if (t.x <= ai.patrolMinX)
+        ai.patrollingRight = true;
+    else if (t.x >= ai.patrolMaxX)
+        ai.patrollingRight = false;
+    if (ai.patrollingRight)
+        intent.moveRight = true;
     else
+        intent.moveLeft = true;
+
+    const float distX    = std::abs(t.x - playerX);
+    const float distY    = std::abs(t.y - playerY);
+    const float center   = 0.5f * (ai.patrolMinX + ai.patrolMaxX);
+    const bool  inRange  = distX < ai.detectionRange && distY < ai.detectionRange;
+    const bool  atCenter = std::abs(t.x - center) < PATROLLER_CENTER_TOL;
+    if (inRange && atCenter && ai.burstCooldown == 0)
     {
-        ai.state = AI::PATROL;
-        if (t.x <= ai.patrolMinX)
-            ai.patrollingRight = true;
-        else if (t.x >= ai.patrolMaxX)
-            ai.patrollingRight = false;
-        if (ai.patrollingRight)
-            intent.moveRight = true;
-        else
-            intent.moveLeft = true;
+        ai.burstTimer    = PATROLLER_BURST_FRAMES;
+        ai.burstFired    = false;
+        ai.burstCooldown = PATROLLER_BURST_COOLDOWN;
+        intent.moveLeft = intent.moveRight = false;
     }
 }
 
@@ -1309,7 +1341,6 @@ void tickLockster(bagel::Entity& lockster, float playerX, float playerY)
         if (reached)
         {
             ai.alertTimer = 0;
-            ai.shotsFired = 0;
             m.speed       = 0.f;
         }
         else
@@ -1327,29 +1358,10 @@ void tickLockster(bagel::Entity& lockster, float playerX, float playerY)
 
         if (ai.alertTimer == 30)
             ai.targetX = playerX;
-
-        if constexpr (LOCKSTER_HAS_BULLETS)
-        {
-            if (ai.shotsFired < 3 && ai.alertTimer % 10 == 0)
-            {
-                const float velX = t.x < playerX ? 0.15f : -0.15f;
-                createProjectile(GlobalData::getBoxWorld(),
-                                 t.x,
-                                 t.y,
-                                 velX,
-                                 0.f,
-                                 Weapon::Normal,
-                                 BULLET_DAMAGE,
-                                 true);
-                ++ai.shotsFired;
-            }
-        }
     }
     else
     {
-
         ai.alertTimer = 0;
-        ai.shotsFired = 0;
     }
 
     // lockster is invulnerable while idle
@@ -1481,7 +1493,7 @@ void aiSystem()
             switch (ai.type)
             {
             case AI::Type::Patroller:
-                tickPatroller(ai, t, intent, playerX, playerY);
+                tickPatroller(ai, t, intent, playerX, playerY, e);
                 break;
             case AI::Type::Lockster:
                 tickLockster(e, playerX, playerY);
@@ -1679,6 +1691,9 @@ void respawnSystem(b2WorldId                      world,
                     eai.shotsFired      = 0;
                     eai.freezeFrames    = 0;
                     eai.patrollingRight = true;
+                    eai.burstTimer      = 0;
+                    eai.burstCooldown   = 0;
+                    eai.burstFired      = false;
                 }
 
                 static const bagel::Mask locksterAIMask =
