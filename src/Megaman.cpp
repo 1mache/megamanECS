@@ -82,10 +82,10 @@ constexpr int   BOSS_DIE_ANIM_START    = 8;
 constexpr int   BOSS_DIE_ANIM_COUNT    = 4;
 constexpr int   BOSS_ANIM_SPEED        = 10;
 constexpr float BOSS_HP                = 10.f;
-constexpr int   BOSS_IDLE_TICKS        = 90;
-constexpr int   BOSS_CHARGE_TICKS      = 60;
+constexpr int   BOSS_IDLE_TICKS        = 60;
+constexpr int   BOSS_CHARGE_TICKS      = 50;
 constexpr int   BOSS_DASH_TICKS        = 45;
-constexpr float BOSS_DASH_SPEED        = 18.f;
+constexpr float BOSS_DASH_SPEED        = 20.f;
 constexpr int   BOSS_SHOTS             = 2;
 
 // --- Projectile ---
@@ -1316,11 +1316,13 @@ void tickPatroller(bagel::Entity& patroller, float playerX, float playerY)
     else
         intent.moveLeft = true;
 
-    const float distX    = std::abs(t.x - playerX);
-    const float distY    = std::abs(t.y - playerY);
-    const float center   = 0.5f * (ai.patrolMinX + ai.patrolMaxX);
-    const bool  inRange  = distX < ai.detectionRange && distY < ai.detectionRange;
-    const bool  atCenter = std::abs(t.x - center) < PATROLLER_CENTER_TOL;
+    const float distX  = std::abs(t.x - playerX);
+    const float distY  = std::abs(t.y - playerY);
+    const float center = 0.5f * (ai.patrolMinX + ai.patrolMaxX);
+    const bool  inRange =
+        (distX * distX + distY * distY) <
+        (ai.detectionRange * ai.detectionRange); // circular range check
+    const bool atCenter = std::abs(t.x - center) < PATROLLER_CENTER_TOL;
     if (inRange && atCenter && ai.burstCooldown == 0)
     {
         ai.burstTimer    = PATROLLER_BURST_FRAMES;
