@@ -87,6 +87,9 @@ function(target_set_warnings)
         set(WARNINGS ${GCC_WARNINGS})
     endif()
 
-    target_compile_options(${TARGET_SET_WARNINGS_TARGET} PRIVATE ${WARNINGS})
+    # Only apply warnings (and warnings-as-errors) in non-Release configs.
+    # Works for both single- and multi-config generators.
+    target_compile_options(${TARGET_SET_WARNINGS_TARGET} PRIVATE
+        $<$<NOT:$<CONFIG:Release>>:${WARNINGS}>)
 
 endfunction(target_set_warnings)

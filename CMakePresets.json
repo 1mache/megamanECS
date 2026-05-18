@@ -125,6 +125,12 @@
             "description": "Vanilla build"
         },
         {
+            "name": "release-build-windows",
+            "displayName": "Release",
+            "configurePreset": "x64-release",
+            "description": "Release build"
+        },
+        {
             "name": "verbose-build-linux",
             "displayName": "Verbose Build",
             "description": "Passes -v to Ninja",
