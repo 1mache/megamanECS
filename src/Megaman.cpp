@@ -921,7 +921,8 @@ void drawSystem(SDL_Renderer* ren)
                 continue;
         }
 
-        SDL_FRect src  = {rf.spriteIndex * d.spriteW, 0.f, d.spriteW, d.spriteH};
+        SDL_FRect src  = {static_cast<float>(rf.spriteIndex) * d.spriteW, 0.f,
+                          d.spriteW, d.spriteH};
         SDL_FRect dest = transformToFrect(t);
 
         const bool         shouldFlip = m.facingLeft == d.defaultFacingLeft;
