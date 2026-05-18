@@ -25,8 +25,7 @@ bool MapCollisionLayer::create(const tmx::Map& map, std::uint32_t layerIndex)
 
     for (const auto& obj : group.getObjects())
     {
-        if (obj.getClass() == DOOR_CLASS || obj.getClass() == DOOR_TRIGGER_CLASS ||
-            obj.getShape() != tmx::Object::Shape::Rectangle)
+        if (obj.getShape() != tmx::Object::Shape::Rectangle)
             continue;
 
         const auto& aabb = obj.getAABB();
