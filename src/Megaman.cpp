@@ -242,12 +242,7 @@ ent_type createPlayer(b2WorldId world, float x, float y, SDL_Texture* tex)
     bagel::World::addComponent<Movement>(
         ent,
         {.speed = PLAYER_RUN_SPEED, .mass = 1.f, .bodyId = body});
-    bagel::World::addComponent<Jump>(ent,
-                                     {
-                                         .impulse     = PLAYER_JUMP_IMPULSE,
-                                         .bufferTimer = PLAYER_JUMP_BUFFER_TIME,
-                                         .coyoteTimer = PLAYER_JUMP_COYOTE_TIME,
-                                     });
+    bagel::World::addComponent<Jump>(ent, {.impulse = PLAYER_JUMP_IMPULSE});
     bagel::World::addComponent<Collision>(ent, {});
     bagel::World::addComponent<Health>(ent, {.points = PLAYER_HP});
     bagel::World::addComponent<DamageIntent>(ent, {});
@@ -718,8 +713,7 @@ void movementSystem(float sceneMinY)
  * @brief See declaration in Megaman.h. Implementation notes:
  *
  * Three raycasts (center, left-inner, right-inner) cast from the sprite center downward
- * by (halfH + GROUND_PROBE) to detect the ground just below the foot. The EPSILON inset
- * on the side rays avoids false positives on wall edges.
+ * by (halfH + GROUND_PROBE) to detect the ground just below the foot.
  *
  * Coyote window: started when the player walks off a ledge without jumping; expires after
  * PLAYER_JUMP_COYOTE_TIME ticks, allowing a jump if still within the window.
