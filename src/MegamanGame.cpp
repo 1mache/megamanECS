@@ -56,7 +56,7 @@ MegamanGame::MegamanGame()
         return;
     }
 
-    _shotTex = IMG_LoadTexture(_ren, "res/shot.png");
+    _shotTex = IMG_LoadTexture(_ren, "res/shots.png");
     if (_shotTex == nullptr)
     {
         std::cout << SDL_GetError() << std::endl;

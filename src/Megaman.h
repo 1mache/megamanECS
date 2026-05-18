@@ -417,13 +417,19 @@ struct Weapon
     // Preferred storage: Stack, few entities will be able to shoot
     // and be in the scene at the same time.
 
-    int projectileType{-1};
-    int shootCooldown{};
+    enum Type { Normal, Boss }; // value = column index in shots.png
+
+    Type  type{Normal};
+    float damage{};
+    float shotSpeed{};
+    int   shootCooldown{};
 };
 
 struct Projectile
 {
-    bool fromEnemy{};
+    Weapon::Type type{};
+    float        damage{};
+    bool         fromEnemy{};
 };
 
 struct Respawn
@@ -478,12 +484,14 @@ ent_type createBoss(b2WorldId world, float x, float y, SDL_Texture* tex);
 
 ent_type createPlatform(float x, float y, bool isMoving);
 
-ent_type createProjectile(b2WorldId world,
-                          float     x,
-                          float     y,
-                          float     velX,
-                          float     velY,
-                          bool      fromEnemy);
+ent_type createProjectile(b2WorldId    world,
+                          float        x,
+                          float        y,
+                          float        velX,
+                          float        velY,
+                          Weapon::Type type,
+                          float        damage,
+                          bool         fromEnemy);
 
 ent_type createExplosion(float x, float y);
 

@@ -73,10 +73,10 @@ constexpr int   BOSS_DASH_ANIM_START   = 2;
 constexpr int   BOSS_DASH_ANIM_COUNT   = 3;
 constexpr int   BOSS_BRAKE_ANIM_START  = 5;
 constexpr int   BOSS_BRAKE_ANIM_COUNT  = 1;
-constexpr int   BOSS_SHOOT_ANIM_START  = 0;
-constexpr int   BOSS_SHOOT_ANIM_COUNT  = 1;
-constexpr int   BOSS_DIE_ANIM_START    = 1;
-constexpr int   BOSS_DIE_ANIM_COUNT    = 1;
+constexpr int   BOSS_SHOOT_ANIM_START  = 6;
+constexpr int   BOSS_SHOOT_ANIM_COUNT  = 2;
+constexpr int   BOSS_DIE_ANIM_START    = 8;
+constexpr int   BOSS_DIE_ANIM_COUNT    = 4;
 constexpr int   BOSS_ANIM_SPEED        = 10;
 constexpr float BOSS_HP                = 10.f;
 constexpr int   BOSS_IDLE_TICKS        = 90;
@@ -85,15 +85,16 @@ constexpr int   BOSS_DASH_TICKS        = 45;
 constexpr float BOSS_DASH_SPEED        = 18.f;
 constexpr int   BOSS_SHOTS             = 5;
 constexpr int   BOSS_SHOT_INTERVAL     = 12;
-constexpr float BOSS_BULLET_VEL        = 0.25f;
 
 // --- Projectile ---
-constexpr float BULLET_SPEED        = 0.5f;
-constexpr float ENEMY_BULLET_FACTOR = 0.33f; // enemy bullets are slower for balance
-constexpr float SHOT_SPRITE_W       = 8.f;
-constexpr float SHOT_SPRITE_H       = 8.f;
-constexpr float BULLET_HALF_W       = 0.2f;
-constexpr float BULLET_HALF_H       = 0.1f;
+constexpr float PLAYER_SHOT_SPEED    = 0.5f;
+constexpr float PATROLLER_SHOT_SPEED = 0.3f;
+constexpr float BOSS_SHOT_SPEED      = 0.25f;
+constexpr float SHOT_SPRITE_W        = 8.f;
+constexpr float SHOT_SPRITE_H        = 8.f;
+constexpr float BULLET_HALF_W        = 0.2f;
+constexpr float BULLET_HALF_H        = 0.1f;
+constexpr float BOSS_SHOT_SPRITE_H   = 10.f; // boss shot is taller than normal
 
 // --- Explosion ---
 constexpr float EXPLOSION_SPRITE_W = 22.f;
@@ -102,7 +103,13 @@ constexpr int   EXPLOSION_FRAMES   = 3;
 
 // --- Damage ---
 constexpr float BULLET_DAMAGE        = 0.5f;
+constexpr float BOSS_BULLET_DAMAGE   = 1.f;
 constexpr float ENEMY_CONTACT_DAMAGE = 1.f;
+
+// --- Shoot cooldowns ---
+constexpr int PLAYER_SHOOT_COOLDOWN    = 20;
+constexpr int PATROLLER_SHOOT_COOLDOWN = 120;
+constexpr int BOSS_SHOOT_COOLDOWN      = 30;
 } // namespace
 
 namespace megaman
@@ -214,7 +221,11 @@ ent_type createPlayer(b2WorldId world, float x, float y, SDL_Texture* tex)
     bagel::World::addComponent<DamageIntent>(ent, {});
     bagel::World::addComponent<Input>(ent, {});
     bagel::World::addComponent<Intent>(ent, {});
-    bagel::World::addComponent<Weapon>(ent, {});
+    bagel::World::addComponent<Weapon>(ent,
+                                       {.type          = Weapon::Normal,
+                                        .damage        = BULLET_DAMAGE,
+                                        .shotSpeed     = PLAYER_SHOT_SPEED,
+                                        .shootCooldown = 0});
     bagel::World::addComponent<Respawn>(ent,
                                         {.spawnX          = x,
                                          .spawnY          = y,
@@ -281,7 +292,11 @@ ent_type createPatroller(b2WorldId    world,
                                     .detectionRange = PATROLLER_DETECTION_RANGE,
                                     .spawnX         = x,
                                     .spawnY         = y});
-    bagel::World::addComponent<Weapon>(ent, {});
+    bagel::World::addComponent<Weapon>(ent,
+                                       {.type          = Weapon::Normal,
+                                        .damage        = BULLET_DAMAGE,
+                                        .shotSpeed     = PATROLLER_SHOT_SPEED,
+                                        .shootCooldown = PATROLLER_SHOOT_COOLDOWN});
 
     return ent;
 }
@@ -343,7 +358,11 @@ ent_type createLockster(b2WorldId world, float x, float y, SDL_Texture* tex)
                                     .detectionRange = LOCKSTER_DETECTION_RANGE,
                                     .spawnX         = x,
                                     .spawnY         = y});
-    bagel::World::addComponent<Weapon>(ent, {});
+    bagel::World::addComponent<Weapon>(ent,
+                                       {.type          = Weapon::Normal,
+                                        .damage        = BULLET_DAMAGE,
+                                        .shotSpeed     = PATROLLER_SHOT_SPEED,
+                                        .shootCooldown = 60});
 
     return ent;
 }
@@ -417,7 +436,11 @@ ent_type createBoss(b2WorldId world, float x, float y, SDL_Texture* tex)
     bagel::World::addComponent<Intent>(ent, {});
     bagel::World::addComponent<Enemy>(ent, {});
     bagel::World::addComponent<BossAI>(ent, {.stateTimer = BOSS_IDLE_TICKS});
-    bagel::World::addComponent<Weapon>(ent, {});
+    bagel::World::addComponent<Weapon>(ent,
+                                       {.type          = Weapon::Boss,
+                                        .damage        = BOSS_BULLET_DAMAGE,
+                                        .shotSpeed     = BOSS_SHOT_SPEED,
+                                        .shootCooldown = BOSS_SHOT_INTERVAL});
 
     return ent;
 }
@@ -434,14 +457,22 @@ ent_type createPlatform(float x, float y, bool isMoving)
     return ent;
 }
 
-ent_type createProjectile(b2WorldId world,
-                          float     x,
-                          float     y,
-                          float     velX,
-                          float     velY,
-                          bool      fromEnemy)
+ent_type createProjectile(b2WorldId    world,
+                          float        x,
+                          float        y,
+                          float        velX,
+                          float        velY,
+                          Weapon::Type type,
+                          float        damage,
+                          bool         fromEnemy)
 {
-    constexpr float fps = static_cast<float>(GlobalData::FPS);
+    constexpr float fps     = static_cast<float>(GlobalData::FPS);
+    const bool      isBoss  = type == Weapon::Boss;
+    const float     spriteH = isBoss ? BOSS_SHOT_SPRITE_H : SHOT_SPRITE_H;
+    const float     halfW =
+        isBoss ? SHOT_SPRITE_W / (2.f * GlobalData::PTM) : BULLET_HALF_W;
+    const float halfH =
+        isBoss ? BOSS_SHOT_SPRITE_H / (2.f * GlobalData::PTM) : BULLET_HALF_H;
 
     ent_type ent = bagel::World::createEntity();
 
@@ -461,21 +492,23 @@ ent_type createProjectile(b2WorldId world,
     shapeDef.filter.categoryBits = fromEnemy ? CAT_ENEMY_BULLET : CAT_PLAYER_BULLET;
     shapeDef.filter.maskBits =
         fromEnemy ? (CAT_WORLD | CAT_PLAYER) : (CAT_WORLD | CAT_ENEMY);
-    b2Polygon boxShape = b2MakeBox(BULLET_HALF_W, BULLET_HALF_H);
+    b2Polygon boxShape = b2MakeBox(halfW, halfH);
     b2CreatePolygonShape(body, &shapeDef, &boxShape);
 
     bagel::World::addComponent<Drawable>(ent,
                                          {.texture = GlobalData::getShotTexture(),
                                           .spriteW = SHOT_SPRITE_W,
-                                          .spriteH = SHOT_SPRITE_H});
-    bagel::World::addComponent<RenderFrame>(ent, {});
-    bagel::World::addComponent<MTransform>(
-        ent,
-        {.x = x, .y = y, .w = BULLET_HALF_W, .h = BULLET_HALF_H});
+                                          .spriteH = spriteH});
+    bagel::World::addComponent<RenderFrame>(ent,
+                                            {.spriteIndex = static_cast<int>(type)});
+    bagel::World::addComponent<MTransform>(ent,
+                                           {.x = x, .y = y, .w = halfW, .h = halfH});
     bagel::World::addComponent<Movement>(
         ent,
         {.mass = 1, .velX = velX, .velY = velY, .bodyId = body});
-    bagel::World::addComponent<Projectile>(ent, {.fromEnemy = fromEnemy});
+    bagel::World::addComponent<Projectile>(
+        ent,
+        {.type = type, .damage = damage, .fromEnemy = fromEnemy});
 
     return ent;
 }
@@ -733,20 +766,20 @@ void shootingSystem()
         {
             const auto& t         = e.get<MTransform>();
             bool        fromEnemy = !e.has<Input>();
-            float       bVelX =
-                e.get<Movement>().facingLeft ? -BULLET_SPEED : BULLET_SPEED;
-            if (fromEnemy)
-                bVelX *= ENEMY_BULLET_FACTOR; // enemy bullets are slower for balance
+            float bVelX = e.get<Movement>().facingLeft ? -w.shotSpeed : w.shotSpeed;
 
             createProjectile(GlobalData::getBoxWorld(),
                              t.x,
                              t.y,
                              bVelX,
                              0.f,
+                             w.type,
+                             w.damage,
                              fromEnemy);
             if (!fromEnemy && e.has<PlayerAnimation>())
                 e.get<PlayerAnimation>().shootHoldTicks = PLAYER_SHOOT_HOLD_TICKS;
-            w.shootCooldown = fromEnemy ? 60 : 20;
+            w.shootCooldown =
+                fromEnemy ? PATROLLER_SHOOT_COOLDOWN : PLAYER_SHOOT_COOLDOWN;
         }
     }
 }
@@ -1089,12 +1122,13 @@ void collisionSystem(b2WorldId world)
 
             const bool fromEnemy = bullet.get<Projectile>().fromEnemy;
 
+            const float dmg = bullet.get<Projectile>().damage;
             if (!fromEnemy && other.test(enemyDamageMask))
-                other.get<DamageIntent>() = {.amount      = BULLET_DAMAGE,
+                other.get<DamageIntent>() = {.amount      = dmg,
                                              .pending     = true,
                                              .fromContact = false};
             else if (fromEnemy && other.test(inputMask))
-                other.get<DamageIntent>() = {.amount      = BULLET_DAMAGE,
+                other.get<DamageIntent>() = {.amount      = dmg,
                                              .pending     = true,
                                              .fromContact = false};
             continue;
@@ -1305,6 +1339,8 @@ void tickLockster(bagel::Entity& lockster, float playerX, float playerY)
                                  t.y,
                                  velX,
                                  0.f,
+                                 Weapon::Normal,
+                                 BULLET_DAMAGE,
                                  true);
                 ++ai.shotsFired;
             }
@@ -1383,12 +1419,15 @@ void tickBoss(bagel::Entity& boss, float playerX, float /*playerY*/)
         {
             if (--ai.shotTimer <= 0)
             {
-                const float velX = (t.x < playerX ? 1.f : -1.f) * BOSS_BULLET_VEL;
+                const Weapon& w    = boss.get<Weapon>();
+                const float   velX = (t.x < playerX ? 1.f : -1.f) * w.shotSpeed;
                 createProjectile(GlobalData::getBoxWorld(),
                                  t.x,
                                  t.y,
                                  velX,
                                  0.f,
+                                 w.type,
+                                 w.damage,
                                  true);
                 ++ai.shotsFired;
                 ai.shotTimer = BOSS_SHOT_INTERVAL;
