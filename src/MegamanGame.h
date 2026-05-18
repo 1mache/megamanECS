@@ -32,6 +32,7 @@ private:
     SDL_Texture*  _tex = nullptr;
     SDL_Texture*  _enemyTex = nullptr;
     SDL_Texture*  _locksterTex = nullptr;
+    SDL_Texture*  _bossTex = nullptr;
     SDL_Texture*  _shotTex = nullptr;
     SDL_Texture*  _explosionTex = nullptr;
     SDL_Texture*  _heartTex = nullptr;

@@ -49,6 +49,13 @@ MegamanGame::MegamanGame()
         return;
     }
 
+    _bossTex = IMG_LoadTexture(_ren, "res/boss.png");
+    if (_bossTex == nullptr)
+    {
+        std::cout << SDL_GetError() << std::endl;
+        return;
+    }
+
     _shotTex = IMG_LoadTexture(_ren, "res/shot.png");
     if (_shotTex == nullptr)
     {
@@ -98,6 +105,10 @@ MegamanGame::MegamanGame()
         {
             createLockster(_boxWorld, sp.x, sp.y, _locksterTex);
         }
+        else if (sp.type == SpawnPoint::Type::Boss)
+        {
+            createBoss(_boxWorld, sp.x, sp.y, _bossTex);
+        }
     }
 }
 
@@ -111,6 +122,8 @@ MegamanGame::~MegamanGame()
         SDL_DestroyTexture(_enemyTex);
     if (_locksterTex != nullptr)
         SDL_DestroyTexture(_locksterTex);
+    if (_bossTex != nullptr)
+        SDL_DestroyTexture(_bossTex);
     if (_shotTex != nullptr)
         SDL_DestroyTexture(_shotTex);
     if (_explosionTex != nullptr)
@@ -138,6 +151,7 @@ void MegamanGame::run()
     {
         inputSystem();
         aiSystem();
+        bossSystem();
         jumpSystem();
         movementSystem(sceneMinY);
         checkpointSystem(checkpoints);
@@ -149,6 +163,7 @@ void MegamanGame::run()
         playerAnimSystem();
         patrollerAnimSystem();
         locksterAnimSystem();
+        bossAnimSystem();
         explosionAnimSystem();
 
         if (_scene.isValid())

@@ -86,7 +86,7 @@
 </data>
  </layer>
  <objectgroup id="5" name="Objects" class="spawns">
-  <object id="1" name="Player Spawn" type="player" x="60.6667" y="210">
+  <object id="1" name="Player Spawn" type="player" x="2679.17" y="250">
    <point/>
   </object>
   <object id="3" name="1" type="ptrol" x="582.667" y="138">
@@ -123,9 +123,6 @@
    <point/>
   </object>
   <object id="55" type="boss" x="3122.5" y="246.5">
-   <point/>
-  </object>
-  <object id="57" type="player" x="1399" y="169">
    <point/>
   </object>
  </objectgroup>

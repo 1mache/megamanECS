@@ -18,6 +18,8 @@ struct PlayerAnimation;
 struct PatrollerAnimation;
 struct LocksterAnimation;
 struct ExplosionAnimation;
+struct BossAnimation;
+struct BossAI;
 struct Movement;
 struct Jump;
 struct Collision;
@@ -57,6 +59,18 @@ template <>
 struct bagel::Storage<megaman::ExplosionAnimation> final : bagel::NoInstance
 {
     using type = bagel::PackedStorage<megaman::ExplosionAnimation>;
+};
+
+template <>
+struct bagel::Storage<megaman::BossAnimation> final : bagel::NoInstance
+{
+    using type = bagel::PackedStorage<megaman::BossAnimation>;
+};
+
+template <>
+struct bagel::Storage<megaman::BossAI> final : bagel::NoInstance
+{
+    using type = bagel::PackedStorage<megaman::BossAI>;
 };
 
 template <>
@@ -247,6 +261,41 @@ struct ExplosionAnimation
     std::array<AnimationClip, 1> clips{};
 };
 
+struct BossAnimation
+{
+    enum class State
+    {
+        IDLE,
+        CHARGE_DASH,
+        DASH,
+        SHOOT,
+        DIE
+    };
+    State                        state{State::IDLE};
+    State                        prev{State::IDLE};
+    int                          frame{};
+    int                          timer{};
+    std::array<AnimationClip, 5> clips{};
+};
+
+struct BossAI
+{
+    enum class State
+    {
+        IDLE,
+        CHARGE_DASH,
+        DASH,
+        SHOOT,
+        DIE
+    };
+    State state{State::IDLE};
+    int   stateTimer{};    // counts down in IDLE / CHARGE_DASH / DASH
+    bool  dashRight{};     // dash direction, locked in CHARGE_DASH
+    bool  nextIsDash{true}; // alternates attack selection
+    int   shotsFired{};    // bullets fired so far this SHOOT
+    int   shotTimer{};     // ticks until next bullet
+};
+
 struct Movement
 {
     // Preferred storage: Packed, per frame iteration even though entities
@@ -397,6 +446,8 @@ void playerAnimSystem();
 void patrollerAnimSystem();
 void locksterAnimSystem();
 void explosionAnimSystem();
+void bossSystem();
+void bossAnimSystem();
 void drawSystem(SDL_Renderer* ren);
 void hudSystem(SDL_Renderer* ren, SDL_Texture* heartTex);
 void shootingSystem();
@@ -422,7 +473,7 @@ ent_type createPatroller(b2WorldId    world,
 
 ent_type createLockster(b2WorldId world, float x, float y, SDL_Texture* tex);
 
-ent_type createBoss(float x, float y);
+ent_type createBoss(b2WorldId world, float x, float y, SDL_Texture* tex);
 
 ent_type createPlatform(float x, float y, bool isMoving);
 

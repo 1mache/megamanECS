@@ -62,6 +62,29 @@ constexpr float LOCKSTER_CHARGE_SPEED    = 8.f;
 constexpr bool  LOCKSTER_HAS_BULLETS     = false;
 constexpr float LOCKSTER_HP              = 0.5f;
 
+// --- Boss ---
+constexpr float BOSS_SPRITE_W         = 32.f;
+constexpr float BOSS_SPRITE_H         = 32.f;
+constexpr int   BOSS_IDLE_ANIM_START   = 0;
+constexpr int   BOSS_IDLE_ANIM_COUNT   = 2;
+constexpr int   BOSS_CHARGE_ANIM_START = 2;
+constexpr int   BOSS_CHARGE_ANIM_COUNT = 1;
+constexpr int   BOSS_DASH_ANIM_START   = 3;
+constexpr int   BOSS_DASH_ANIM_COUNT   = 1;
+constexpr int   BOSS_SHOOT_ANIM_START  = 4;
+constexpr int   BOSS_SHOOT_ANIM_COUNT  = 3;
+constexpr int   BOSS_DIE_ANIM_START    = 7;
+constexpr int   BOSS_DIE_ANIM_COUNT    = 4;
+constexpr int   BOSS_ANIM_SPEED        = 10;
+constexpr float BOSS_HP                = 10.f;
+constexpr int   BOSS_IDLE_TICKS        = 90;
+constexpr int   BOSS_CHARGE_TICKS      = 60;
+constexpr int   BOSS_DASH_TICKS        = 45;
+constexpr float BOSS_DASH_SPEED        = 18.f;
+constexpr int   BOSS_SHOTS             = 5;
+constexpr int   BOSS_SHOT_INTERVAL     = 12;
+constexpr float BOSS_BULLET_VEL        = 0.25f;
+
 // --- Projectile ---
 constexpr float BULLET_SPEED        = 0.5f;
 constexpr float ENEMY_BULLET_FACTOR = 0.33f; // enemy bullets are slower for balance
@@ -323,18 +346,65 @@ ent_type createLockster(b2WorldId world, float x, float y, SDL_Texture* tex)
     return ent;
 }
 
-ent_type createBoss(float x, float y)
+ent_type createBoss(b2WorldId world, float x, float y, SDL_Texture* tex)
 {
+    constexpr float halfW = BOSS_SPRITE_W / (2 * GlobalData::PTM);
+    constexpr float halfH = BOSS_SPRITE_H / (2 * GlobalData::PTM);
+
     ent_type ent = bagel::World::createEntity();
 
-    bagel::World::addComponent<Drawable>(ent, {.texture = nullptr});
-    bagel::World::addComponent<MTransform>(ent, {.x = x, .y = y});
-    bagel::World::addComponent<Movement>(ent, {.mass = 1});
+    b2BodyDef bodyDef     = b2DefaultBodyDef();
+    bodyDef.type          = b2_dynamicBody;
+    bodyDef.position      = {x, y};
+    bodyDef.fixedRotation = true;
+    bodyDef.gravityScale  = 1.f;
+    bodyDef.enableSleep   = false;
+    bodyDef.userData      = reinterpret_cast<void*>(static_cast<uintptr_t>(ent.id));
+    b2BodyId body         = b2CreateBody(world, &bodyDef);
+
+    b2ShapeDef shapeDef          = b2DefaultShapeDef();
+    shapeDef.density             = 1.f;
+    shapeDef.enableContactEvents = true;
+    shapeDef.filter.categoryBits = CAT_ENEMY;
+    shapeDef.filter.maskBits     = CAT_WORLD | CAT_PLAYER | CAT_PLAYER_BULLET;
+    b2Polygon boxShape           = b2MakeBox(halfW, halfH);
+    b2CreatePolygonShape(body, &shapeDef, &boxShape);
+
+    bagel::World::addComponent<BossAnimation>(
+        ent,
+        {.clips = {AnimationClip{BOSS_IDLE_ANIM_START,
+                                 BOSS_IDLE_ANIM_COUNT,
+                                 BOSS_ANIM_SPEED},             // [0] IDLE
+                   AnimationClip{BOSS_CHARGE_ANIM_START,
+                                 BOSS_CHARGE_ANIM_COUNT,
+                                 BOSS_ANIM_SPEED},             // [1] CHARGE_DASH
+                   AnimationClip{BOSS_DASH_ANIM_START,
+                                 BOSS_DASH_ANIM_COUNT,
+                                 BOSS_ANIM_SPEED},             // [2] DASH
+                   AnimationClip{BOSS_SHOOT_ANIM_START,
+                                 BOSS_SHOOT_ANIM_COUNT,
+                                 BOSS_ANIM_SPEED,
+                                 false},                       // [3] SHOOT (one-shot)
+                   AnimationClip{BOSS_DIE_ANIM_START,
+                                 BOSS_DIE_ANIM_COUNT,
+                                 BOSS_ANIM_SPEED,
+                                 false}}});                    // [4] DIE (one-shot)
+    bagel::World::addComponent<RenderFrame>(ent, {});
+    bagel::World::addComponent<Drawable>(ent,
+                                         {.texture           = tex,
+                                          .spriteW           = BOSS_SPRITE_W,
+                                          .spriteH           = BOSS_SPRITE_H,
+                                          .defaultFacingLeft = false});
+    bagel::World::addComponent<MTransform>(ent,
+                                           {.x = x, .y = y, .w = halfW, .h = halfH});
+    bagel::World::addComponent<Movement>(ent, {.mass = 1, .bodyId = body});
     bagel::World::addComponent<Collision>(ent, {});
-    bagel::World::addComponent<Health>(ent, {.points = 0.f});
+    bagel::World::addComponent<Health>(ent, {.points = BOSS_HP});
+    bagel::World::addComponent<DamageIntent>(ent, {});
+    bagel::World::addComponent<Intent>(ent, {});
     bagel::World::addComponent<Enemy>(ent, {});
-    bagel::World::addComponent<AI>(ent, {});
-    bagel::World::addComponent<Weapon>(ent, {.projectileType = -1});
+    bagel::World::addComponent<BossAI>(ent, {.stateTimer = BOSS_IDLE_TICKS});
+    bagel::World::addComponent<Weapon>(ent, {});
 
     return ent;
 }
@@ -1099,7 +1169,13 @@ void healthSystem()
         }
         if (h.points <= 0)
         {
-            if (e.has<Enemy>())
+            if (e.has<BossAI>())
+            {
+                auto& bossAi = e.get<BossAI>();
+                if (bossAi.state != BossAI::State::DIE)
+                    bossAi.state = BossAI::State::DIE;
+            }
+            else if (e.has<Enemy>())
             {
                 const MTransform& t = e.get<MTransform>();
                 createExplosion(t.x, t.y);
@@ -1225,6 +1301,84 @@ void tickLockster(bagel::Entity& lockster, float playerX, float playerY)
     // lockster is invulnerable while idle
     h.isInvulnerable = !isCharging;
 }
+
+void tickBoss(bagel::Entity& boss, float playerX, float /*playerY*/)
+{
+    BossAI&           ai     = boss.get<BossAI>();
+    const MTransform& t      = boss.get<MTransform>();
+    Movement&         m      = boss.get<Movement>();
+    Intent&           intent = boss.get<Intent>();
+    const RenderFrame& rf    = boss.get<RenderFrame>();
+
+    intent  = {};
+    m.speed = 0.f;
+
+    switch (ai.state)
+    {
+    case BossAI::State::IDLE:
+        if (--ai.stateTimer <= 0)
+        {
+            ai.shotsFired = 0;
+            ai.shotTimer  = BOSS_SHOT_INTERVAL;
+            if (ai.nextIsDash)
+            {
+                ai.state      = BossAI::State::CHARGE_DASH;
+                ai.stateTimer = BOSS_CHARGE_TICKS;
+            }
+            else
+            {
+                ai.state      = BossAI::State::SHOOT;
+                ai.stateTimer = 0;
+            }
+            ai.nextIsDash = !ai.nextIsDash;
+        }
+        break;
+
+    case BossAI::State::CHARGE_DASH:
+        if (ai.stateTimer == BOSS_CHARGE_TICKS)
+            ai.dashRight = (t.x < playerX);
+        if (--ai.stateTimer <= 0)
+        {
+            ai.state      = BossAI::State::DASH;
+            ai.stateTimer = BOSS_DASH_TICKS;
+        }
+        break;
+
+    case BossAI::State::DASH:
+        m.speed = BOSS_DASH_SPEED;
+        if (ai.dashRight)
+            intent.moveRight = true;
+        else
+            intent.moveLeft = true;
+        if (--ai.stateTimer <= 0)
+        {
+            ai.state      = BossAI::State::IDLE;
+            ai.stateTimer = BOSS_IDLE_TICKS;
+        }
+        break;
+
+    case BossAI::State::SHOOT:
+        if (ai.shotsFired < BOSS_SHOTS)
+        {
+            if (--ai.shotTimer <= 0)
+            {
+                const float velX = (t.x < playerX ? 1.f : -1.f) * BOSS_BULLET_VEL;
+                createProjectile(GlobalData::getBoxWorld(), t.x, t.y, velX, 0.f, true);
+                ++ai.shotsFired;
+                ai.shotTimer = BOSS_SHOT_INTERVAL;
+            }
+        }
+        if (rf.finishedThisTick)
+        {
+            ai.state      = BossAI::State::IDLE;
+            ai.stateTimer = BOSS_IDLE_TICKS;
+        }
+        break;
+
+    case BossAI::State::DIE:
+        break;
+    }
+}
 } // namespace
 
 void aiSystem()
@@ -1277,6 +1431,78 @@ void aiSystem()
             }
         }
     }
+}
+
+void bossSystem()
+{
+    static const bagel::Mask bossMask = bagel::MaskBuilder()
+                                            .set<BossAI>()
+                                            .set<Intent>()
+                                            .set<MTransform>()
+                                            .set<Movement>()
+                                            .set<RenderFrame>()
+                                            .build();
+
+    float playerX = 0.f;
+    float playerY = 0.f;
+
+    for (bagel::Entity e = bagel::Entity::first(); !e.eof(); e.next())
+    {
+        if (e.test(playerMask()))
+        {
+            playerX = e.get<MTransform>().x;
+            playerY = e.get<MTransform>().y;
+            break;
+        }
+    }
+
+    for (bagel::Entity e = bagel::Entity::first(); !e.eof(); e.next())
+    {
+        if (e.test(bossMask))
+            tickBoss(e, playerX, playerY);
+    }
+}
+
+void bossAnimSystem()
+{
+    static const bagel::Mask bossMask = bagel::MaskBuilder()
+                                            .set<BossAnimation>()
+                                            .set<BossAI>()
+                                            .set<MTransform>()
+                                            .set<RenderFrame>()
+                                            .build();
+
+    std::vector<ent_type> toDestroy;
+
+    for (bagel::Entity e = bagel::Entity::first(); !e.eof(); e.next())
+    {
+        if (!e.test(bossMask))
+            continue;
+
+        auto&       anim  = e.get<BossAnimation>();
+        const auto& ai    = e.get<BossAI>();
+        auto&       rf    = e.get<RenderFrame>();
+
+        anim.state = static_cast<BossAnimation::State>(ai.state);
+        tickAnim(anim, rf);
+
+        if (ai.state == BossAI::State::DIE && rf.finishedThisTick)
+        {
+            const auto& t = e.get<MTransform>();
+            createExplosion(t.x, t.y);
+            if (e.has<Movement>())
+            {
+                Movement& m = e.get<Movement>();
+                if (b2Body_IsValid(m.bodyId))
+                    b2DestroyBody(m.bodyId);
+                m.bodyId = b2_nullBodyId;
+            }
+            toDestroy.push_back(e.entity());
+        }
+    }
+
+    for (ent_type e : toDestroy)
+        bagel::Entity{e}.destroy();
 }
 
 void checkpointSystem(const std::vector<SpawnPoint>& checkpoints)
