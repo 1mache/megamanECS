@@ -268,6 +268,7 @@ struct BossAnimation
         IDLE,
         CHARGE_DASH,
         DASH,
+        BRAKE,
         SHOOT,
         DIE
     };
@@ -275,7 +276,7 @@ struct BossAnimation
     State                        prev{State::IDLE};
     int                          frame{};
     int                          timer{};
-    std::array<AnimationClip, 5> clips{};
+    std::array<AnimationClip, 6> clips{};
 };
 
 struct BossAI
@@ -289,11 +290,11 @@ struct BossAI
         DIE
     };
     State state{State::IDLE};
-    int   stateTimer{};    // counts down in IDLE / CHARGE_DASH / DASH
-    bool  dashRight{};     // dash direction, locked in CHARGE_DASH
+    int   stateTimer{};     // counts down in IDLE / CHARGE_DASH / DASH
+    bool  dashRight{};      // dash direction, locked in CHARGE_DASH
     bool  nextIsDash{true}; // alternates attack selection
-    int   shotsFired{};    // bullets fired so far this SHOOT
-    int   shotTimer{};     // ticks until next bullet
+    int   shotsFired{};     // bullets fired so far this SHOOT
+    int   shotTimer{};      // ticks until next bullet
 };
 
 struct Movement

@@ -66,15 +66,17 @@ constexpr float LOCKSTER_HP              = 0.5f;
 constexpr float BOSS_SPRITE_W          = 32.f;
 constexpr float BOSS_SPRITE_H          = 32.f;
 constexpr int   BOSS_IDLE_ANIM_START   = 0;
-constexpr int   BOSS_IDLE_ANIM_COUNT   = 2;
-constexpr int   BOSS_CHARGE_ANIM_START = 2;
+constexpr int   BOSS_IDLE_ANIM_COUNT   = 1;
+constexpr int   BOSS_CHARGE_ANIM_START = 1;
 constexpr int   BOSS_CHARGE_ANIM_COUNT = 1;
-constexpr int   BOSS_DASH_ANIM_START   = 3;
-constexpr int   BOSS_DASH_ANIM_COUNT   = 1;
-constexpr int   BOSS_SHOOT_ANIM_START  = 4;
-constexpr int   BOSS_SHOOT_ANIM_COUNT  = 3;
-constexpr int   BOSS_DIE_ANIM_START    = 7;
-constexpr int   BOSS_DIE_ANIM_COUNT    = 4;
+constexpr int   BOSS_DASH_ANIM_START   = 2;
+constexpr int   BOSS_DASH_ANIM_COUNT   = 3;
+constexpr int   BOSS_BRAKE_ANIM_START  = 5;
+constexpr int   BOSS_BRAKE_ANIM_COUNT  = 1;
+constexpr int   BOSS_SHOOT_ANIM_START  = 0;
+constexpr int   BOSS_SHOOT_ANIM_COUNT  = 1;
+constexpr int   BOSS_DIE_ANIM_START    = 1;
+constexpr int   BOSS_DIE_ANIM_COUNT    = 1;
 constexpr int   BOSS_ANIM_SPEED        = 10;
 constexpr float BOSS_HP                = 10.f;
 constexpr int   BOSS_IDLE_TICKS        = 90;
@@ -367,7 +369,13 @@ ent_type createBoss(b2WorldId world, float x, float y, SDL_Texture* tex)
     shapeDef.enableContactEvents = true;
     shapeDef.filter.categoryBits = CAT_ENEMY;
     shapeDef.filter.maskBits     = CAT_WORLD | CAT_PLAYER | CAT_PLAYER_BULLET;
-    b2Polygon boxShape           = b2MakeBox(halfW, halfH);
+    constexpr float HITBOX_SHRINK_FACTOR = 0.85f;
+    // smaller hitbox than sprite for easier dodging
+    b2Polygon boxShape =
+        b2MakeOffsetBox(halfW,
+                        halfH * HITBOX_SHRINK_FACTOR,
+                        {0.f, -halfH * (1.f - HITBOX_SHRINK_FACTOR)},
+                        b2Rot_identity);
     b2CreatePolygonShape(body, &shapeDef, &boxShape);
 
     bagel::World::addComponent<BossAnimation>(
@@ -380,15 +388,20 @@ ent_type createBoss(b2WorldId world, float x, float y, SDL_Texture* tex)
                                  BOSS_ANIM_SPEED}, // [1] CHARGE_DASH
                    AnimationClip{BOSS_DASH_ANIM_START,
                                  BOSS_DASH_ANIM_COUNT,
-                                 BOSS_ANIM_SPEED}, // [2] DASH
+                                 BOSS_ANIM_SPEED,
+                                 false}, // [2] DASH
+                   AnimationClip{BOSS_BRAKE_ANIM_START,
+                                 BOSS_BRAKE_ANIM_COUNT,
+                                 BOSS_ANIM_SPEED,
+                                 false}, // [3] BRAKE, one-shot
                    AnimationClip{BOSS_SHOOT_ANIM_START,
                                  BOSS_SHOOT_ANIM_COUNT,
                                  BOSS_ANIM_SPEED,
-                                 false}, // [3] SHOOT (one-shot)
+                                 false}, // [4] SHOOT (one-shot)
                    AnimationClip{BOSS_DIE_ANIM_START,
                                  BOSS_DIE_ANIM_COUNT,
                                  BOSS_ANIM_SPEED,
-                                 false}}}); // [4] DIE (one-shot)
+                                 false}}}); // [5] DIE (one-shot)
     bagel::World::addComponent<RenderFrame>(ent, {});
     bagel::World::addComponent<Drawable>(ent,
                                          {.texture           = tex,
@@ -1333,7 +1346,9 @@ void tickBoss(bagel::Entity& boss, float playerX, float /*playerY*/)
             }
             else
             {
-                ai.state      = BossAI::State::SHOOT;
+                // ignore for now
+                // ai.state      = BossAI::State::SHOOT;
+                ai.state      = BossAI::State::IDLE;
                 ai.stateTimer = 0;
             }
             ai.nextIsDash = !ai.nextIsDash;
@@ -1495,6 +1510,14 @@ void bossAnimSystem()
         auto&       rf   = e.get<RenderFrame>();
 
         anim.state = static_cast<BossAnimation::State>(ai.state);
+        // switch to BRAKE in last 30% of dash
+        if (anim.state == BossAnimation::State::DASH &&
+            static_cast<float>(ai.stateTimer) <
+                static_cast<float>(BOSS_DASH_TICKS) * 0.30f)
+        {
+            anim.state = BossAnimation::State::BRAKE;
+        }
+
         tickAnim(anim, rf);
 
         if (ai.state == BossAI::State::DIE && rf.finishedThisTick)
