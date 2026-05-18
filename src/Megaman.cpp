@@ -63,8 +63,8 @@ constexpr bool  LOCKSTER_HAS_BULLETS     = false;
 constexpr float LOCKSTER_HP              = 0.5f;
 
 // --- Boss ---
-constexpr float BOSS_SPRITE_W         = 32.f;
-constexpr float BOSS_SPRITE_H         = 32.f;
+constexpr float BOSS_SPRITE_W          = 32.f;
+constexpr float BOSS_SPRITE_H          = 32.f;
 constexpr int   BOSS_IDLE_ANIM_START   = 0;
 constexpr int   BOSS_IDLE_ANIM_COUNT   = 2;
 constexpr int   BOSS_CHARGE_ANIM_START = 2;
@@ -374,21 +374,21 @@ ent_type createBoss(b2WorldId world, float x, float y, SDL_Texture* tex)
         ent,
         {.clips = {AnimationClip{BOSS_IDLE_ANIM_START,
                                  BOSS_IDLE_ANIM_COUNT,
-                                 BOSS_ANIM_SPEED},             // [0] IDLE
+                                 BOSS_ANIM_SPEED}, // [0] IDLE
                    AnimationClip{BOSS_CHARGE_ANIM_START,
                                  BOSS_CHARGE_ANIM_COUNT,
-                                 BOSS_ANIM_SPEED},             // [1] CHARGE_DASH
+                                 BOSS_ANIM_SPEED}, // [1] CHARGE_DASH
                    AnimationClip{BOSS_DASH_ANIM_START,
                                  BOSS_DASH_ANIM_COUNT,
-                                 BOSS_ANIM_SPEED},             // [2] DASH
+                                 BOSS_ANIM_SPEED}, // [2] DASH
                    AnimationClip{BOSS_SHOOT_ANIM_START,
                                  BOSS_SHOOT_ANIM_COUNT,
                                  BOSS_ANIM_SPEED,
-                                 false},                       // [3] SHOOT (one-shot)
+                                 false}, // [3] SHOOT (one-shot)
                    AnimationClip{BOSS_DIE_ANIM_START,
                                  BOSS_DIE_ANIM_COUNT,
                                  BOSS_ANIM_SPEED,
-                                 false}}});                    // [4] DIE (one-shot)
+                                 false}}}); // [4] DIE (one-shot)
     bagel::World::addComponent<RenderFrame>(ent, {});
     bagel::World::addComponent<Drawable>(ent,
                                          {.texture           = tex,
@@ -664,13 +664,19 @@ void jumpSystem()
         {
             if (jumpPressed && (j.isGrounded || j.coyoteTimer > 0.f))
             {
-                b2Body_ApplyLinearImpulse(m.bodyId, {0.f, j.impulse}, {t.x, t.y}, true);
+                b2Body_ApplyLinearImpulse(m.bodyId,
+                                          {0.f, j.impulse},
+                                          {t.x, t.y},
+                                          true);
                 j.isJumping = true;
             }
             else if (j.isGrounded && j.bufferTimer > 0.f)
             {
                 // buffered jump: pressed early while airborne, fires on landing
-                b2Body_ApplyLinearImpulse(m.bodyId, {0.f, j.impulse}, {t.x, t.y}, true);
+                b2Body_ApplyLinearImpulse(m.bodyId,
+                                          {0.f, j.impulse},
+                                          {t.x, t.y},
+                                          true);
                 j.isJumping   = true;
                 j.bufferTimer = 0.f;
             }
@@ -1304,11 +1310,11 @@ void tickLockster(bagel::Entity& lockster, float playerX, float playerY)
 
 void tickBoss(bagel::Entity& boss, float playerX, float /*playerY*/)
 {
-    BossAI&           ai     = boss.get<BossAI>();
-    const MTransform& t      = boss.get<MTransform>();
-    Movement&         m      = boss.get<Movement>();
-    Intent&           intent = boss.get<Intent>();
-    const RenderFrame& rf    = boss.get<RenderFrame>();
+    BossAI&            ai     = boss.get<BossAI>();
+    const MTransform&  t      = boss.get<MTransform>();
+    Movement&          m      = boss.get<Movement>();
+    Intent&            intent = boss.get<Intent>();
+    const RenderFrame& rf     = boss.get<RenderFrame>();
 
     intent  = {};
     m.speed = 0.f;
@@ -1363,7 +1369,12 @@ void tickBoss(bagel::Entity& boss, float playerX, float /*playerY*/)
             if (--ai.shotTimer <= 0)
             {
                 const float velX = (t.x < playerX ? 1.f : -1.f) * BOSS_BULLET_VEL;
-                createProjectile(GlobalData::getBoxWorld(), t.x, t.y, velX, 0.f, true);
+                createProjectile(GlobalData::getBoxWorld(),
+                                 t.x,
+                                 t.y,
+                                 velX,
+                                 0.f,
+                                 true);
                 ++ai.shotsFired;
                 ai.shotTimer = BOSS_SHOT_INTERVAL;
             }
@@ -1479,9 +1490,9 @@ void bossAnimSystem()
         if (!e.test(bossMask))
             continue;
 
-        auto&       anim  = e.get<BossAnimation>();
-        const auto& ai    = e.get<BossAI>();
-        auto&       rf    = e.get<RenderFrame>();
+        auto&       anim = e.get<BossAnimation>();
+        const auto& ai   = e.get<BossAI>();
+        auto&       rf   = e.get<RenderFrame>();
 
         anim.state = static_cast<BossAnimation::State>(ai.state);
         tickAnim(anim, rf);

@@ -17,7 +17,7 @@ public:
     static constexpr float START_WIN_H    = 540;
     static constexpr float START_CAM_X    = (START_WIN_W / (2 * PTM)) - 8.f;
     static constexpr float START_CAM_Y    = (START_WIN_H / (2 * PTM)) - 5.5f;
-    static constexpr float SCALE_FACTOR   = 2.5f;
+    static constexpr float SCALE_FACTOR   = 2.6f;
     static constexpr float GRAVITY        = 25.f;
 
     static void setWindow(SDL_Window* window)
@@ -109,8 +109,10 @@ public:
         constexpr float ppm   = PTM * SCALE_FACTOR;
         const float     halfW = START_WIN_W * 0.5f / ppm;
         const float     halfH = START_WIN_H * 0.5f / ppm;
-        return { _camData.posX - halfW, _camData.posX + halfW,
-                 _camData.posY - halfH, _camData.posY + halfH };
+        return {_camData.posX - halfW,
+                _camData.posX + halfW,
+                _camData.posY - halfH,
+                _camData.posY + halfH};
     }
 
 private:

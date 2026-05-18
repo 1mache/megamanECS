@@ -88,7 +88,8 @@ MegamanGame::MegamanGame()
     _scene.attachPhysics(_boxWorld);
 
     const auto& playerSpawns = _scene.getPlayerSpawns();
-    createPlayer(_boxWorld, playerSpawns[0].x, playerSpawns[0].y, _tex);
+    auto& playersp = playerSpawns[playerSpawns.size() - 1]; // TODO: change to 0.
+    createPlayer(_boxWorld, playersp.x, playersp.y, _tex);
 
     for (const SpawnPoint& sp : _scene.getEnemySpawns())
     {
