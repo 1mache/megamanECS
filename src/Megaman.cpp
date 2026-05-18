@@ -111,7 +111,7 @@ constexpr float ENEMY_CONTACT_DAMAGE = 1.f;
 // --- Shoot cooldowns ---
 constexpr int PLAYER_SHOOT_COOLDOWN    = 20;
 constexpr int PATROLLER_SHOOT_COOLDOWN = 120;
-constexpr int BOSS_SHOOT_COOLDOWN      = 30;
+constexpr int BOSS_SHOOT_COOLDOWN      = 40;
 } // namespace
 
 namespace megaman
@@ -921,8 +921,10 @@ void drawSystem(SDL_Renderer* ren)
                 continue;
         }
 
-        SDL_FRect src  = {static_cast<float>(rf.spriteIndex) * d.spriteW, 0.f,
-                          d.spriteW, d.spriteH};
+        SDL_FRect src  = {static_cast<float>(rf.spriteIndex) * d.spriteW,
+                          0.f,
+                          d.spriteW,
+                          d.spriteH};
         SDL_FRect dest = transformToFrect(t);
 
         const bool         shouldFlip = m.facingLeft == d.defaultFacingLeft;
