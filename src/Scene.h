@@ -17,7 +17,7 @@ namespace megaman
 class Scene
 {
 public:
-    static constexpr const char* SOLID_CLASS = "solid";
+    static constexpr const char* SOLID_CLASS  = "solid";
     static constexpr const char* SPAWNS_CLASS = "spawns";
 
 public:

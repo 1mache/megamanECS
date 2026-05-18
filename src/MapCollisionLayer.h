@@ -27,6 +27,9 @@ public:
 private:
     // world coords: center + half-extents, Y-up, meters
     std::vector<MTransform> _rects;
+
+    static constexpr const char* DOOR_CLASS         = "door";
+    static constexpr const char* DOOR_TRIGGER_CLASS = "door_trigg";
 };
 
 } // namespace megaman

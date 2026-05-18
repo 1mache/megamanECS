@@ -1388,8 +1388,9 @@ void tickBoss(bagel::Entity& boss, float playerX, float /*playerY*/)
     Movement&         m      = boss.get<Movement>();
     Intent&           intent = boss.get<Intent>();
 
-    intent  = {};
-    m.speed = 0.f;
+    intent       = {};
+    m.speed      = 0.f;
+    m.facingLeft = (t.x > playerX);
 
     switch (ai.state)
     {
