@@ -1,3 +1,14 @@
+/**
+ * @file GlobalData.h
+ * @brief Singleton-style static store for engine-wide resources and constants.
+ *
+ * Unit system:
+ *  - World coordinates are in **meters** (Y-up).
+ *  - PTM (pixels-to-meters) = 16: one meter equals 16 texels at native scale.
+ *  - SCALE_FACTOR = 2.6: the renderer scales texels up by this factor.
+ *  - Combined: 1 m = PTM × SCALE_FACTOR ≈ 41.6 screen pixels.
+ *  - GRAVITY is in m/s².
+ */
 #pragma once
 #include "CameraData.h"
 #include "Utils.h"
@@ -7,6 +18,12 @@
 
 namespace megaman
 {
+/**
+ * @brief Engine-global resources: window, renderer, textures, Box2D world, camera.
+ *
+ * All members are static; the class cannot be instantiated. Setters assert-once
+ * (debug) or fatal-error (release) to prevent accidental overwrites.
+ */
 class GlobalData
 {
 public:
@@ -104,6 +121,15 @@ public:
         _camData.posY = y;
     }
 
+    /**
+     * @brief Computes the camera's visible AABB in world units.
+     *
+     * Converts the half-viewport extents from screen pixels to meters using
+     * PTM × SCALE_FACTOR, then offsets from the current camera center.
+     * Used by projectileCullSystem and any system that needs world-space culling.
+     *
+     * @return WorldBoundsM covering the currently visible area.
+     */
     static WorldBoundsM getCamBoundsM()
     {
         constexpr float ppm   = PTM * SCALE_FACTOR;

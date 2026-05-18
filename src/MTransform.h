@@ -1,3 +1,10 @@
+/**
+ * @file MTransform.h
+ * @brief World-space transform and world↔screen conversion helpers.
+ *
+ * MTransform stores positions in meters (Y-up). All rendering converts via
+ * worldToScreenPoint / worldToScreenSize before passing to SDL.
+ */
 #pragma once
 #include "CameraData.h"
 #include "GlobalData.h"
@@ -6,6 +13,7 @@
 
 namespace megaman
 {
+/** @brief World-space AABB transform: center (x,y), half-extents (w,h), rotation. */
 struct MTransform
 {
     // *In world coordinates
@@ -18,20 +26,33 @@ struct MTransform
     float rot{};
 };
 
-// world coords (meters, Y-up) -> SDL screen coords (pixels, Y-down).
+/**
+ * @brief Converts a world point to SDL screen coordinates.
+ *
+ * Maps meters (Y-up, camera-relative) to pixels (Y-down, window-relative).
+ * Formula: screenX = winCenterX + (worldX − camX) × PTM × scale
+ *          screenY = winCenterY − (worldY − camY) × PTM × scale
+ * Used by every rendering call in drawSystem and MapTileLayer::draw.
+ *
+ * @param worldPos  Position in world units (meters, Y-up).
+ * @param cam       Current camera center in world units.
+ * @return SDL_FPoint in screen pixels (Y-down, origin top-left).
+ */
 SDL_FPoint worldToScreenPoint(SDL_FPoint worldPos, const CameraData& cam);
 
-// Convert sizes between world units (meters) and screen pixels,
+/** @brief Converts a world-unit length to screen pixels (PTM × SCALE_FACTOR). */
 constexpr float worldToScreenSize(float worldSize)
 {
     return worldSize * GlobalData::PTM * GlobalData::SCALE_FACTOR;
 }
 
+/** @brief Converts a screen-pixel length to world units (inverse of worldToScreenSize). */
 constexpr float screenToWorldSize(float pixelSize)
 {
     return pixelSize / (GlobalData::PTM * GlobalData::SCALE_FACTOR);
 }
 
+/** @brief Converts an MTransform to an SDL_FRect in screen pixels for rendering. */
 SDL_FRect transformToFrect(const MTransform& t);
 
 constexpr b2Vec2 transformToB2Pos(const MTransform& t)

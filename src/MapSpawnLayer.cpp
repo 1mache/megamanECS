@@ -1,3 +1,7 @@
+/**
+ * @file MapSpawnLayer.cpp
+ * @brief Parses the TMX spawn object layer into typed SpawnPoint vectors.
+ */
 #include "MapSpawnLayer.h"
 
 #include "GlobalData.h"

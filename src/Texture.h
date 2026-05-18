@@ -1,3 +1,7 @@
+/**
+ * @file Texture.h
+ * @brief RAII wrapper for SDL_Texture.
+ */
 #pragma once
 
 #include <SDL3/SDL.h>
@@ -6,6 +10,7 @@
 
 namespace megaman
 {
+/** @brief Owns an SDL_Texture; destroyed in the destructor. Non-copyable and non-movable. */
 class Texture final
 {
 public:

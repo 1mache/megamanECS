@@ -1,3 +1,7 @@
+/**
+ * @file Scene.cpp
+ * @brief Scene load, physics attachment, draw, camera clamping, and layer processors.
+ */
 #include "Scene.h"
 
 #include "GlobalData.h"

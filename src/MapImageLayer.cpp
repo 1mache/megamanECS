@@ -1,3 +1,7 @@
+/**
+ * @file MapImageLayer.cpp
+ * @brief TMX image layer parse and parallax-tiled draw implementation.
+ */
 #include "MapImageLayer.h"
 
 #include "GlobalData.h"

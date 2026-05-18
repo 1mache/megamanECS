@@ -6,9 +6,9 @@
 # Project related configuration options
 #---------------------------------------------------------------------------
 DOXYFILE_ENCODING       = UTF-8
-PROJECT_NAME            = "C++ Project Template"
+PROJECT_NAME            = "Magaman"
 PROJECT_NUMBER          = 1.0.0
-PROJECT_BRIEF           =
+PROJECT_BRIEF           = "ECS-based Megaman game in C++20"
 PROJECT_LOGO            =
 OUTPUT_DIRECTORY        = ./
 OUTPUT_LANGUAGE         = English
@@ -17,7 +17,7 @@ MARKDOWN_SUPPORT        = YES
 #---------------------------------------------------------------------------
 # Build related configuration options
 #---------------------------------------------------------------------------
-EXTRACT_ALL             = YES
+EXTRACT_ALL             = NO
 RECURSIVE               = YES
 GENERATE_HTML           = YES
 GENERATE_LATEX          = NO
@@ -25,8 +25,7 @@ GENERATE_LATEX          = NO
 #---------------------------------------------------------------------------
 # Configuration options related to the input files
 #---------------------------------------------------------------------------
-INPUT                  =    ../src \
-INPUT                       ../include
+INPUT                  =    ../src
 INPUT_ENCODING         = UTF-8
 FILE_PATTERNS          = *.c \
                          *.cc \

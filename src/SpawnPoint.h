@@ -1,9 +1,19 @@
+/**
+ * @file SpawnPoint.h
+ * @brief World-coordinate spawn/checkpoint descriptor loaded from the TMX map.
+ */
 #pragma once
 #include <string_view>
 
 namespace megaman
 {
 
+/**
+ * @brief A single point-object read from the spawn layer.
+ *
+ * Player entries double as checkpoints; enemy entries carry patrol-destination
+ * info where applicable (Ptrol type only).
+ */
 struct SpawnPoint
 {
     enum Type

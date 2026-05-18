@@ -1,3 +1,7 @@
+/**
+ * @file MegamanGame.cpp
+ * @brief MegamanGame constructor, destructor, and main loop implementation.
+ */
 #include "MegamanGame.h"
 #include "GlobalData.h"
 #include "Megaman.h"

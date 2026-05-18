@@ -1,3 +1,7 @@
+/**
+ * @file MapCollisionLayer.cpp
+ * @brief TMX object-layer rectangle parse and static Box2D body creation.
+ */
 #include "MapCollisionLayer.h"
 
 #include "GlobalData.h"

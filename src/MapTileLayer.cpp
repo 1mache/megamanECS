@@ -1,3 +1,7 @@
+/**
+ * @file MapTileLayer.cpp
+ * @brief TMX tile layer parse (create) and camera-aware vertex-geometry render (draw).
+ */
 #include "MapTileLayer.h"
 
 #include "GlobalData.h"

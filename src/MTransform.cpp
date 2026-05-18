@@ -1,3 +1,7 @@
+/**
+ * @file MTransform.cpp
+ * @brief worldToScreenPoint and transformToFrect implementations.
+ */
 #include "MTransform.h"
 #include "GlobalData.h"
 namespace megaman

@@ -1,3 +1,7 @@
+/**
+ * @file Megaman.cpp
+ * @brief Implementations of all entity factories, ECS systems, and AI tick functions.
+ */
 #include "Megaman.h"
 #include "GlobalData.h"
 #include "MTransform.h"
@@ -116,6 +120,22 @@ constexpr int BOSS_SHOOT_COOLDOWN      = 40;
 
 namespace megaman
 {
+/**
+ * @brief Generic animation tick for any animation component.
+ *
+ * Selects the active clip by casting anim.state to std::size_t and indexing anim.clips.
+ * On a state change (state != prev): resets frame and timer so the new clip starts clean.
+ * Frame advance: increments timer each tick; when timer reaches framesPerStep, advances frame.
+ *  - loop=true  → wraps frame to 0 at the end of the clip.
+ *  - loop=false → clamps frame to the last index and sets rf.finishedThisTick for one tick.
+ * Single-frame clips (frameCount=1) skip the advance entirely.
+ * Always writes rf.spriteIndex = clip.startFrame + anim.frame.
+ *
+ * @tparam AnimT  Animation component type (PlayerAnimation, BossAnimation, etc.).
+ *                Must have: state, prev, frame, timer, clips[].
+ * @param anim    Animation component to advance (modified in place).
+ * @param rf      RenderFrame to write the resolved sprite index and finish flag into.
+ */
 template <typename AnimT>
 void tickAnim(AnimT& anim, megaman::RenderFrame& rf)
 {
@@ -170,6 +190,16 @@ const bagel::Mask& playerMask()
     return mask;
 }
 
+/**
+ * @brief Builds the player entity.
+ *
+ * Creates a dynamic Box2D body with fixedRotation and zero friction/restitution so
+ * the player slides cleanly against walls. Body userData is set to the entity id so
+ * collisionSystem can resolve the player from a raw b2BodyId. Attaches all components
+ * needed by every system: Movement (speed, body), Jump (impulse, coyote, buffer timers),
+ * Health, DamageIntent, Input (tag), Intent, Weapon, Respawn, and the full animation
+ * clip table for PlayerAnimation.
+ */
 ent_type createPlayer(b2WorldId world, float x, float y, SDL_Texture* tex)
 {
     constexpr float halfW = PLAYER_SPRITE_W / (2 * GlobalData::PTM);
@@ -238,6 +268,13 @@ ent_type createPlayer(b2WorldId world, float x, float y, SDL_Texture* tex)
     return ent;
 }
 
+/**
+ * @brief Builds a Patroller enemy entity.
+ *
+ * Uses a kinematic body (movementSystem sets velocity; Box2D doesn't apply forces/gravity).
+ * AI component stores patrol bounds and detection range; aiSystem drives Intent via tickPatroller.
+ * defaultFacingLeft=false because the source sprite faces right.
+ */
 ent_type createPatroller(b2WorldId    world,
                          float        x,
                          float        y,
@@ -305,6 +342,14 @@ ent_type createPatroller(b2WorldId    world,
     return ent;
 }
 
+/**
+ * @brief Builds a Lockster enemy entity.
+ *
+ * Dynamic body with restitution=1.0 (perfect bounce) and enableSleep=false so it
+ * stays active while off-screen. The Lockster has no Weapon component; it damages the
+ * player only via body contact. tickLockster sets Health::isInvulnerable=true while
+ * the enemy is idle (player bullets bounce off).
+ */
 ent_type createLockster(b2WorldId world, float x, float y, SDL_Texture* tex)
 {
     constexpr float halfW = LOCKSTER_SPRITE_W / (2 * GlobalData::PTM);
@@ -365,6 +410,13 @@ ent_type createLockster(b2WorldId world, float x, float y, SDL_Texture* tex)
     return ent;
 }
 
+/**
+ * @brief Builds the boss entity with a reduced hitbox and full state machine.
+ *
+ * The hitbox is HITBOX_SHRINK_FACTOR of the sprite height and offset downward,
+ * giving a visual buffer at the top of the sprite. BossAI starts in IDLE with
+ * stateTimer = BOSS_IDLE_TICKS; nextIsDash = true so the first attack is a dash.
+ */
 ent_type createBoss(b2WorldId world, float x, float y, SDL_Texture* tex)
 {
     constexpr float halfW = BOSS_SPRITE_W / (2 * GlobalData::PTM);
@@ -455,6 +507,15 @@ ent_type createPlatform(float x, float y, bool isMoving)
     return ent;
 }
 
+/**
+ * @brief Spawns a bullet entity with an immediately moving Box2D body.
+ *
+ * Sets isBullet=true on the body definition for continuous-collision-detection.
+ * gravityScale=0 ensures straight-line travel. Velocity is scaled by FPS
+ * (velX/velY are in world-units/tick; Box2D uses world-units/second).
+ * spriteIndex is set to the Weapon::Type enum value which equals the column
+ * in shots.png (Normal=0, Boss=1).
+ */
 ent_type createProjectile(b2WorldId    world,
                           float        x,
                           float        y,
@@ -560,6 +621,7 @@ ent_type createItem(float x, float y)
 
 // ============= SYSTEMS =============
 
+/** @brief See declaration in Megaman.h for full documentation. */
 void inputSystem()
 {
     static const bagel::Mask mask =
@@ -582,6 +644,14 @@ void inputSystem()
     }
 }
 
+/**
+ * @brief See declaration in Megaman.h. Implementation notes:
+ *
+ * Horizontal velocity is set directly on the Box2D body each tick (not accumulated),
+ * preserving the body's current Y velocity so gravity / jump impulse are unaffected.
+ * MTransform is synced from b2Body_GetPosition every tick regardless of whether
+ * Intent is present, so projectiles and AI bodies stay consistent.
+ */
 void movementSystem(float sceneMinY)
 {
     static const bagel::Mask mask =
@@ -636,6 +706,22 @@ void movementSystem(float sceneMinY)
     }
 }
 
+/**
+ * @brief See declaration in Megaman.h. Implementation notes:
+ *
+ * Three raycasts (center, left-inner, right-inner) cast from the sprite center downward
+ * by (halfH + GROUND_PROBE) to detect the ground just below the foot. The EPSILON inset
+ * on the side rays avoids false positives on wall edges.
+ *
+ * Coyote window: started when the player walks off a ledge without jumping; expires after
+ * PLAYER_JUMP_COYOTE_TIME ticks, allowing a jump if still within the window.
+ *
+ * Jump buffer: set on a fresh up-press while airborne; fires on the first grounded frame,
+ * allowing early button presses to reliably register a jump.
+ *
+ * Fall gravity: when the body is moving downward (velY ≤ 0) and isJumping is true,
+ * gravity scale is set to PLAYER_JUMP_FALL_FACTOR for a heavier, more responsive feel.
+ */
 void jumpSystem()
 {
     static const bagel::Mask mask = bagel::MaskBuilder()
@@ -741,6 +827,14 @@ void jumpSystem()
     }
 }
 
+/**
+ * @brief See declaration in Megaman.h. Implementation notes:
+ *
+ * The entity is identified as an enemy if it lacks the Input tag (enemies have no Input).
+ * This controls both the bullet's fromEnemy flag and which cooldown constant is applied.
+ * The cooldown is stored on Weapon::shootCooldown and decrements every tick regardless
+ * of whether shoot is pressed — this is intentional to avoid cooldown stalling.
+ */
 void shootingSystem()
 {
     static const bagel::Mask mask = bagel::MaskBuilder()
@@ -782,6 +876,13 @@ void shootingSystem()
     }
 }
 
+/**
+ * @brief See declaration in Megaman.h. Implementation notes:
+ *
+ * State priority (highest first): isJumping → shootHoldTicks > 0 (Shoot*) → velX != 0 (Run) → Idle.
+ * shootHoldTicks counts down each frame; the shoot-pose persists for PLAYER_SHOOT_HOLD_TICKS
+ * even after the fire key is released so there is visible feedback for single-tap shots.
+ */
 void playerAnimSystem()
 {
     for (bagel::Entity e = bagel::Entity::first(); !e.eof(); e.next())
@@ -823,6 +924,13 @@ void patrollerAnimSystem()
     }
 }
 
+/**
+ * @brief See declaration in Megaman.h. Implementation notes:
+ *
+ * State priority: alertTimer >= 30 (Charge) → player in range (Alert) → Idle.
+ * Y_MARGIN limits alert detection to enemies roughly on the same platform row.
+ * The player position is sampled once per call at the top of the function.
+ */
 void locksterAnimSystem()
 {
     static const bagel::Mask locksterMask = bagel::MaskBuilder()
@@ -892,6 +1000,17 @@ void explosionAnimSystem()
         bagel::Entity{e}.destroy();
 }
 
+/**
+ * @brief See declaration in Megaman.h. Implementation notes:
+ *
+ * Flip logic: shouldFlip = (facingLeft == defaultFacingLeft). When both match,
+ * the entity faces the default direction of the source art, so we flip to show the
+ * opposite. When they differ we don't flip. This allows sprites that face right by
+ * default (defaultFacingLeft=false) to still flip correctly.
+ *
+ * Invulnerability flicker: hides the entity every other 4-tick window
+ * ((invulnerableTimer / 4) % 2 == 0) for a classic blink effect.
+ */
 void drawSystem(SDL_Renderer* ren)
 {
     static const bagel::Mask mask = bagel::MaskBuilder()
@@ -1027,6 +1146,25 @@ void projectileCullSystem()
         destroyProjectile(bagel::Entity{id});
 }
 
+/**
+ * @brief See declaration in Megaman.h. Implementation notes:
+ *
+ * Entity recovery: lookupId() reads b2Body_GetUserData cast back to int. World geometry
+ * bodies set userData to -1 (createBodies in MapCollisionLayer), so idA/idB < 0 means
+ * the contact side is static geometry — no ECS entity to dispatch to.
+ *
+ * alreadyQueued guard: prevents double-destroying a bullet that hits two shapes in one step
+ * (possible with CCD or overlapping fixtures).
+ *
+ * Order of contact checks:
+ *  1. Find which side (if any) is a bullet by testing the bulletMask.
+ *  2. Bullet vs. world (-1): destroy bullet.
+ *  3. Bullet vs. invulnerable enemy: reverse bullet X velocity (bounce), skip damage.
+ *  4. Bullet vs. damageable target: queue DamageIntent, then destroy bullet.
+ *  5. No bullet: check player-enemy body overlap for contact damage.
+ *
+ * Camera follow: player position updates GlobalData every physics step (before rendering).
+ */
 void collisionSystem(b2WorldId world)
 {
     constexpr float dt       = 1.f / static_cast<float>(GlobalData::FPS);
@@ -1158,6 +1296,15 @@ void collisionSystem(b2WorldId world)
         destroyProjectile(bagel::Entity{e});
 }
 
+/**
+ * @brief See declaration in Megaman.h. Implementation notes:
+ *
+ * Freeze frames: when the player is hit, all entities with the AI component receive
+ * AI::freezeFrames = PLAYER_HIT_FREEZE_FRAMES. aiSystem skips ticking those entities,
+ * giving a brief pause that emphasises the hit feedback.
+ * DamageIntent::pending is always cleared, even when the entity is invulnerable,
+ * so stale damage doesn't fire on the next vulnerable frame.
+ */
 void damageSystem()
 {
     static const bagel::Mask mask =
@@ -1205,6 +1352,15 @@ void damageSystem()
     }
 }
 
+/**
+ * @brief See declaration in Megaman.h. Implementation notes:
+ *
+ * Invulnerability timer is ticked down each frame here (not in damageSystem) so the
+ * timer runs even between damage events. Boss death is a soft transition: healthSystem
+ * sets BossAI::State::DIE and bossAnimSystem destroys the entity after the clip ends.
+ * Regular enemies are destroyed synchronously (body + entity) with deferred collection
+ * to avoid iterator invalidation.
+ */
 void healthSystem()
 {
     static const bagel::Mask mask = bagel::MaskBuilder().set<Health>().build();
@@ -1255,6 +1411,12 @@ void healthSystem()
 
 namespace
 {
+/**
+ * @brief Spawns 8 bullets in cardinal and diagonal directions from position @p t.
+ *
+ * Direction vectors are pre-computed unit vectors at 45° intervals (k = 1/√2).
+ * All bullets share the Weapon's speed, type, and damage values.
+ */
 void fireRadialBurst(const MTransform& t, bagel::Entity self)
 {
     const Weapon&                                    w    = self.get<Weapon>();
@@ -1280,6 +1442,16 @@ void fireRadialBurst(const MTransform& t, bagel::Entity self)
     }
 }
 
+/**
+ * @brief AI tick for the Patroller enemy.
+ *
+ * Burst phase (burstTimer > 0): fires the radial burst on the first tick (burstFired guard),
+ * holds BURST state for the remaining frames, then returns to patrol.
+ * Patrol phase: bounces between patrolMinX / patrolMaxX using a direction flag.
+ * Burst trigger: when the player is within circular detection range AND the patroller is
+ * near the center of its patrol path (PATROLLER_CENTER_TOL) AND the burst cooldown is 0.
+ * The center check prevents burst-firing while near a patrol boundary.
+ */
 void tickPatroller(bagel::Entity& patroller, float playerX, float playerY)
 {
     AI&               ai     = patroller.get<AI>();
@@ -1335,6 +1507,19 @@ void tickPatroller(bagel::Entity& patroller, float playerX, float playerY)
     }
 }
 
+/**
+ * @brief AI tick for the Lockster enemy.
+ *
+ * State machine (driven by alertTimer):
+ *  - alertTimer < 30 and player in range: increment alertTimer (wind-up).
+ *  - alertTimer == 30: lock targetX to current playerX.
+ *  - alertTimer >= 30 (isCharging): move toward targetX at LOCKSTER_CHARGE_SPEED;
+ *    stop and reset alertTimer when within 0.2 m of target.
+ *  - player out of range: reset alertTimer to 0.
+ * Invulnerability: the Lockster is vulnerable only while charging; at all other
+ * times Health::isInvulnerable = true so player bullets bounce off.
+ * Y_MARGIN restricts detection to enemies on the same horizontal plane as the player.
+ */
 void tickLockster(bagel::Entity& lockster, float playerX, float playerY)
 {
     AI&               ai     = lockster.get<AI>();
@@ -1384,6 +1569,18 @@ void tickLockster(bagel::Entity& lockster, float playerX, float playerY)
     h.isInvulnerable = !isCharging;
 }
 
+/**
+ * @brief AI tick for the boss entity.
+ *
+ * State transitions (all via stateTimer countdown):
+ *  IDLE          → CHARGE_DASH or SHOOT (alternates via nextIsDash flag).
+ *  CHARGE_DASH   → DASH (direction locked on entry to this state).
+ *  DASH          → IDLE (boss moves at BOSS_DASH_SPEED for BOSS_DASH_TICKS).
+ *  SHOOT         → IDLE (fires BOSS_SHOTS bullets with BOSS_SHOOT_COOLDOWN interval,
+ *                         each aimed at the player's current X).
+ *  DIE           → no-op (bossAnimSystem handles destruction).
+ * Boss always faces the player (m.facingLeft updated every tick from playerX comparison).
+ */
 void tickBoss(bagel::Entity& boss, float playerX, float /*playerY*/)
 {
     BossAI&           ai     = boss.get<BossAI>();
@@ -1468,6 +1665,14 @@ void tickBoss(bagel::Entity& boss, float playerX, float /*playerY*/)
 }
 } // namespace
 
+/**
+ * @brief See declaration in Megaman.h. Implementation notes:
+ *
+ * Locates the player entity once (first entity matching playerMask) and caches
+ * its position before dispatching enemy ticks. Enemies with freezeFrames > 0
+ * have their Intent zeroed and the counter decremented — they keep their current
+ * Box2D velocity but stop generating new movement intent.
+ */
 void aiSystem()
 {
     static const bagel::Mask enemyMask = bagel::MaskBuilder()
@@ -1548,6 +1753,14 @@ void bossSystem()
     }
 }
 
+/**
+ * @brief See declaration in Megaman.h. Implementation notes:
+ *
+ * The BRAKE animation state has no matching BossAI state; it is injected here when
+ * the remaining dash time is below 30% of BOSS_DASH_TICKS — giving a visual deceleration
+ * cue. bossAnimSystem also handles deferred destruction on DIE clip finish (collected then
+ * destroyed to avoid invalidating the entity iterator).
+ */
 void bossAnimSystem()
 {
     static const bagel::Mask bossMask = bagel::MaskBuilder()
@@ -1622,6 +1835,16 @@ void checkpointSystem(const std::vector<SpawnPoint>& checkpoints)
     }
 }
 
+/**
+ * @brief See declaration in Megaman.h. Implementation notes:
+ *
+ * Lockster re-creation check: after a respawn, iterates all enemy spawns of Lockster type
+ * and verifies an entity with a matching spawnX/spawnY exists within 0.5 m tolerance.
+ * Any missing Lockster (destroyed by healthSystem) is re-created via createLockster.
+ * This keeps Locksters alive across respawns unlike Patrollers which are reset in-place.
+ * All bullets are cleared when respawn begins to prevent residual projectiles from
+ * damaging the player during the flicker window.
+ */
 void respawnSystem(b2WorldId                      world,
                    const std::vector<SpawnPoint>& enemySpawns,
                    SDL_Texture*                   locksterTex)
