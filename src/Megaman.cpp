@@ -48,7 +48,7 @@ constexpr int   PATROLLER_JUMP_COUNT      = 1;
 constexpr int   PATROLLER_ANIM_SPEED      = 16;
 constexpr float PATROLLER_DETECTION_RANGE = 15.f;
 constexpr float PATROLLER_SPEED           = 5.f;
-constexpr int   PATROLLER_HP              = 1.f;
+constexpr int   PATROLLER_HP              = 2.f;
 constexpr int   PATROLLER_BURST_START     = 3;
 constexpr int   PATROLLER_BURST_COUNT     = 1;
 constexpr int   PATROLLER_BURST_FRAMES    = 24;
@@ -90,7 +90,7 @@ constexpr int   BOSS_IDLE_TICKS        = 60;
 constexpr int   BOSS_CHARGE_TICKS      = 50;
 constexpr int   BOSS_DASH_TICKS        = 45;
 constexpr float BOSS_DASH_SPEED        = 20.f;
-constexpr int   BOSS_SHOTS             = 2;
+constexpr int   BOSS_SHOTS             = 3;
 
 // --- Projectile ---
 constexpr float PLAYER_SHOT_SPEED    = 0.5f;
@@ -1937,6 +1937,18 @@ void respawnSystem(b2WorldId                      world,
                     eai.burstTimer      = 0;
                     eai.burstCooldown   = 0;
                     eai.burstFired      = false;
+                }
+
+                // boss does not carry AI/Respawn — reset its HP separately
+                static const bagel::Mask bossMask =
+                    bagel::MaskBuilder().set<BossAI>().set<Health>().build();
+                for (bagel::Entity be = bagel::Entity::first(); !be.eof(); be.next())
+                {
+                    if (!be.test(bossMask))
+                        continue;
+                    auto& bh  = be.get<Health>();
+                    bh.points = BOSS_HP;
+                    bh.isDead = false;
                 }
 
                 static const bagel::Mask locksterAIMask =
