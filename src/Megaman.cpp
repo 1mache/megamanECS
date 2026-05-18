@@ -83,8 +83,7 @@ constexpr int   BOSS_IDLE_TICKS        = 90;
 constexpr int   BOSS_CHARGE_TICKS      = 60;
 constexpr int   BOSS_DASH_TICKS        = 45;
 constexpr float BOSS_DASH_SPEED        = 18.f;
-constexpr int   BOSS_SHOTS             = 5;
-constexpr int   BOSS_SHOT_INTERVAL     = 12;
+constexpr int   BOSS_SHOTS             = 2;
 
 // --- Projectile ---
 constexpr float PLAYER_SHOT_SPEED    = 0.5f;
@@ -409,18 +408,18 @@ ent_type createBoss(b2WorldId world, float x, float y, SDL_Texture* tex)
                                  BOSS_DASH_ANIM_COUNT,
                                  BOSS_ANIM_SPEED,
                                  false}, // [2] DASH
-                   AnimationClip{BOSS_BRAKE_ANIM_START,
-                                 BOSS_BRAKE_ANIM_COUNT,
-                                 BOSS_ANIM_SPEED,
-                                 false}, // [3] BRAKE, one-shot
                    AnimationClip{BOSS_SHOOT_ANIM_START,
                                  BOSS_SHOOT_ANIM_COUNT,
                                  BOSS_ANIM_SPEED,
-                                 false}, // [4] SHOOT (one-shot)
+                                 false}, // [3] SHOOT (one-shot)
                    AnimationClip{BOSS_DIE_ANIM_START,
                                  BOSS_DIE_ANIM_COUNT,
                                  BOSS_ANIM_SPEED,
-                                 false}}}); // [5] DIE (one-shot)
+                                 false}, // [4] DIE (one-shot)
+                   AnimationClip{BOSS_BRAKE_ANIM_START,
+                                 BOSS_BRAKE_ANIM_COUNT,
+                                 BOSS_ANIM_SPEED,
+                                 false}}}); // [5] BRAKE, one-shot
     bagel::World::addComponent<RenderFrame>(ent, {});
     bagel::World::addComponent<Drawable>(ent,
                                          {.texture           = tex,
@@ -440,7 +439,7 @@ ent_type createBoss(b2WorldId world, float x, float y, SDL_Texture* tex)
                                        {.type          = Weapon::Boss,
                                         .damage        = BOSS_BULLET_DAMAGE,
                                         .shotSpeed     = BOSS_SHOT_SPEED,
-                                        .shootCooldown = BOSS_SHOT_INTERVAL});
+                                        .shootCooldown = BOSS_SHOOT_COOLDOWN});
 
     return ent;
 }
@@ -1359,11 +1358,10 @@ void tickLockster(bagel::Entity& lockster, float playerX, float playerY)
 
 void tickBoss(bagel::Entity& boss, float playerX, float /*playerY*/)
 {
-    BossAI&            ai     = boss.get<BossAI>();
-    const MTransform&  t      = boss.get<MTransform>();
-    Movement&          m      = boss.get<Movement>();
-    Intent&            intent = boss.get<Intent>();
-    const RenderFrame& rf     = boss.get<RenderFrame>();
+    BossAI&           ai     = boss.get<BossAI>();
+    const MTransform& t      = boss.get<MTransform>();
+    Movement&         m      = boss.get<Movement>();
+    Intent&           intent = boss.get<Intent>();
 
     intent  = {};
     m.speed = 0.f;
@@ -1374,7 +1372,7 @@ void tickBoss(bagel::Entity& boss, float playerX, float /*playerY*/)
         if (--ai.stateTimer <= 0)
         {
             ai.shotsFired = 0;
-            ai.shotTimer  = BOSS_SHOT_INTERVAL;
+            ai.shotTimer  = BOSS_SHOOT_COOLDOWN;
             if (ai.nextIsDash)
             {
                 ai.state      = BossAI::State::CHARGE_DASH;
@@ -1382,9 +1380,7 @@ void tickBoss(bagel::Entity& boss, float playerX, float /*playerY*/)
             }
             else
             {
-                // ignore for now
-                // ai.state      = BossAI::State::SHOOT;
-                ai.state      = BossAI::State::IDLE;
+                ai.state      = BossAI::State::SHOOT;
                 ai.stateTimer = 0;
             }
             ai.nextIsDash = !ai.nextIsDash;
@@ -1415,28 +1411,25 @@ void tickBoss(bagel::Entity& boss, float playerX, float /*playerY*/)
         break;
 
     case BossAI::State::SHOOT:
-        if (ai.shotsFired < BOSS_SHOTS)
+        if (--ai.shotTimer <= 0)
         {
-            if (--ai.shotTimer <= 0)
+            const Weapon& w    = boss.get<Weapon>();
+            const float   velX = (t.x < playerX ? 1.f : -1.f) * w.shotSpeed;
+            createProjectile(GlobalData::getBoxWorld(),
+                             t.x,
+                             t.y,
+                             velX,
+                             0.f,
+                             w.type,
+                             w.damage,
+                             true);
+            ++ai.shotsFired;
+            ai.shotTimer = BOSS_SHOOT_COOLDOWN;
+            if (ai.shotsFired >= BOSS_SHOTS)
             {
-                const Weapon& w    = boss.get<Weapon>();
-                const float   velX = (t.x < playerX ? 1.f : -1.f) * w.shotSpeed;
-                createProjectile(GlobalData::getBoxWorld(),
-                                 t.x,
-                                 t.y,
-                                 velX,
-                                 0.f,
-                                 w.type,
-                                 w.damage,
-                                 true);
-                ++ai.shotsFired;
-                ai.shotTimer = BOSS_SHOT_INTERVAL;
+                ai.state      = BossAI::State::IDLE;
+                ai.stateTimer = BOSS_IDLE_TICKS;
             }
-        }
-        if (rf.finishedThisTick)
-        {
-            ai.state      = BossAI::State::IDLE;
-            ai.stateTimer = BOSS_IDLE_TICKS;
         }
         break;
 

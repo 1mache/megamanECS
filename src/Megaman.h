@@ -268,9 +268,9 @@ struct BossAnimation
         IDLE,
         CHARGE_DASH,
         DASH,
-        BRAKE,
         SHOOT,
-        DIE
+        DIE,
+        BRAKE // animation-only, no matching BossAI state
     };
     State                        state{State::IDLE};
     State                        prev{State::IDLE};
